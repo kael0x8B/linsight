@@ -1,0 +1,494 @@
+<script lang="ts" setup>
+import type { UploadFile } from 'ant-design-vue';
+
+import type { AiVideoModelApi } from '#/api/ai-video/model';
+import type { AiVideoNodeSimple } from '#/api/ai-video/node';
+
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+
+import { useAccess } from '@vben/access';
+import { Page } from '@vben/common-ui';
+
+import {
+  Alert,
+  Button,
+  Card,
+  Descriptions,
+  DescriptionsItem,
+  Empty,
+  Form,
+  FormItem,
+  InputNumber,
+  message,
+  Select,
+  Space,
+  Spin,
+  Table,
+  Tag,
+  Upload,
+} from 'ant-design-vue';
+
+import {
+  createModelTest,
+  deployModelVersion,
+  getModelDeployments,
+  getModelPage,
+  getModelTest,
+  getModelTests,
+  getModelVersionList,
+} from '#/api/ai-video/model';
+import { getNodeSimpleList } from '#/api/ai-video/node';
+import { AiPageHeader } from '#/components/ai-video';
+import { $t } from '#/locales';
+
+import {
+  deploymentStatusText,
+  isDeploymentPending,
+} from '../model/deployment-status';
+
+interface StandardObject {
+  attributes: Record<string, boolean | null | number | string>;
+  bbox: { height: number; width: number; x: number; y: number };
+  class: string;
+  confidence: number;
+}
+
+interface StandardResult {
+  objects: StandardObject[];
+  schemaVersion: '1.0';
+  sourceHeight: number;
+  sourceWidth: number;
+}
+
+const { hasAccessByCodes } = useAccess();
+const canDeploy = computed(() => hasAccessByCodes(['ai-video:model:deploy']));
+const canTest = computed(() => hasAccessByCodes(['ai-video:model:test']));
+const loading = ref(false);
+const error = ref('');
+const deploymentSubmitting = ref(false);
+const deploymentRefreshError = ref('');
+let disposed = false;
+const models = ref<AiVideoModelApi.Model[]>([]);
+const versions = ref<AiVideoModelApi.ModelVersion[]>([]);
+const nodes = ref<AiVideoNodeSimple[]>([]);
+const deployments = ref<AiVideoModelApi.ModelDeployment[]>([]);
+const tests = ref<AiVideoModelApi.ModelTest[]>([]);
+const selectedModelId = ref<number>();
+const selectedVersionId = ref<number>();
+const selectedNodeId = ref<number>();
+const uploadFiles = ref<UploadFile[]>([]);
+const previewUrl = ref('');
+const currentTest = ref<AiVideoModelApi.ModelTest>();
+const confidence = ref(0.5);
+const nmsThreshold = ref(0.5);
+const inputWidth = ref(640);
+const inputHeight = ref(640);
+let pollTimer: ReturnType<typeof setTimeout> | undefined;
+let deploymentPollTimer: ReturnType<typeof setTimeout> | undefined;
+
+const selectedDeployment = computed(() =>
+  deployments.value.find((item) => item.nodeId === selectedNodeId.value),
+);
+const selectedModel = computed(() =>
+  models.value.find((item) => item.id === selectedModelId.value),
+);
+const selectedVersion = computed(() =>
+  versions.value.find((item) => item.id === selectedVersionId.value),
+);
+const versionPublished = computed(
+  () => selectedVersion.value?.publishStatus === 'PUBLISHED',
+);
+const nodeReady = computed(
+  () => selectedDeployment.value?.actualStatus === 'READY',
+);
+const standardResult = computed<StandardResult | undefined>(() => {
+  if (!currentTest.value?.result) return undefined;
+  try {
+    return JSON.parse(currentTest.value.result) as StandardResult;
+  } catch {
+    return undefined;
+  }
+});
+
+async function loadInitial() {
+  loading.value = true;
+  error.value = '';
+  try {
+    const [modelPage, nodeList] = await Promise.all([
+      getModelPage({ pageNo: 1, pageSize: 100, status: 0 }),
+      getNodeSimpleList(),
+    ]);
+    models.value = modelPage.list;
+    nodes.value = nodeList;
+    selectedModelId.value = modelPage.list[0]?.id;
+    selectedNodeId.value = nodeList.find((node) => node.onlineStatus === 1)?.id;
+  } catch {
+    error.value = '单图测试初始化失败，请检查控制面和节点状态。';
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function loadVersions() {
+  deployments.value = [];
+  tests.value = [];
+  currentTest.value = undefined;
+  selectedVersionId.value = undefined;
+  if (!selectedModelId.value) {
+    versions.value = [];
+    return;
+  }
+  const versionList = await getModelVersionList(selectedModelId.value);
+  versions.value = versionList;
+  selectedVersionId.value =
+    versionList.find((item) => item.publishStatus === 'PUBLISHED')?.id ??
+    selectedModel.value?.currentVersionId ??
+    versionList[0]?.id;
+}
+
+async function loadExecutionState() {
+  deployments.value = [];
+  tests.value = [];
+  currentTest.value = undefined;
+  if (!selectedVersionId.value) return;
+  [deployments.value, tests.value] = await Promise.all([
+    getModelDeployments(selectedVersionId.value),
+    getModelTests(selectedVersionId.value),
+  ]);
+}
+
+async function deploy() {
+  if (deploymentSubmitting.value) return;
+  if (!selectedVersionId.value || !selectedNodeId.value) return;
+  if (!versionPublished.value) {
+    message.warning('请先在模型资产页发布该版本');
+    return;
+  }
+  deploymentSubmitting.value = true;
+  try {
+    await deployModelVersion(selectedVersionId.value, selectedNodeId.value);
+    message.success('部署命令已进入节点耐久队列');
+    await loadExecutionState();
+  } finally {
+    deploymentSubmitting.value = false;
+    scheduleDeploymentPoll();
+  }
+}
+
+function scheduleDeploymentPoll() {
+  if (deploymentPollTimer) clearTimeout(deploymentPollTimer);
+  if (disposed || !selectedVersionId.value || nodeReady.value) return;
+  const versionId = selectedVersionId.value;
+  deploymentPollTimer = setTimeout(async () => {
+    try {
+      const result = await getModelDeployments(versionId);
+      if (disposed || versionId !== selectedVersionId.value) return;
+      deployments.value = result;
+      deploymentRefreshError.value = '';
+    } catch {
+      deploymentRefreshError.value = $t('model-deployment.refreshFailed');
+    }
+    if (
+      deploymentRefreshError.value ||
+      isDeploymentPending(selectedDeployment.value?.actualStatus)
+    )
+      scheduleDeploymentPoll();
+  }, 1500);
+}
+
+function handleFileChanged() {
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
+  const file = uploadFiles.value[0]?.originFileObj;
+  previewUrl.value = file ? URL.createObjectURL(file) : '';
+}
+
+async function runTest() {
+  const image = uploadFiles.value[0]?.originFileObj;
+  if (!selectedVersionId.value || !selectedNodeId.value || !image) {
+    message.warning('请选择版本、在线节点和测试图片');
+    return;
+  }
+  if (!nodeReady.value) {
+    message.warning('模型必须先在所选节点进入 ready 状态');
+    return;
+  }
+  loading.value = true;
+  try {
+    const id = await createModelTest({
+      confidence: confidence.value,
+      image,
+      inputHeight: inputHeight.value,
+      inputWidth: inputWidth.value,
+      modelVersionId: selectedVersionId.value,
+      nmsThreshold: nmsThreshold.value,
+      nodeId: selectedNodeId.value,
+    });
+    currentTest.value = await getModelTest(id);
+    schedulePoll(id);
+    await loadExecutionState();
+  } finally {
+    loading.value = false;
+  }
+}
+
+function schedulePoll(id: number) {
+  if (pollTimer) clearTimeout(pollTimer);
+  pollTimer = setTimeout(async () => {
+    currentTest.value = await getModelTest(id);
+    if (['QUEUED', 'RUNNING'].includes(currentTest.value.status))
+      schedulePoll(id);
+    else await loadExecutionState();
+  }, 1500);
+}
+
+watch(selectedModelId, loadVersions);
+watch(selectedVersionId, async () => {
+  await loadExecutionState();
+  scheduleDeploymentPoll();
+});
+watch(selectedNodeId, scheduleDeploymentPoll);
+watch(uploadFiles, handleFileChanged, { deep: true });
+onMounted(loadInitial);
+onBeforeUnmount(() => {
+  disposed = true;
+  if (pollTimer) clearTimeout(pollTimer);
+  if (deploymentPollTimer) clearTimeout(deploymentPollTimer);
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
+});
+</script>
+
+<template>
+  <Page auto-content-height>
+    <Spin :spinning="loading">
+      <div class="ai-page ai-page-stack h-full">
+        <AiPageHeader
+          title="模型单图测试"
+          description="验证模型版本、节点部署和标准化输出，定位预处理、推理与后处理耗时。"
+          icon="lucide:scan-search"
+          status="Inference Lab"
+        />
+        <Alert
+          message="单图测试现已按模型版本的真实制品格式下发：支持 ONNX、TorchScript、受信任预置 PT checkpoint 和 ZIP 模型包；多阶段 ZIP 仍需对应流水线适配器。"
+          show-icon
+          type="warning"
+        />
+        <Alert v-if="error" :message="error" show-icon type="error">
+          <template #action>
+            <Button @click="loadInitial">重试</Button>
+          </template>
+        </Alert>
+        <div class="grid min-h-0 flex-1 grid-cols-12 gap-4">
+          <Card class="col-span-4" title="测试参数">
+            <Form layout="vertical">
+              <FormItem label="模型">
+                <Select
+                  v-model:value="selectedModelId"
+                  :options="
+                    models.map((item) => ({ label: item.name, value: item.id }))
+                  "
+                />
+              </FormItem>
+              <FormItem label="模型版本">
+                <Select
+                  v-model:value="selectedVersionId"
+                  :options="
+                    versions.map((item) => ({
+                      label: `${item.version} · ${item.artifactFormat} · ${item.publishStatus}`,
+                      value: item.id,
+                    }))
+                  "
+                />
+              </FormItem>
+              <Alert
+                v-if="selectedVersion && !versionPublished"
+                class="mb-4"
+                message="当前版本尚未发布，可查看但不能下发部署或执行测试。请先到模型资产页发布。"
+                show-icon
+                type="warning"
+              />
+              <FormItem label="执行节点">
+                <Select
+                  v-model:value="selectedNodeId"
+                  :options="
+                    nodes.map((item) => ({
+                      label: `${item.name} · ${item.onlineStatus === 1 ? '在线' : '离线'}`,
+                      value: item.id,
+                      disabled: item.onlineStatus !== 1,
+                    }))
+                  "
+                />
+              </FormItem>
+              <Alert
+                class="mb-4"
+                :message="
+                  nodeReady
+                    ? '模型已在节点 ready'
+                    : `部署状态：${deploymentStatusText(selectedDeployment?.actualStatus)}${
+                        selectedDeployment?.errorMessage
+                          ? ` · ${selectedDeployment.errorMessage}`
+                          : ''
+                      }`
+                "
+                :type="
+                  nodeReady
+                    ? 'success'
+                    : selectedDeployment?.actualStatus === 'FAILED'
+                      ? 'error'
+                      : 'info'
+                "
+                show-icon
+                :description="
+                  deploymentRefreshError ||
+                  (isDeploymentPending(selectedDeployment?.actualStatus)
+                    ? $t('model-deployment.preparing')
+                    : undefined)
+                "
+              />
+              <Button
+                v-if="canDeploy && !nodeReady"
+                block
+                class="mb-4"
+                :disabled="
+                  !versionPublished ||
+                  !selectedNodeId ||
+                  isDeploymentPending(selectedDeployment?.actualStatus)
+                "
+                :loading="deploymentSubmitting"
+                @click="deploy"
+              >
+                {{
+                  selectedDeployment?.actualStatus === 'FAILED'
+                    ? $t('model-deployment.retry')
+                    : '下发部署命令'
+                }}
+              </Button>
+              <FormItem label="测试图片">
+                <Upload
+                  v-model:file-list="uploadFiles"
+                  :before-upload="() => false"
+                  :max-count="1"
+                  accept="image/jpeg,image/png,image/webp"
+                >
+                  <Button>选择图片</Button>
+                </Upload>
+              </FormItem>
+              <Space wrap>
+                <FormItem label="置信度">
+                  <InputNumber
+                    v-model:value="confidence"
+                    :min="0.01"
+                    :max="1"
+                    :step="0.05"
+                  />
+                </FormItem>
+                <FormItem label="NMS">
+                  <InputNumber
+                    v-model:value="nmsThreshold"
+                    :min="0.01"
+                    :max="1"
+                    :step="0.05"
+                  />
+                </FormItem>
+                <FormItem label="宽">
+                  <InputNumber
+                    v-model:value="inputWidth"
+                    :min="32"
+                    :max="2048"
+                  />
+                </FormItem>
+                <FormItem label="高">
+                  <InputNumber
+                    v-model:value="inputHeight"
+                    :min="32"
+                    :max="2048"
+                  />
+                </FormItem>
+              </Space>
+              <Button
+                v-if="canTest"
+                block
+                type="primary"
+                :disabled="!nodeReady || !versionPublished"
+                @click="runTest"
+              >
+                执行单图测试
+              </Button>
+            </Form>
+          </Card>
+
+          <Card class="col-span-8" title="标准化结果">
+            <div
+              v-if="previewUrl"
+              class="relative mx-auto overflow-hidden bg-black"
+            >
+              <img
+                :src="previewUrl"
+                alt="测试图片"
+                class="block h-auto w-full"
+              />
+              <div
+                v-for="(object, index) in standardResult?.objects ?? []"
+                :key="index"
+                class="absolute border-2 border-cyan-400"
+                :style="{
+                  left: `${object.bbox.x * 100}%`,
+                  top: `${object.bbox.y * 100}%`,
+                  width: `${object.bbox.width * 100}%`,
+                  height: `${object.bbox.height * 100}%`,
+                }"
+              >
+                <span
+                  class="absolute left-0 top-0 bg-cyan-400 px-1 text-xs text-black"
+                >
+                  {{ object.class }} {{ (object.confidence * 100).toFixed(1) }}%
+                </span>
+              </div>
+            </div>
+            <Empty v-else description="请选择测试图片" />
+            <Descriptions v-if="currentTest" class="mt-4" bordered size="small">
+              <DescriptionsItem label="状态">
+                <Tag>{{ currentTest.status }}</Tag>
+              </DescriptionsItem>
+              <DescriptionsItem label="后端">
+                {{ currentTest.backend ?? '-' }}
+              </DescriptionsItem>
+              <DescriptionsItem label="诊断 ID">
+                {{ currentTest.diagnosticId ?? '-' }}
+              </DescriptionsItem>
+              <DescriptionsItem label="预处理">
+                {{ currentTest.preprocessMillis ?? '-' }} ms
+              </DescriptionsItem>
+              <DescriptionsItem label="推理">
+                {{ currentTest.inferenceMillis ?? '-' }} ms
+              </DescriptionsItem>
+              <DescriptionsItem label="后处理">
+                {{ currentTest.postprocessMillis ?? '-' }} ms
+              </DescriptionsItem>
+            </Descriptions>
+            <Table
+              class="mt-4"
+              :columns="[
+                { title: '类别', dataIndex: 'class' },
+                { title: '置信度', dataIndex: 'confidence' },
+                { title: '归一化 bbox', dataIndex: 'bbox' },
+              ]"
+              :data-source="standardResult?.objects ?? []"
+              :pagination="false"
+              :row-key="(_record, index) => String(index)"
+              size="small"
+            >
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.dataIndex === 'confidence'">
+                  {{ record.confidence.toFixed(4) }}
+                </template>
+                <template v-else-if="column.dataIndex === 'bbox'">
+                  {{ JSON.stringify(record.bbox) }}
+                </template>
+              </template>
+            </Table>
+          </Card>
+        </div>
+      </div>
+    </Spin>
+  </Page>
+</template>

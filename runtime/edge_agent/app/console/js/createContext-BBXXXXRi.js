@@ -1,0 +1,1 @@
+import{en as e,pn as t,wn as n,zt as r}from"./unmount-global-loading-LeYQHS8i.js";import{i}from"./en_US-K5u7mJ9_.js";function a(a){let o=Symbol(`contextKey`);return{useProvide:(r,a)=>{let s=n({});return e(o,s),t(()=>{i(s,r,a||{})}),s},useInject:()=>r(o,a)||{}}}export{a as t};

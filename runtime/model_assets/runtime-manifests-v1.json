@@ -1,0 +1,434 @@
+{
+  "schemaVersion": "1.0",
+  "manifests": {
+    "yolo11n-coco-onnx": {
+      "schemaVersion": "1.0",
+      "taskType": "OBJECT_DETECTION",
+      "preprocess": {
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "color": "RGB",
+        "layout": "NCHW",
+        "dtype": "FLOAT32",
+        "scale": 0.00392156862745098,
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "resize": "STRETCH"
+      },
+      "decoder": {
+        "type": "AUTO_DETECTION",
+        "labels": [
+          "person",
+          "bicycle",
+          "car",
+          "motorcycle",
+          "airplane",
+          "bus",
+          "train",
+          "truck",
+          "boat",
+          "traffic_light",
+          "fire_hydrant",
+          "stop_sign",
+          "parking_meter",
+          "bench",
+          "bird",
+          "cat",
+          "dog",
+          "horse",
+          "sheep",
+          "cow",
+          "elephant",
+          "bear",
+          "zebra",
+          "giraffe",
+          "backpack",
+          "umbrella",
+          "handbag",
+          "tie",
+          "suitcase",
+          "frisbee",
+          "skis",
+          "snowboard",
+          "sports_ball",
+          "kite",
+          "baseball_bat",
+          "baseball_glove",
+          "skateboard",
+          "surfboard",
+          "tennis_racket",
+          "bottle",
+          "wine_glass",
+          "cup",
+          "fork",
+          "knife",
+          "spoon",
+          "bowl",
+          "banana",
+          "apple",
+          "sandwich",
+          "orange",
+          "broccoli",
+          "carrot",
+          "hot_dog",
+          "pizza",
+          "donut",
+          "cake",
+          "chair",
+          "couch",
+          "potted_plant",
+          "bed",
+          "dining_table",
+          "toilet",
+          "tv",
+          "laptop",
+          "mouse",
+          "remote",
+          "keyboard",
+          "cell_phone",
+          "microwave",
+          "oven",
+          "toaster",
+          "sink",
+          "refrigerator",
+          "book",
+          "clock",
+          "vase",
+          "scissors",
+          "teddy_bear",
+          "hair_drier",
+          "toothbrush"
+        ]
+      }
+    },
+    "ppe-six-class-pt": {
+      "schemaVersion": "1.0",
+      "taskType": "OBJECT_DETECTION",
+      "preprocess": {
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "color": "RGB",
+        "layout": "NCHW",
+        "dtype": "FLOAT32",
+        "scale": 0.00392156862745098,
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "resize": "STRETCH"
+      },
+      "decoder": {
+        "type": "AUTO_DETECTION",
+        "labels": [
+          "gloves",
+          "vest",
+          "goggles",
+          "helmet",
+          "face_mask",
+          "safety_shoes"
+        ]
+      }
+    },
+    "fire-smoke-yolov8-onnx": {
+      "schemaVersion": "1.0",
+      "taskType": "OBJECT_DETECTION",
+      "preprocess": {
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "color": "RGB",
+        "layout": "NCHW",
+        "dtype": "FLOAT32",
+        "scale": 0.00392156862745098,
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "resize": "STRETCH"
+      },
+      "decoder": {
+        "type": "AUTO_DETECTION",
+        "labels": [
+          "flame",
+          "smoke",
+          "dense_smoke"
+        ]
+      }
+    },
+    "puddle-yolov8-pt": {
+      "schemaVersion": "1.0",
+      "taskType": "OBJECT_DETECTION",
+      "preprocess": {
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "color": "RGB",
+        "layout": "NCHW",
+        "dtype": "FLOAT32",
+        "scale": 0.00392156862745098,
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "resize": "STRETCH"
+      },
+      "decoder": {
+        "type": "AUTO_DETECTION",
+        "labels": [
+          "waterlogging"
+        ]
+      }
+    },
+    "fall-yolov8-pt": {
+      "schemaVersion": "1.0",
+      "taskType": "OBJECT_DETECTION",
+      "preprocess": {
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "color": "RGB",
+        "layout": "NCHW",
+        "dtype": "FLOAT32",
+        "scale": 0.00392156862745098,
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "resize": "STRETCH"
+      },
+      "decoder": {
+        "type": "AUTO_DETECTION",
+        "labels": [
+          "fall"
+        ]
+      }
+    },
+    "waste-yolov8-pt": {
+      "schemaVersion": "1.0",
+      "taskType": "OBJECT_DETECTION",
+      "preprocess": {
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "color": "RGB",
+        "layout": "NCHW",
+        "dtype": "FLOAT32",
+        "scale": 0.00392156862745098,
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "resize": "STRETCH"
+      },
+      "decoder": {
+        "type": "AUTO_DETECTION",
+        "labels": [
+          "garbage",
+          "debris",
+          "pile",
+          "obstruction"
+        ]
+      }
+    },
+    "license-plate-yunet-fp32-onnx": {
+      "schemaVersion": "1.0",
+      "taskType": "OBJECT_DETECTION",
+      "preprocess": {
+        "inputWidth": 320,
+        "inputHeight": 240,
+        "color": "BGR",
+        "layout": "NCHW",
+        "dtype": "FLOAT32",
+        "scale": 1,
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "resize": "STRETCH"
+      },
+      "decoder": {
+        "type": "LPD_YUNET"
+      }
+    },
+    "lprnet-onnx": {
+      "schemaVersion": "1.0",
+      "taskType": "OCR",
+      "preprocess": {
+        "inputWidth": 94,
+        "inputHeight": 24,
+        "color": "BGR",
+        "layout": "NCHW",
+        "dtype": "FLOAT32",
+        "scale": 0.00784313725490196,
+        "mean": [
+          1,
+          1,
+          1
+        ],
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "resize": "STRETCH"
+      },
+      "decoder": {
+        "type": "LPRNET"
+      }
+    },
+    "human-action-int8-onnx": {
+      "schemaVersion": "1.0",
+      "taskType": "CLASSIFICATION",
+      "preprocess": {
+        "inputWidth": 224,
+        "inputHeight": 224,
+        "color": "RGB",
+        "layout": "NCHW",
+        "dtype": "FLOAT32",
+        "scale": 0.00392156862745098,
+        "mean": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "std": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "resize": "STRETCH"
+      },
+      "decoder": {
+        "type": "CLASSIFICATION",
+        "labels": [
+          "calling",
+          "clapping",
+          "cycling",
+          "dancing",
+          "drinking",
+          "eating",
+          "fighting",
+          "hugging",
+          "laughing",
+          "listening_music",
+          "running",
+          "sitting",
+          "sleeping",
+          "texting",
+          "using_laptop"
+        ]
+      }
+    },
+    "face-antispoof-int8-onnx": {
+      "schemaVersion": "1.0",
+      "taskType": "CLASSIFICATION",
+      "preprocess": {
+        "inputWidth": 128,
+        "inputHeight": 128,
+        "color": "RGB",
+        "layout": "NCHW",
+        "dtype": "FLOAT32",
+        "scale": 0.00392156862745098,
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "resize": "STRETCH"
+      },
+      "decoder": {
+        "type": "CLASSIFICATION",
+        "labels": [
+          "real",
+          "spoof"
+        ]
+      }
+    },
+    "ppe-safetyvision-onnx": {
+      "schemaVersion": "1.0",
+      "taskType": "OBJECT_DETECTION",
+      "preprocess": {
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "color": "RGB",
+        "layout": "NCHW",
+        "dtype": "FLOAT32",
+        "scale": 0.00392156862745098,
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "resize": "STRETCH"
+      },
+      "decoder": {
+        "type": "AUTO_DETECTION",
+        "labels": [
+          "fall",
+          "gloves",
+          "goggles",
+          "helmet",
+          "face_mask",
+          "no_gloves",
+          "no_goggles",
+          "no_helmet",
+          "no_face_mask",
+          "no_vest",
+          "no_harness",
+          "person",
+          "vest"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,1 @@
+import{$t as e,Et as t,Fn as n,Pt as r,ot as i}from"./unmount-global-loading-LeYQHS8i.js";import{t as a}from"./fallback-9bFh3pRs.js";var o=r(i(i({},{name:`FallbackOfflineDemo`}),{},{__name:`offline`,setup(r){return(r,i)=>(e(),t(n(a),{status:`offline`}))}}));export{o as default};

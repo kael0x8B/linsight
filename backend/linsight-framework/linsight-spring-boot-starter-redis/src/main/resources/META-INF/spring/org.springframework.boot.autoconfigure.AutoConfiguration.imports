@@ -1,0 +1,2 @@
+com.linsight.framework.redis.config.LinsightRedisAutoConfiguration
+com.linsight.framework.redis.config.LinsightCacheAutoConfiguration

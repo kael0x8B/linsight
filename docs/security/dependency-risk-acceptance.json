@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0",
+  "reviewedAt": "2026-09-02T12:15:00+08:00",
+  "expiresAt": "2026-10-02T23:59:59+08:00",
+  "acceptedRisks": [
+    {
+      "id": "GHSA-6rmm-pg23-5f8q",
+      "package": "pkg:maven/com.baomidou/dynamic-datasource-spring@4.5.0",
+      "severity": "MODERATE",
+      "reason": "Upstream has no published patched artifact. LInsight backports upstream commit 273fced, disables SpEL type and constructor access by default, and has no @DS expressions in production source.",
+      "mitigationChecks": [
+        "DsSpelExpressionProcessorSecurityTest",
+        "known dependency mitigation source gate"
+      ]
+    },
+    {
+      "id": "GHSA-f8vw-8vgh-22r9",
+      "package": "pkg:maven/com.xuxueli/xxl-job-core@2.4.2",
+      "severity": "LOW",
+      "reason": "The advisory targets the sample httpJobHandler implementation; LInsight does not package or implement that handler. A source gate prevents it from being introduced while the exception is active.",
+      "mitigationChecks": [
+        "known dependency mitigation source gate"
+      ]
+    }
+  ]
+}

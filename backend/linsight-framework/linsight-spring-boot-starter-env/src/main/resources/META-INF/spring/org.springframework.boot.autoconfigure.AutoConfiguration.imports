@@ -1,0 +1,2 @@
+com.linsight.framework.env.config.LinsightEnvWebAutoConfiguration
+com.linsight.framework.env.config.LinsightEnvRpcAutoConfiguration

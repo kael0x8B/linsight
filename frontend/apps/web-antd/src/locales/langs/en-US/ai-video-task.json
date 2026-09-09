@@ -1,0 +1,6 @@
+{
+  "validationMode": "Field validation",
+  "productionMode": "Production",
+  "mode": "Run purpose",
+  "validationHelp": "Collect real video evidence, tune thresholds and verify alarms. Published models, successful node deployment and image tests are still required. This does not mark the algorithm as production accepted."
+}

@@ -1,0 +1,1 @@
+function e(e=[]){return e.some(({points:e})=>{if(e.length!==4||e.some(({x:e,y:t})=>![0,1].includes(e)||![0,1].includes(t)))return!0;let t=new Set(e.map(({x:e,y:t})=>`${e}:${t}`)),n=e.reduce((t,n,r)=>{let i=e[(r+1)%4];return t+n.x*i.y-i.x*n.y},0);return t.size!==4||Math.abs(n)!==2})}export{e as t};

@@ -1,0 +1,2 @@
+com.linsight.framework.quartz.config.LinsightXxlJobAutoConfiguration
+com.linsight.framework.quartz.config.LinsightAsyncAutoConfiguration

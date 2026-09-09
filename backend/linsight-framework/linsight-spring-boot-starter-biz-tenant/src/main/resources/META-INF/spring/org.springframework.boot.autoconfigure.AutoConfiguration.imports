@@ -1,0 +1,2 @@
+com.linsight.framework.tenant.config.LinsightTenantRpcAutoConfiguration
+com.linsight.framework.tenant.config.LinsightTenantAutoConfiguration

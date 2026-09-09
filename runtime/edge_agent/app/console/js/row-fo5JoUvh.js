@@ -1,0 +1,1 @@
+import{tt as e}from"./useConfigInject-BMK_ugQd.js";import{n as t,t as n}from"./Col-BLZhLM5M.js";var r=e(n),i=e(t);export{r as n,i as t};

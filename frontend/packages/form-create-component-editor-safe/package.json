@@ -1,0 +1,11 @@
+{
+  "name": "@form-create/component-wangeditor",
+  "version": "3.3.0-linsight-safe.1",
+  "private": true,
+  "type": "module",
+  "main": "./index.js",
+  "module": "./index.js",
+  "peerDependencies": {
+    "vue": "^3.5.12"
+  }
+}

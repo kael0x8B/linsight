@@ -1,0 +1,5 @@
+com.linsight.framework.security.config.LinsightSecurityRpcAutoConfiguration
+com.linsight.framework.security.config.LinsightSecurityAutoConfiguration
+com.linsight.framework.security.config.LinsightWebSecurityConfigurerAdapter
+com.linsight.framework.operatelog.config.LinsightOperateLogConfiguration
+com.linsight.framework.operatelog.config.LinsightOperateLogRpcAutoConfiguration

@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1.0",
+  "environmentType": "WAITING_FOR_TARGET_HARDWARE",
+  "environment": {
+    "name": "replace-with-target-device",
+    "cpu": "replace",
+    "memory": "replace",
+    "gpuNpu": "replace",
+    "os": "replace",
+    "cameraProfiles": [
+      {"resolution": "1920x1080", "inputFps": 25, "bitrateKbps": 4096}
+    ]
+  },
+  "productionHeadroom": 0.8,
+  "hardwareLimitReached": false,
+  "thresholds": {
+    "minAnalysisFpsPerStream": 1,
+    "maxSystemCpuPercent": 90,
+    "maxSystemMemoryPercent": 90,
+    "maxSystemDiskPercent": 80,
+    "maxP95LatencyMs": 2000,
+    "maxDropRate": 0.05,
+    "maxReconnects": 0,
+    "minStageDurationSeconds": 300
+  },
+  "stages": [
+    {"streams": 1, "artifact": "raw/capacity-1.json"},
+    {"streams": 2, "artifact": "raw/capacity-2.json"},
+    {"streams": 4, "artifact": "raw/capacity-4.json"},
+    {"streams": 8, "artifact": "raw/capacity-8.json"},
+    {"streams": 16, "artifact": "raw/capacity-16.json"},
+    {"streams": 32, "artifact": "raw/capacity-32.json"}
+  ]
+}

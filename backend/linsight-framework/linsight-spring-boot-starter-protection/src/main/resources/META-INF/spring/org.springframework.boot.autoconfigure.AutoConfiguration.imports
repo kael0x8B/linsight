@@ -1,0 +1,4 @@
+com.linsight.framework.idempotent.config.LinsightIdempotentConfiguration
+com.linsight.framework.lock4j.config.LinsightLock4jConfiguration
+com.linsight.framework.ratelimiter.config.LinsightRateLimiterConfiguration
+com.linsight.framework.signature.config.LinsightApiSignatureAutoConfiguration

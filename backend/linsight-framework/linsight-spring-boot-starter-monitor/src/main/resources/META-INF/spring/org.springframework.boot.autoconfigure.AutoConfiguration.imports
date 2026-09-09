@@ -1,0 +1,2 @@
+com.linsight.framework.tracer.config.LinsightTracerAutoConfiguration
+com.linsight.framework.tracer.config.LinsightMetricsAutoConfiguration

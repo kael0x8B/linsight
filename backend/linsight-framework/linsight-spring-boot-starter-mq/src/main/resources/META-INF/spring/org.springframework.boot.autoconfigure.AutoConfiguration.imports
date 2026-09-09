@@ -1,0 +1,3 @@
+com.linsight.framework.mq.redis.config.LinsightRedisMQProducerAutoConfiguration
+com.linsight.framework.mq.redis.config.LinsightRedisMQConsumerAutoConfiguration
+com.linsight.framework.mq.rabbitmq.config.LinsightRabbitMQAutoConfiguration

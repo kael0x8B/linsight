@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0",
+  "environmentType": "WAITING_FOR_TARGET_HARDWARE",
+  "environment": "replace-with-target-node-and-release-manifest",
+  "fromVersion": "1.0.0",
+  "attemptedVersion": "1.1.0-failure-drill",
+  "preChecks": [],
+  "upgradeCommand": ["replace-with-reviewed-upgrade-command"],
+  "failureInjectionCommand": ["replace-with-reviewed-failure-command"],
+  "failureDetectionCommand": ["replace-with-health-check-that-must-fail"],
+  "rollbackCommand": ["python3", "scripts/manage-edge-release.py", "rollback", "--root", "/opt/linsight-edge"],
+  "postChecks": [
+    {"name":"java-service","command":["replace"]},
+    {"name":"ai-service","command":["replace"]},
+    {"name":"model","command":["replace"]},
+    {"name":"configuration","command":["replace"]},
+    {"name":"camera","command":["replace"]},
+    {"name":"data","command":["replace"]},
+    {"name":"historical-events","command":["replace"]}
+  ]
+}

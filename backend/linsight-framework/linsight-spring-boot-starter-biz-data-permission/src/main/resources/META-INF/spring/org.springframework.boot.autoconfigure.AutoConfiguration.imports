@@ -1,0 +1,3 @@
+com.linsight.framework.datapermission.config.LinsightDataPermissionAutoConfiguration
+com.linsight.framework.datapermission.config.LinsightDeptDataPermissionAutoConfiguration
+com.linsight.framework.datapermission.config.LinsightDataPermissionRpcAutoConfiguration

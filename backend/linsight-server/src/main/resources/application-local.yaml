@@ -1,0 +1,108 @@
+server:
+  # 与根目录 .env 保持同名；IDEA 未加载 .env 时使用冒号后的本地默认值。
+  port: ${BACKEND_PORT:48888}
+
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.vectorstore.qdrant.autoconfigure.QdrantVectorStoreAutoConfiguration
+      - org.springframework.ai.vectorstore.milvus.autoconfigure.MilvusVectorStoreAutoConfiguration
+  datasource:
+    druid:
+      web-stat-filter:
+        enabled: true
+      stat-view-servlet:
+        enabled: true
+        url-pattern: /druid/*
+      filter:
+        stat:
+          enabled: true
+          log-slow-sql: true
+          slow-sql-millis: 300
+        wall:
+          config:
+            multi-statement-allow: true
+    dynamic:
+      druid:
+        initial-size: 1
+        min-idle: 1
+        max-active: 20
+        max-wait: 60000
+        validation-query: SELECT 1
+        test-while-idle: true
+      primary: master
+      datasource:
+        master:
+          url: ${DB_URL:jdbc:mysql://127.0.0.1:${MYSQL_PORT:23306}/linsight?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true}
+          username: ${DB_USERNAME:root}
+          password: ${DB_PASSWORD:${MYSQL_ROOT_PASSWORD:linsight_dev}}
+        slave:
+          lazy: true
+          url: ${DB_URL:jdbc:mysql://127.0.0.1:${MYSQL_PORT:23306}/linsight?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true}
+          username: ${DB_USERNAME:root}
+          password: ${DB_PASSWORD:${MYSQL_ROOT_PASSWORD:linsight_dev}}
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:26379}
+      database: ${REDIS_DATABASE:0}
+  boot:
+    admin:
+      client:
+        enabled: false
+
+xxl:
+  job:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info,metrics,prometheus
+
+logging:
+  file:
+    name: ${LOG_FILE:${user.home}/logs/linsight-server.log}
+  level:
+    com.linsight.module.infra.dal.mysql: info
+    com.linsight.module.system.dal.mysql: info
+
+debug: false
+
+justauth:
+  enabled: false
+
+# 系统模块仍声明了微信 SDK Bean；本地基座只提供不可用占位配置，避免连接任何外部平台。
+wx:
+  mp:
+    app-id: linsight-local-disabled
+    secret: linsight-local-disabled
+    config-storage:
+      type: Memory
+  miniapp:
+    appid: linsight-local-disabled
+    secret: linsight-local-disabled
+    config-storage:
+      type: Memory
+
+linsight:
+  ai-video:
+    runtime:
+      enabled: ${LINSIGHT_RUNTIME_ENABLED:true}
+      base-url: ${LINSIGHT_RUNTIME_BASE_URL:http://127.0.0.1:48900}
+      api-key: ${LINSIGHT_RUNTIME_API_KEY:linsight-local-preview-key}
+      connect-timeout: 2s
+      read-timeout: 12s
+    node-deployment:
+      enabled: ${LINSIGHT_NODE_DEPLOYMENT_ENABLED:true}
+      runtime-source-dir: ${LINSIGHT_NODE_DEPLOYMENT_RUNTIME_SOURCE:auto}
+      connect-timeout: ${LINSIGHT_NODE_DEPLOYMENT_CONNECT_TIMEOUT:30s}
+  captcha:
+    enable: false
+  security:
+    mock-enable: true
+  access-log:
+    enable: false
+  demo: false

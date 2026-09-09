@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1.1",
+  "generatedAt": "2026-09-02T12:00:00+08:00",
+  "environment": {
+    "name": "待填写：生产验收环境名称",
+    "hardware": "待填写：CPU/GPU/内存/磁盘/网络与摄像头规格",
+    "softwareVersion": "待填写：发布 tag 或 commit SHA"
+  },
+  "algorithmAcceptance": {
+    "status": "PENDING",
+    "summary": "结构化报告必须覆盖 12 个模型资产、11 类算法固定测试集、指标、阈值和资源占用",
+    "evidenceFiles": []
+  },
+  "weakNetwork30Minutes": {
+    "status": "PENDING",
+    "summary": "结构化报告必须证明真实断网至少 30 分钟、继续分析、重启恢复、事件和媒体无丢失无重复",
+    "evidenceFiles": []
+  },
+  "apiLoadP95": {
+    "status": "PENDING",
+    "summary": "结构化报告必须包含目标规格、至少 6 个管理 API、Runtime 目标路数/FPS/资源和事件可见时延",
+    "evidenceFiles": []
+  },
+  "securityScan": {
+    "status": "PENDING",
+    "summary": "结构化报告必须覆盖生产镜像、OS、最终 Java 制品及越权、凭据、短链、上传和节点鉴权",
+    "evidenceFiles": []
+  },
+  "edgeRollback": {
+    "status": "PENDING",
+    "summary": "结构化报告必须证明签名校验、健康失败检测、previous 回滚及心跳/任务/补传恢复",
+    "evidenceFiles": []
+  },
+  "observabilityDashboard": {
+    "status": "PENDING",
+    "summary": "结构化报告必须覆盖控制面与 Runtime 指标、监控截图、告警路由测试和值班责任人",
+    "evidenceFiles": []
+  }
+}

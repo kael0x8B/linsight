@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "environment": "WAITING_FOR_FIELD_TEST",
+  "scenarios": [
+    {"name":"disconnect-5m","faultType":"NETWORK_DISCONNECT","durationSeconds":300},
+    {"name":"disconnect-10m","faultType":"NETWORK_DISCONNECT","durationSeconds":600},
+    {"name":"disconnect-30m","faultType":"NETWORK_DISCONNECT","durationSeconds":1800},
+    {"name":"disconnect-60m","faultType":"NETWORK_DISCONNECT","durationSeconds":3600},
+    {"name":"dns-failure","faultType":"DNS_FAILURE","durationSeconds":300},
+    {"name":"tcp-disconnect","faultType":"TCP_RESET","durationSeconds":300},
+    {"name":"http-timeout","faultType":"HTTP_TIMEOUT","durationSeconds":300},
+    {"name":"http-500","faultType":"HTTP_500","durationSeconds":300},
+    {"name":"http-429","faultType":"HTTP_429","durationSeconds":300},
+    {"name":"server-unreachable","faultType":"SERVER_UNREACHABLE","durationSeconds":300}
+  ],
+  "instructions": "For each scenario add faultApplied=true, maxQueueGrowthPerMinute, maxDiskPercent, outageArtifact, recoveryArtifact, deliveryArtifact, and --execute command arrays. Commands must alter only the control-plane route; RTSP traffic and the local Runtime must remain available."
+}

@@ -1,0 +1,3 @@
+com.linsight.framework.datasource.config.LinsightDataSourceAutoConfiguration
+com.linsight.framework.mybatis.config.LinsightMybatisAutoConfiguration
+com.linsight.framework.translate.config.LinsightTranslateAutoConfiguration

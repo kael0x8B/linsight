@@ -1,0 +1,30 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "schemaVersion": 39,
+  "tags": ["linsight", "production"],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "title": "LInsight Production Operations",
+  "uid": "linsight-production",
+  "version": 1,
+  "panels": [
+    {"id":1,"title":"摄像头 总数 / 在线 / 离线","type":"stat","gridPos":{"x":0,"y":0,"w":8,"h":5},"targets":[{"expr":"linsight_camera_total","legendFormat":"总数"},{"expr":"linsight_camera_online","legendFormat":"在线"},{"expr":"linsight_camera_offline","legendFormat":"离线"}]},
+    {"id":2,"title":"RTSP 重连与失败","type":"timeseries","gridPos":{"x":8,"y":0,"w":8,"h":5},"targets":[{"expr":"rate(linsight_video_rtsp_reconnects_total[5m])","legendFormat":"重连/s"},{"expr":"increase(linsight_video_rtsp_reconnects_total[5m])","legendFormat":"5m 失败"}]},
+    {"id":3,"title":"视频 FPS","type":"timeseries","gridPos":{"x":16,"y":0,"w":8,"h":5},"targets":[{"expr":"linsight_video_stream_input_fps","legendFormat":"解码 FPS"},{"expr":"linsight_ai_analysis_fps","legendFormat":"推理 FPS"}]},
+    {"id":4,"title":"AI 时延 P50 / P95 / P99","type":"timeseries","gridPos":{"x":0,"y":5,"w":12,"h":6},"targets":[{"expr":"linsight_ai_total_latency_p50_milliseconds","legendFormat":"P50"},{"expr":"linsight_ai_total_latency_p95_milliseconds","legendFormat":"P95"},{"expr":"linsight_ai_total_latency_p99_milliseconds","legendFormat":"P99"}]},
+    {"id":5,"title":"AI 错误 / 模型加载失败","type":"timeseries","gridPos":{"x":12,"y":5,"w":6,"h":6},"targets":[{"expr":"increase(linsight_ai_inference_errors_total[5m])","legendFormat":"推理错误"},{"expr":"increase(linsight_model_load_failures_total[5m])","legendFormat":"加载失败"}]},
+    {"id":6,"title":"各算法事件数","type":"barchart","gridPos":{"x":18,"y":5,"w":6,"h":6},"targets":[{"expr":"linsight_algorithm_events","legendFormat":"{{algorithm}}"}]},
+    {"id":7,"title":"系统 CPU / AI CPU","type":"timeseries","gridPos":{"x":0,"y":11,"w":8,"h":6},"targets":[{"expr":"linsight_system_cpu_percent","legendFormat":"系统"},{"expr":"linsight_ai_process_cpu_percent","legendFormat":"AI"},{"expr":"process_cpu_usage{job=\"linsight-java\"} * 100","legendFormat":"Java"}]},
+    {"id":8,"title":"系统 / AI / JVM 内存","type":"timeseries","gridPos":{"x":8,"y":11,"w":8,"h":6},"targets":[{"expr":"linsight_system_memory_used_bytes","legendFormat":"系统"},{"expr":"linsight_ai_process_resident_memory_bytes","legendFormat":"AI"},{"expr":"jvm_memory_used_bytes{area=\"heap\"}","legendFormat":"JVM Heap"}]},
+    {"id":9,"title":"磁盘 / 温度","type":"timeseries","gridPos":{"x":16,"y":11,"w":8,"h":6},"targets":[{"expr":"100 * linsight_system_disk_used_bytes / linsight_system_disk_total_bytes","legendFormat":"磁盘 %"},{"expr":"linsight_system_temperature_celsius","legendFormat":"温度 ℃"}]},
+    {"id":10,"title":"GPU 使用率 / 显存 / 功耗","type":"timeseries","gridPos":{"x":0,"y":17,"w":8,"h":6},"targets":[{"expr":"DCGM_FI_DEV_GPU_UTIL","legendFormat":"GPU %"},{"expr":"DCGM_FI_DEV_FB_USED","legendFormat":"显存 MiB"},{"expr":"DCGM_FI_DEV_POWER_USAGE","legendFormat":"功耗 W"}]},
+    {"id":11,"title":"JVM GC / Thread","type":"timeseries","gridPos":{"x":8,"y":17,"w":8,"h":6},"targets":[{"expr":"rate(jvm_gc_pause_seconds_sum[5m])","legendFormat":"GC pause"},{"expr":"jvm_threads_live_threads","legendFormat":"Threads"}]},
+    {"id":12,"title":"HTTP P95 / 错误率","type":"timeseries","gridPos":{"x":16,"y":17,"w":8,"h":6},"targets":[{"expr":"histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket[5m])))","legendFormat":"P95"},{"expr":"sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 1)","legendFormat":"5xx rate"}]},
+    {"id":13,"title":"网络上传 / 下载","type":"timeseries","gridPos":{"x":0,"y":23,"w":8,"h":6},"targets":[{"expr":"rate(linsight_system_network_sent_bytes_total[5m])","legendFormat":"上传 B/s"},{"expr":"rate(linsight_system_network_received_bytes_total[5m])","legendFormat":"下载 B/s"}]},
+    {"id":14,"title":"离线 Queue Size / Oldest Age","type":"timeseries","gridPos":{"x":8,"y":23,"w":8,"h":6},"targets":[{"expr":"linsight_offline_queue_events","legendFormat":"Events"},{"expr":"linsight_offline_queue_transitions","legendFormat":"Transitions"},{"expr":"linsight_offline_queue_oldest_event_age_seconds","legendFormat":"Oldest seconds"}]},
+    {"id":15,"title":"离线 Retry / Failed","type":"timeseries","gridPos":{"x":16,"y":23,"w":8,"h":6},"targets":[{"expr":"linsight_offline_queue_retry_total","legendFormat":"Retry"},{"expr":"linsight_offline_queue_failed","legendFormat":"Failed"}]},
+    {"id":16,"title":"任务状态 / 丢帧","type":"timeseries","gridPos":{"x":0,"y":29,"w":12,"h":6},"targets":[{"expr":"linsight_task_total","legendFormat":"{{status}}"},{"expr":"rate(linsight_video_dropped_frames_total[5m])","legendFormat":"丢帧/s"}]},
+    {"id":17,"title":"服务健康与重启","type":"stat","gridPos":{"x":12,"y":29,"w":12,"h":6},"targets":[{"expr":"up{job=~\"linsight-java|linsight-runtime|linsight-control-plane-projections\"}","legendFormat":"{{job}}"},{"expr":"linsight_control_plane_exporter_up","legendFormat":"业务指标桥"}]}
+  ]
+}

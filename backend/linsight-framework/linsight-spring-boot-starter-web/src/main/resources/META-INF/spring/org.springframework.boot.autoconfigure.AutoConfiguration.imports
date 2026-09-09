@@ -1,0 +1,8 @@
+com.linsight.framework.apilog.config.LinsightApiLogAutoConfiguration
+com.linsight.framework.jackson.config.LinsightJacksonAutoConfiguration
+com.linsight.framework.swagger.config.LinsightSwaggerAutoConfiguration
+com.linsight.framework.web.config.LinsightWebAutoConfiguration
+com.linsight.framework.apilog.config.LinsightApiLogRpcAutoConfiguration
+com.linsight.framework.xss.config.LinsightXssAutoConfiguration
+com.linsight.framework.banner.config.LinsightBannerAutoConfiguration
+com.linsight.framework.encrypt.config.LinsightApiEncryptAutoConfiguration

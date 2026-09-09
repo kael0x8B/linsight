@@ -1,0 +1,273 @@
+{
+  "schemaVersion": "1.0",
+  "catalogVersion": "2026.09.07.1",
+  "description": "Production catalog containing only model families with a verified Runtime execution contract. Removed assets remain only in database audit history.",
+  "assets": [
+    {
+      "key": "yolo11n-coco-onnx",
+      "fileName": "yolo11n.onnx",
+      "format": "ONNX",
+      "url": "https://ftrg.zbox.filez.com/v2/delivery/data/95f00b0fc900458ba134f8b180b3f7a1/examples/yolo11/yolo11n.onnx",
+      "sourceRepository": "https://github.com/airockchip/rknn_model_zoo",
+      "sourceRevision": "bad6c7334531becaf90a561988519b7bec34d0ab",
+      "licenseSpdx": "AGPL-3.0-only",
+      "runtimeCompatibility": [
+        "onnxruntime",
+        "rknn-toolkit2-rk3566"
+      ]
+    },
+    {
+      "key": "ppe-six-class-pt",
+      "fileName": "yolov8n-ppe-6classes.pt",
+      "format": "PYTORCH",
+      "url": "https://huggingface.co/Tanishjain9/yolov8n-ppe-detection-6classes/resolve/a2c1a97646ade96e48adda74781dd455d0456c40/best.pt",
+      "sourceRepository": "https://huggingface.co/Tanishjain9/yolov8n-ppe-detection-6classes",
+      "sourceRevision": "a2c1a97646ade96e48adda74781dd455d0456c40",
+      "licenseSpdx": "MIT",
+      "expectedSha256": "07172ef3ae9e256c40a1fb0ce3eefe5547d90170645aa73dded0fffc382cdb31",
+      "runtimeCompatibility": [
+        "ultralytics-pytorch-adapter-required"
+      ]
+    },
+    {
+      "key": "human-action-int8-onnx",
+      "fileName": "human-action-vit-int8.onnx",
+      "format": "ONNX",
+      "url": "https://huggingface.co/onnx-community/Human-Action-Recognition-VIT-Base-patch16-224-ONNX/resolve/43fb98d467b91ad92528249af8276608b64eacfb/onnx/model_quantized.onnx",
+      "sourceRepository": "https://huggingface.co/onnx-community/Human-Action-Recognition-VIT-Base-patch16-224-ONNX",
+      "sourceRevision": "43fb98d467b91ad92528249af8276608b64eacfb",
+      "licenseSpdx": "LicenseRef-Upstream-Unspecified",
+      "expectedSha256": "7894acfb1a62438010c706199c7e87f510c19723fcae0d0d0d2538516b77496e",
+      "runtimeCompatibility": [
+        "onnxruntime",
+        "action-classifier-adapter-required"
+      ]
+    },
+    {
+      "key": "fall-yolov8-pt",
+      "fileName": "yolov8n-fall-detection.pt",
+      "format": "PYTORCH",
+      "url": "https://huggingface.co/kamalchibrani/yolov8_fall_detection_25/resolve/607a55e0f2a3c056cf1afb82a9a6f8e65a97bc0b/best.pt",
+      "sourceRepository": "https://huggingface.co/kamalchibrani/yolov8_fall_detection_25",
+      "sourceRevision": "607a55e0f2a3c056cf1afb82a9a6f8e65a97bc0b",
+      "licenseSpdx": "OpenRAIL",
+      "expectedSha256": "4a7eba2e982955d7c5f2ea65968f23332c123275116e75e2bac915f40ba749e0",
+      "runtimeCompatibility": [
+        "ultralytics-pytorch-adapter-required"
+      ]
+    },
+    {
+      "key": "license-plate-yunet-fp32-onnx",
+      "fileName": "license-plate-yunet.onnx",
+      "format": "ONNX",
+      "url": "https://huggingface.co/opencv/license_plate_detection_yunet/resolve/962e8d8849878106cb84039dab61cf97bb683b31/license_plate_detection_lpd_yunet_2023mar.onnx",
+      "sourceRepository": "https://huggingface.co/opencv/license_plate_detection_yunet",
+      "sourceRevision": "962e8d8849878106cb84039dab61cf97bb683b31",
+      "licenseSpdx": "Apache-2.0",
+      "expectedSha256": "6d4978a7b6d25514d5e24811b82bfb511d166bdd8ca3b03aa63c1623d4d039c7",
+      "inputSize": [
+        320,
+        240
+      ],
+      "commercialUseAllowed": true,
+      "runtimeCompatibility": [
+        "onnxruntime",
+        "license_plate_v1"
+      ]
+    },
+    {
+      "key": "lprnet-onnx",
+      "fileName": "lprnet.onnx",
+      "format": "ONNX",
+      "url": "https://ftrg.zbox.filez.com/v2/delivery/data/95f00b0fc900458ba134f8b180b3f7a1/examples/LPRNet/lprnet.onnx",
+      "sourceRepository": "https://github.com/airockchip/rknn_model_zoo",
+      "sourceRevision": "bad6c7334531becaf90a561988519b7bec34d0ab",
+      "licenseSpdx": "MIT",
+      "expectedSha256": "c78e54070d0e2b8a6f8d548feb52b75321d5f464bcaadb679ec7ee31433cffa4",
+      "inputSize": [
+        94,
+        24
+      ],
+      "commercialUseAllowed": true,
+      "runtimeCompatibility": [
+        "onnxruntime",
+        "rknn-toolkit2-rk3566",
+        "license_plate_ocr_v1"
+      ]
+    },
+    {
+      "key": "fire-smoke-yolov8-onnx",
+      "fileName": "yolov8s-fire-smoke.onnx",
+      "format": "ONNX",
+      "url": "https://huggingface.co/aryantyagiase/yolov8-fire-smoke-detection/resolve/4adc31e5869136b85a4bcd0e91ebc5f9fdd3c2ce/best.onnx",
+      "sourceRepository": "https://huggingface.co/aryantyagiase/yolov8-fire-smoke-detection",
+      "sourceRevision": "4adc31e5869136b85a4bcd0e91ebc5f9fdd3c2ce",
+      "licenseSpdx": "LicenseRef-Upstream-Unspecified",
+      "expectedSha256": "aad73a66e59cc397495d3a216f484e24736580f588f77d7e667b95c7737dcca5",
+      "runtimeCompatibility": [
+        "onnxruntime",
+        "yolov8-fire-smoke-adapter-required"
+      ]
+    },
+    {
+      "key": "puddle-yolov8-pt",
+      "fileName": "yolov8n-puddle-detection.pt",
+      "format": "PYTORCH",
+      "url": "https://huggingface.co/Ayush0000002/Puddle-detection-model/resolve/7a8ef53d4b0fee120c513ddb9889ce8cb2a999aa/best.pt",
+      "sourceRepository": "https://huggingface.co/Ayush0000002/Puddle-detection-model",
+      "sourceRevision": "7a8ef53d4b0fee120c513ddb9889ce8cb2a999aa",
+      "licenseSpdx": "LicenseRef-Upstream-Unspecified",
+      "expectedSha256": "e4f0843a4d6f81d16639c402380e91f24eb3e350182f13fed5f6b56a4223a526",
+      "runtimeCompatibility": [
+        "ultralytics-pytorch-adapter-required"
+      ]
+    },
+    {
+      "key": "waste-yolov8-pt",
+      "fileName": "yolov8-waste-detection.pt",
+      "format": "PYTORCH",
+      "url": "https://huggingface.co/HrutikAdsare/waste-detection-yolov8/resolve/ebc11ab3d6bc146f2894a022bf2abfb331c0734d/best.pt",
+      "sourceRepository": "https://huggingface.co/HrutikAdsare/waste-detection-yolov8",
+      "sourceRevision": "ebc11ab3d6bc146f2894a022bf2abfb331c0734d",
+      "licenseSpdx": "MIT",
+      "expectedSha256": "13237db8cb205d0911007c750139c83f81027e471a2209d887a10e41c3583b6b",
+      "runtimeCompatibility": [
+        "ultralytics-pytorch-adapter-required"
+      ]
+    },
+    {
+      "key": "face-antispoof-int8-onnx",
+      "fileName": "face-antispoof-int8.onnx",
+      "format": "ONNX",
+      "url": "https://raw.githubusercontent.com/mzmantar/face-antispoof/e3d59c8cbec4c9c5e939be225ece63b43e1f93e4/models/best/98.20/best_model_quantized.onnx",
+      "sourceRepository": "https://github.com/mzmantar/face-antispoof",
+      "sourceRevision": "e3d59c8cbec4c9c5e939be225ece63b43e1f93e4",
+      "licenseSpdx": "MIT",
+      "runtimeCompatibility": [
+        "onnxruntime",
+        "face-antispoof-adapter-required"
+      ]
+    },
+    {
+      "key": "ppe-safetyvision-onnx",
+      "fileName": "safetyvision-ppe-13classes.onnx",
+      "format": "ONNX",
+      "url": "https://huggingface.co/ayushgupta7777/safetyvision-yolov8/resolve/56a71758b55f0e9f2b4b2d6b51a779a1f882da10/best.onnx",
+      "sourceRepository": "https://huggingface.co/ayushgupta7777/safetyvision-yolov8",
+      "sourceRevision": "56a71758b55f0e9f2b4b2d6b51a779a1f882da10",
+      "licenseSpdx": "AGPL-3.0-only",
+      "expectedSha256": "aac7072cd9b4c1225b980ce2034887c4fb5f18eaedb7ada17525377989503762",
+      "runtimeCompatibility": [
+        "onnxruntime"
+      ]
+    }
+  ],
+  "bundles": [],
+  "models": [
+    {
+      "code": "license-plate",
+      "versions": [
+        {
+          "version": "yunet-plate-fp32-962e",
+          "artifact": "license-plate-yunet-fp32-onnx",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "road-waterlogging",
+      "versions": [
+        {
+          "version": "yolov8n-puddle-7a8e",
+          "artifact": "puddle-yolov8-pt",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "fall-detection",
+      "versions": [
+        {
+          "version": "yolov8n-fall-607a",
+          "artifact": "fall-yolov8-pt",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "generic-coco-object-detection",
+      "versions": [
+        {
+          "version": "yolo11n-coco-rknn-zoo-bad6",
+          "artifact": "yolo11n-coco-onnx",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "unified-ppe-detection",
+      "versions": [
+        {
+          "version": "yolov8n-ppe6-a2c1",
+          "artifact": "ppe-six-class-pt",
+          "production": false
+        },
+        {
+          "version": "safetyvision-nano-56a71758-source",
+          "artifact": "ppe-safetyvision-onnx",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "video-action-recognition",
+      "versions": [
+        {
+          "version": "human-action-vit-int8-43fb",
+          "artifact": "human-action-int8-onnx",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "license-plate-ocr",
+      "versions": [
+        {
+          "version": "lprnet-rknn-zoo-bad6",
+          "artifact": "lprnet-onnx",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "flame-smoke-detection",
+      "versions": [
+        {
+          "version": "yolov8s-fire-smoke-4adc",
+          "artifact": "fire-smoke-yolov8-onnx",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "garbage-debris-detection",
+      "versions": [
+        {
+          "version": "yolov8-waste-ebc1",
+          "artifact": "waste-yolov8-pt",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "face-liveness",
+      "versions": [
+        {
+          "version": "face-antispoof-int8-e3d5",
+          "artifact": "face-antispoof-int8-onnx",
+          "production": true
+        }
+      ]
+    }
+  ]
+}

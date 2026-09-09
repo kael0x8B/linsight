@@ -1,0 +1,31 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/prometheus/rules/linsight-alerts.yml
+
+scrape_configs:
+  - job_name: linsight-java
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["linsight-server:48080"]
+
+  - job_name: linsight-runtime
+    metrics_path: /v1/observability/prometheus
+    authorization:
+      type: Bearer
+      credentials_file: /run/secrets/linsight_runtime_metrics_key
+    static_configs:
+      - targets: ["linsight-runtime:48900"]
+
+  - job_name: linsight-control-plane-projections
+    static_configs:
+      - targets: ["127.0.0.1:49100"]
+
+  - job_name: node
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+# NVIDIA deployments should additionally scrape dcgm-exporter. NPU deployments must map
+# their vendor exporter to linsight_accelerator_* recording rules before field acceptance.

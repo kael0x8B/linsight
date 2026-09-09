@@ -1,0 +1,69 @@
+groups:
+  - name: linsight-production
+    rules:
+      - alert: LInsightCameraOffline
+        expr: linsight_camera_offline > 0
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "摄像头离线超过 5 分钟"}
+      - alert: LInsightDiskHigh
+        expr: 100 * linsight_system_disk_used_bytes / linsight_system_disk_total_bytes > 80
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "边缘磁盘使用率超过 80%"}
+      - alert: LInsightDiskCritical
+        expr: 100 * linsight_system_disk_used_bytes / linsight_system_disk_total_bytes > 90
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: "边缘磁盘使用率超过 90%"}
+      - alert: LInsightCpuCritical
+        expr: linsight_system_cpu_percent > 90
+        for: 5m
+        labels: {severity: critical}
+        annotations: {summary: "边缘系统 CPU 持续超过 90%"}
+      - alert: LInsightMemoryCritical
+        expr: 100 * linsight_system_memory_used_bytes / linsight_system_memory_total_bytes > 90
+        for: 5m
+        labels: {severity: critical}
+        annotations: {summary: "边缘系统内存持续超过 90%"}
+      - alert: LInsightGpuMemoryCritical
+        expr: 100 * DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE) > 90
+        for: 5m
+        labels: {severity: critical}
+        annotations: {summary: "GPU 显存持续超过 90%"}
+      - alert: LInsightAiFpsRegression
+        expr: avg_over_time(linsight_ai_analysis_fps[5m]) < 0.7 * avg_over_time(linsight_ai_analysis_fps[1h]) and avg_over_time(linsight_ai_analysis_fps[1h]) > 0
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: "AI FPS 相对一小时基线下降超过 30%"}
+      - alert: LInsightAiLatencyHigh
+        expr: linsight_ai_total_latency_p95_milliseconds > 2000
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "AI 总处理 P95 时延超过 2 秒"}
+      - alert: LInsightModelLoadFailure
+        expr: increase(linsight_model_load_failures_total[5m]) > 0
+        labels: {severity: critical}
+        annotations: {summary: "模型加载失败"}
+      - alert: LInsightOfflineQueueGrowing
+        expr: deriv(linsight_offline_queue_events[15m]) > 0
+        for: 15m
+        labels: {severity: warning}
+        annotations: {summary: "离线事件队列持续增长"}
+      - alert: LInsightOfflineEventStale
+        expr: linsight_offline_queue_oldest_event_age_seconds > 900
+        for: 5m
+        labels: {severity: critical}
+        annotations: {summary: "事件超过 15 分钟未补传成功"}
+      - alert: LInsightOfflineDeliveryFailed
+        expr: increase(linsight_offline_queue_failed[5m]) > 0
+        labels: {severity: critical}
+        annotations: {summary: "离线补传产生死信"}
+      - alert: LInsightRuntimeRestarting
+        expr: changes(linsight_runtime_start_time_seconds[15m]) > 2
+        labels: {severity: critical}
+        annotations: {summary: "AI Runtime 在 15 分钟内频繁重启"}
+      - alert: LInsightJavaRestarting
+        expr: resets(process_uptime_seconds{job="linsight-java"}[15m]) > 2
+        labels: {severity: critical}
+        annotations: {summary: "Java 服务在 15 分钟内频繁重启"}

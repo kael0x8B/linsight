@@ -1,0 +1,18 @@
+{
+  "QUEUED": "等待节点接收",
+  "RUNNING": "部署进行中",
+  "DOWNLOADING": "下载模型文件",
+  "VERIFYING": "校验模型文件",
+  "CHECKING_ENV": "检查模型运行环境",
+  "INSTALLING_DEPS": "准备独立依赖环境",
+  "DOWNLOADING_DEPS": "下载并安装模型依赖",
+  "RETRYING_DEPS": "重试下载与安装依赖",
+  "VERIFYING_ENV": "验证依赖版本与可用性",
+  "ENV_READY": "运行环境已就绪",
+  "LOADING": "加载模型",
+  "READY": "模型已就绪",
+  "FAILED": "部署失败",
+  "retry": "重新部署",
+  "preparing": "首次部署会自动准备依赖，可能需要数分钟；已有兼容环境会复用。",
+  "refreshFailed": "暂时无法刷新部署进度，正在重试；已下发的命令仍由节点执行。"
+}

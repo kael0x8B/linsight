@@ -1,0 +1,18 @@
+{
+  "QUEUED": "Waiting for node",
+  "RUNNING": "Deployment in progress",
+  "DOWNLOADING": "Downloading model",
+  "VERIFYING": "Verifying model",
+  "CHECKING_ENV": "Checking model environment",
+  "INSTALLING_DEPS": "Preparing isolated environment",
+  "DOWNLOADING_DEPS": "Downloading and installing dependencies",
+  "RETRYING_DEPS": "Retrying dependency preparation",
+  "VERIFYING_ENV": "Verifying dependency compatibility",
+  "ENV_READY": "Environment ready",
+  "LOADING": "Loading model",
+  "READY": "Model ready",
+  "FAILED": "Deployment failed",
+  "retry": "Retry deployment",
+  "preparing": "First deployment prepares dependencies automatically and may take several minutes. Compatible environments are reused.",
+  "refreshFailed": "Unable to refresh progress. Retrying; the node continues executing the command."
+}
