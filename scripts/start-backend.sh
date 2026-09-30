@@ -8,8 +8,12 @@ if [[ -f "${PROJECT_DIR}/.env" ]]; then
   source "${PROJECT_DIR}/.env"
   set +a
 fi
-export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
-export PATH="${JAVA_HOME}/bin:${PATH}"
+if [[ -z "${JAVA_HOME:-}" && -x /usr/libexec/java_home ]]; then
+  export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
+fi
+if [[ -n "${JAVA_HOME:-}" ]]; then
+  export PATH="${JAVA_HOME}/bin:${PATH}"
+fi
 export LINSIGHT_NODE_DEPLOYMENT_RUNTIME_SOURCE="${LINSIGHT_NODE_DEPLOYMENT_RUNTIME_SOURCE:-${PROJECT_DIR}/runtime}"
 
 cd "${PROJECT_DIR}/backend"

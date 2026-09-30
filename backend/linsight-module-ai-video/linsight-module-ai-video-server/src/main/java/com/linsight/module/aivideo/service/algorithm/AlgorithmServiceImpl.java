@@ -103,8 +103,15 @@ public class AlgorithmServiceImpl implements AlgorithmService {
                 status = acceptanceStatus(dag);
                 if (dag.get("nodes") instanceof List<?> nodes) {
                     for (Object value : nodes) {
-                        if (value instanceof Map<?, ?> node && node.get("modelId") instanceof Number modelId) {
-                            modelIds.add(modelId.longValue());
+                        if (value instanceof Map<?, ?> node) {
+                            if (node.get("modelId") instanceof Number modelId) {
+                                modelIds.add(modelId.longValue());
+                            }
+                            if (node.get("modelIds") instanceof List<?> alternatives) {
+                                alternatives.stream().filter(Number.class::isInstance)
+                                        .map(Number.class::cast).map(Number::longValue)
+                                        .forEach(modelIds::add);
+                            }
                         }
                     }
                 }
@@ -121,6 +128,7 @@ public class AlgorithmServiceImpl implements AlgorithmService {
 
     @Override
     public Long savePipeline(PipelineSaveReqVO reqVO) {
+        if (reqVO.getDag().containsKey("algorithmPackage")) throw AlgorithmPackageValidator.invalid("包版本须通过上传算法包创建，不能修改其描述或哈希");
         requireAlgorithm(reqVO.getAlgorithmId());
         List<String> errors = validateDag(reqVO.getDag());
         PipelineVersionDO latest = pipelineVersionMapper.selectLatestByAlgorithm(reqVO.getAlgorithmId());
@@ -148,6 +156,9 @@ public class AlgorithmServiceImpl implements AlgorithmService {
     @Transactional(rollbackFor = Exception.class)
     public void publishPipeline(Long id) {
         PipelineVersionDO pipeline = requirePipeline(id);
+        if (JsonUtils.parseMap(pipeline.getDag()).containsKey("algorithmPackage") && pipeline.getPackageArtifactRef() == null) {
+            throw AlgorithmPackageValidator.invalid("算法包没有经过上传校验");
+        }
         List<String> errors = validateDag(JsonUtils.parseMap(pipeline.getDag()));
         if (!errors.isEmpty()) throw exception(PIPELINE_INVALID);
         pipeline.setValidationStatus("PUBLISHED");
@@ -156,6 +167,10 @@ public class AlgorithmServiceImpl implements AlgorithmService {
         pipelineVersionMapper.updateById(pipeline);
         AlgorithmDO algorithm = requireAlgorithm(pipeline.getAlgorithmId());
         algorithm.setCurrentPipelineVersionId(pipeline.getId());
+        if (JsonUtils.parseMap(pipeline.getDag()).get("algorithmPackage") instanceof Map<?, ?> descriptor
+                && descriptor.get("manifest") instanceof Map<?, ?> manifest) {
+            algorithm.setEventType(String.valueOf(manifest.containsKey("eventType") ? manifest.get("eventType") : "ALGORITHM_EVENT"));
+        }
         algorithmMapper.updateById(algorithm);
     }
 
@@ -284,6 +299,16 @@ public class AlgorithmServiceImpl implements AlgorithmService {
             if (graph.putIfAbsent(id, new HashSet<>()) != null) errors.add("节点 id 重复：" + id);
             indegree.putIfAbsent(id, 0);
             capabilities.put(id, capability);
+            if (node.get("modelIds") != null) {
+                if (!(node.get("modelIds") instanceof List<?> modelIds) || modelIds.isEmpty()
+                        || modelIds.size() > 32 || modelIds.stream().anyMatch(modelId -> !positiveId(modelId))) {
+                    errors.add("节点 modelIds 必须包含 1 至 32 个有效模型编号");
+                } else if (node.get("modelId") instanceof Number modelId
+                        && modelIds.stream().filter(Number.class::isInstance).map(Number.class::cast)
+                                .noneMatch(valueId -> valueId.longValue() == modelId.longValue())) {
+                    errors.add("节点 modelId 必须包含在 modelIds 中");
+                }
+            }
         }
         Object edgesValue = dag.get("edges");
         if (edgesValue != null && !(edgesValue instanceof List<?>)) errors.add("edges 必须是数组");
@@ -425,6 +450,11 @@ public class AlgorithmServiceImpl implements AlgorithmService {
     private static boolean nonNegativeInteger(Object value) {
         return value instanceof Number number && Double.isFinite(number.doubleValue())
                 && number.doubleValue() >= 0 && number.doubleValue() == Math.rint(number.doubleValue());
+    }
+
+    private static boolean positiveId(Object value) {
+        return value instanceof Number number && Double.isFinite(number.doubleValue())
+                && number.longValue() > 0 && number.doubleValue() == number.longValue();
     }
 
     static String acceptanceStatus(Map<String, Object> dag) {

@@ -37,13 +37,17 @@ class AlgorithmServiceImplTest {
         pipeline.setId(10L);
         pipeline.setValidationStatus("PUBLISHED");
         pipeline.setDag(JsonUtils.toJsonString(Map.of("acceptance", Map.of("status", "PENDING"),
-                "nodes", List.of(Map.of("modelId", 8L), Map.of("modelId", 9L), Map.of("modelId", 8L)))));
+                "nodes", List.of(
+                        Map.of("modelId", 8L, "modelIds", List.of(8L, 18L)),
+                        Map.of("modelId", 9L),
+                        Map.of("modelId", 8L)))));
         when(algorithmMapper.selectEnabledList()).thenReturn(List.of(algorithm));
         when(pipelineVersionMapper.selectBatchIds(List.of(10L))).thenReturn(List.of(pipeline));
 
         var relations = service.getModelCapabilities();
-        assertEquals(java.util.Set.of(7L, 8L, 9L), relations.keySet());
+        assertEquals(java.util.Set.of(7L, 8L, 9L, 18L), relations.keySet());
         assertEquals(1, relations.get(8L).size());
+        assertEquals(1, relations.get(18L).size());
         assertEquals("PENDING", relations.get(8L).get(0).getAcceptanceStatus());
 
         pipeline.setValidationStatus("DRAFT");
@@ -109,6 +113,52 @@ class AlgorithmServiceImplTest {
         );
 
         assertTrue(AlgorithmServiceImpl.validateDag(dag).isEmpty());
+    }
+
+    @Test
+    void validateDagAcceptsMultipleHardwareTargetModelAssets() {
+        Map<String, Object> dag = Map.of(
+                "schemaVersion", "1.0",
+                "nodes", List.of(
+                        Map.of("id", "plate-detector", "type", "DETECTOR",
+                                "capabilityKey", "detector.license-plate"),
+                        Map.of("id", "plate-ocr", "type", "OCR",
+                                "capabilityKey", "ocr.license-plate",
+                                "modelId", 71036L,
+                                "modelIds", List.of(71036L, 71039L)),
+                        Map.of("id", "tracker", "type", "TRACKER",
+                                "capabilityKey", "tracker.iou")),
+                "edges", List.of(
+                        Map.of("from", "plate-detector", "to", "plate-ocr"),
+                        Map.of("from", "plate-ocr", "to", "tracker")));
+
+        assertTrue(AlgorithmServiceImpl.validateDag(dag).isEmpty());
+    }
+
+    @Test
+    void validateDagRejectsInvalidHardwareTargetModelAssets() {
+        Map<String, Object> missingPrimary = Map.of(
+                "schemaVersion", "1.0",
+                "nodes", List.of(Map.of(
+                        "id", "plate-ocr",
+                        "type", "OCR",
+                        "capabilityKey", "ocr.license-plate",
+                        "modelId", 71036L,
+                        "modelIds", List.of(71039L))),
+                "edges", List.of());
+        Map<String, Object> invalidId = Map.of(
+                "schemaVersion", "1.0",
+                "nodes", List.of(Map.of(
+                        "id", "plate-ocr",
+                        "type", "OCR",
+                        "capabilityKey", "ocr.license-plate",
+                        "modelIds", List.of(0))),
+                "edges", List.of());
+
+        assertTrue(AlgorithmServiceImpl.validateDag(missingPrimary).contains(
+                "节点 modelId 必须包含在 modelIds 中"));
+        assertTrue(AlgorithmServiceImpl.validateDag(invalidId).contains(
+                "节点 modelIds 必须包含 1 至 32 个有效模型编号"));
     }
 
     @Test

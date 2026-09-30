@@ -31,8 +31,7 @@ onMounted(() => {
 
 <template>
   <Page auto-content-height>
-    <template #doc>
-    </template>
+    <template #doc> </template>
 
     <Card title="Redis 概览">
       <Info :redis-data="redisData" />

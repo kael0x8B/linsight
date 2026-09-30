@@ -16,6 +16,119 @@ from ai_runtime.app.model.contracts import DeployModelRequest, ModelTestRequest
 from ai_runtime.app.model.pool import ModelPool
 
 
+@pytest.mark.parametrize("fails", [False, True])
+def test_file_only_model_receives_memory_crop_and_cleans_up(tmp_path, fails):
+    from pathlib import Path
+
+    from ai_runtime.app.model.contracts import ModelTestResult
+    from ai_runtime.app.model.pool import PoolEntry
+
+    paths = []
+
+    class FileOnlyAdapter:
+        def infer(self, image_path, parameters):
+            paths.append(Path(image_path))
+            with Image.open(image_path) as image:
+                assert image.size == (62, 25)
+                assert image.getpixel((31, 12)) == (12, 34, 56)
+            if fails:
+                raise ValueError("inference failed")
+            return ModelTestResult(
+                sourceWidth=62, sourceHeight=25, objects=[], backend="FILE_ONLY",
+                device="CPU", preprocessMillis=0, inferenceMillis=1, postprocessMillis=0,
+            )
+
+    pool = ModelPool()
+    pool._entries[(1, "CPU")] = PoolEntry(
+        "a" * 64, "legacy", "ONNX", "FILE_ONLY", FileOnlyAdapter()
+    )
+    original = tmp_path / "unwritten-crop.png"
+    request = ModelTestRequest.model_validate({
+        "modelVersionId": 1, "imagePath": original,
+        "parameters": {"schemaVersion": "1.0", "confidence": 0.5, "nmsThreshold": 0.5,
+                       "inputWidth": 640, "inputHeight": 640,
+                       "outputCoordinates": "NORMALIZED_XYWH"},
+    })
+
+    async def exercise():
+        if fails:
+            with pytest.raises(ValueError, match="inference failed"):
+                await pool.test(request, image=Image.new("RGB", (62, 25), (12, 34, 56)))
+        else:
+            result = await pool.test(request, image=Image.new("RGB", (62, 25), (12, 34, 56)))
+            assert result.source_width == 62
+        assert not pool._pins
+        await pool.close()
+
+    asyncio.run(exercise())
+    assert not original.exists()
+    assert len(paths) == 1 and not paths[0].exists() and not paths[0].parent.exists()
+
+
+def test_specialist_detector_uses_shared_original_pixels_without_reopening_jpeg(tmp_path):
+    path = tmp_path / "plate.onnx"
+    row = np.array(
+        [[[320, 320, 200, 50, 0.9, 220, 295, 420, 295, 420, 345, 220, 345, 0.8, 0.1]]],
+        dtype=np.float32,
+    )
+    graph = helper.make_graph(
+        [
+            helper.make_node("Constant", [], ["output"], value=numpy_helper.from_array(row)),
+        ],
+        "plate",
+        [helper.make_tensor_value_info("input", TensorProto.FLOAT, [1, 3, 640, 640])],
+        [helper.make_tensor_value_info("output", TensorProto.FLOAT, [1, 1, 15])],
+    )
+    model = helper.make_model(graph, opset_imports=[helper.make_opsetid("", 12)])
+    model.ir_version = 8
+    onnx.save(model, path)
+    pool = ModelPool()
+
+    async def exercise():
+        await pool.deploy(
+            DeployModelRequest.model_validate(
+                {
+                    "modelVersionId": 1,
+                    "artifactPath": path,
+                    "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                    "runtimeManifest": {
+                        "schemaVersion": "1.0",
+                        "taskType": "OBJECT_DETECTION",
+                        "preprocess": {
+                            "inputWidth": 640,
+                            "inputHeight": 640,
+                            "color": "RGB",
+                            "resize": "LETTERBOX",
+                        },
+                        "decoder": {"type": "YOLO_PLATE"},
+                    },
+                }
+            )
+        )
+        result = await pool.test(
+            ModelTestRequest.model_validate(
+                {
+                    "modelVersionId": 1,
+                    "imagePath": tmp_path / "must-not-open.jpg",
+                    "parameters": {
+                        "schemaVersion": "1.0",
+                        "confidence": 0.5,
+                        "nmsThreshold": 0.5,
+                        "inputWidth": 640,
+                        "inputHeight": 640,
+                        "outputCoordinates": "NORMALIZED_XYWH",
+                    },
+                }
+            ),
+            image=Image.new("RGB", (1280, 720)),
+        )
+        assert result.source_width == 1280 and result.source_height == 720
+        assert result.objects[0].attributes["corner1Y"] == pytest.approx(310 / 720)
+        await pool.close()
+
+    asyncio.run(exercise())
+
+
 def test_model_pool_executes_real_onnx_and_returns_standard_result(tmp_path) -> None:
     model_path = tmp_path / "person.onnx"
     image_path = tmp_path / "input.png"
@@ -427,21 +540,22 @@ def _write_contract_model(path) -> None:
 
 def test_face_quality_rejection_keeps_actual_execution_device(monkeypatch):
     from types import SimpleNamespace
-    from ai_runtime.app.model.face_pair import RknnFacePairAdapter, FaceQualityError
+
+    from ai_runtime.app.model.face_pair import FaceQualityError, RknnFacePairAdapter
 
     pool = ModelPool(max_models=2)
     adapter = object.__new__(RknnFacePairAdapter)
 
     async def borrow(version):
-        return (version, 'RKNPU'), SimpleNamespace(adapter=adapter)
+        return (version, "RKNPU"), SimpleNamespace(adapter=adapter)
 
     async def inference(*args):
-        raise FaceQualityError('NO_FACE')
+        raise FaceQualityError("NO_FACE")
 
-    monkeypatch.setattr(pool, '_borrow', borrow)
-    monkeypatch.setattr(pool, '_inference', inference)
+    monkeypatch.setattr(pool, "_borrow", borrow)
+    monkeypatch.setattr(pool, "_inference", inference)
     with pytest.raises(FaceQualityError) as caught:
-        asyncio.run(pool.extract_face(131, Image.new('RGB', (10, 10))))
-    assert caught.value.device == 'RKNPU'
-    assert caught.value.backend == 'RKNN_FACE_PAIR_SFACE'
-    assert str(caught.value) == 'NO_FACE'
+        asyncio.run(pool.extract_face(131, Image.new("RGB", (10, 10))))
+    assert caught.value.device == "RKNPU"
+    assert caught.value.backend == "RKNN_FACE_PAIR_SFACE"
+    assert str(caught.value) == "NO_FACE"

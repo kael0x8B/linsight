@@ -1,0 +1,123 @@
+{
+  "schemaVersion": "1.0",
+  "sdkVersion": "1.0",
+  "code": "phone-presence-package",
+  "version": "1.0.0",
+  "name": "禁带区域手机出现",
+  "category": "REGION",
+  "eventType": "PHONE_PRESENT",
+  "description": "检测禁带手机区域内出现的可见手机；不据此判断打电话或玩手机。",
+  "entrypoint": "processor.py",
+  "timeoutMillis": 5000,
+  "models": [
+    {
+      "slot": "primary",
+      "name": "通用目标检测模型",
+      "taskType": "OBJECT_DETECTION",
+      "formats": [
+        "ONNX",
+        "RKNN"
+      ],
+      "labels": [
+        "cell_phone"
+      ]
+    }
+  ],
+  "parameterSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "confidence"
+    ],
+    "properties": {
+      "confidence": {
+        "type": "number",
+        "title": "目标置信度",
+        "minimum": 0.01,
+        "maximum": 1
+      }
+    }
+  },
+  "defaultParameters": {
+    "confidence": 0.5
+  },
+  "defaultRule": {
+    "schemaVersion": "1.0",
+    "eventType": "PHONE_PRESENT",
+    "severity": "MAJOR",
+    "cooldownSeconds": 60,
+    "recoverySeconds": 5,
+    "dedup": {
+      "scope": "TRACK",
+      "windowSeconds": 60
+    },
+    "schedule": {
+      "timezone": "Asia/Shanghai",
+      "weekly": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "start": "00:00",
+          "end": "23:59"
+        }
+      ]
+    },
+    "regions": [
+      {
+        "id": "main",
+        "name": "检测区域",
+        "type": "POLYGON",
+        "pointMode": "CENTROID",
+        "overlapThreshold": 0.2,
+        "sourceWidth": 1920,
+        "sourceHeight": 1080,
+        "points": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 1
+          },
+          {
+            "x": 0,
+            "y": 1
+          }
+        ]
+      }
+    ],
+    "condition": {
+      "type": "AND",
+      "children": [
+        {
+          "type": "ROI_ENTER",
+          "regionId": "main",
+          "objectClasses": [
+            "cell_phone"
+          ]
+        },
+        {
+          "type": "N_OF_M",
+          "n": 3,
+          "m": 5
+        },
+        {
+          "type": "DURATION",
+          "seconds": 5
+        }
+      ]
+    }
+  }
+}

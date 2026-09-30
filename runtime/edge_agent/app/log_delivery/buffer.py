@@ -44,8 +44,15 @@ class BufferedLogHandler(logging.Handler):
                 now = time.monotonic()
                 self._flush_repeats(now)
                 if record.levelno >= logging.WARNING:
-                    key = (record.name, entry["component"], entry["level"], message,
-                           entry["taskId"], entry["runId"], entry["diagnosticId"])
+                    key = (
+                        record.name,
+                        entry["component"],
+                        entry["level"],
+                        message,
+                        entry["taskId"],
+                        entry["runId"],
+                        entry["diagnosticId"],
+                    )
                     if key in self._repeats:
                         self._repeats[key]["count"] += 1
                         return
@@ -63,12 +70,15 @@ class BufferedLogHandler(logging.Handler):
         original = state["entry"]
         context = json.loads(original["contextJson"])
         context.update(repeatCount=state["count"], windowSeconds=self._repeat_window)
-        self._entries.append({
-            **original, "entryId": str(uuid4()),
-            "message": f"{original['message'][:1850]} （另有 {state['count']} 次重复，已合并）",
-            "contextJson": json.dumps(context, ensure_ascii=False),
-            "timestampMillis": int(time.time() * 1000),
-        })
+        self._entries.append(
+            {
+                **original,
+                "entryId": str(uuid4()),
+                "message": f"{original['message'][:1850]} （另有 {state['count']} 次重复，已合并）",
+                "contextJson": json.dumps(context, ensure_ascii=False),
+                "timestampMillis": int(time.time() * 1000),
+            }
+        )
 
     def _flush_repeats(self, now: float) -> None:
         while self._repeats:

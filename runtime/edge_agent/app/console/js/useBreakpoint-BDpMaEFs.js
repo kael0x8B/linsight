@@ -1,1 +1,0 @@
-import{Xt as e,Zt as t,kn as n}from"./unmount-global-loading-LeYQHS8i.js";import{n as r}from"./responsiveObserve-DZkQHXdV.js";function i(){let i=n({}),a=null,o=r();return e(()=>{a=o.value.subscribe(e=>{i.value=e})}),t(()=>{o.value.unsubscribe(a)}),i}export{i as t};

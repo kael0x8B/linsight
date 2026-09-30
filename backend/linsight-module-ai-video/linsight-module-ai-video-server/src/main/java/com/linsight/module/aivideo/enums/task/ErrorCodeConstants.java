@@ -12,4 +12,9 @@ public interface ErrorCodeConstants {
     ErrorCode TASK_RUN_NOT_FOUND = new ErrorCode(1_020_003_005, "任务运行记录不存在");
     ErrorCode TASK_REPORT_STALE = new ErrorCode(1_020_003_006, "任务状态上报的运行编号或配置版本已过期");
     ErrorCode TASK_MODEL_CAPABILITY_MISMATCH = new ErrorCode(1_020_003_007, "节点 {} 所选模型缺少必需类别：{}，请在模型中心选择支持该能力的版本");
+    ErrorCode TASK_CONFIRMATION_LATENCY_CONFLICT = new ErrorCode(1_020_003_008,
+            "预计最短确认时延 {} 秒，超过 2 秒目标；请提高分析帧率或降低规则连续帧/持续时间");
+    ErrorCode TASK_MODEL_CAPACITY_EXCEEDED = new ErrorCode(1_020_003_009, "任务启动容量预检未通过：{}");
+    ErrorCode TASK_STREAM_CONFLICT = new ErrorCode(1_020_003_010,
+            "同一网关上的摄像头已有使用其他码流的识别任务，请先停止该任务后再切换码流");
 }

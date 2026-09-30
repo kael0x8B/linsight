@@ -8,10 +8,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useAccess } from '@vben/access';
 import { AuthenticationLoginExpiredModal } from '@vben/common-ui';
 import { isTenantEnable, useTabs, useWatermark } from '@vben/hooks';
-import {
-  AntdProfileOutlined,
-  IconifyIcon,
-} from '@vben/icons';
+import { AntdProfileOutlined, IconifyIcon } from '@vben/icons';
 import {
   BasicLayout,
   LockScreen,

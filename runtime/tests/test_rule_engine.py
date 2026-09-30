@@ -311,55 +311,65 @@ def test_brief_missing_detection_does_not_repeat_same_activity_after_cooldown() 
 
 def smoke_scene_ast() -> RuleAst:
     value = rule_ast().model_dump(by_alias=True)
-    value['eventType'] = 'SMOKE'
-    value['condition'] = {'type': 'AND', 'children': [
-        {'type': 'ROI_ENTER', 'regionId': 'main', 'objectClasses': ['smoke']},
-        {'type': 'N_OF_M', 'n': 2, 'm': 3},
-        {'type': 'DURATION', 'seconds': 0},
-    ]}
-    value['dedup'] = {'scope': 'CAMERA_TASK_TYPE', 'windowSeconds': 30}
+    value["eventType"] = "SMOKE"
+    value["condition"] = {
+        "type": "AND",
+        "children": [
+            {"type": "ROI_ENTER", "regionId": "main", "objectClasses": ["smoke"]},
+            {"type": "N_OF_M", "n": 2, "m": 3},
+            {"type": "DURATION", "seconds": 0},
+        ],
+    }
+    value["dedup"] = {"scope": "CAMERA_TASK_TYPE", "windowSeconds": 30}
     return RuleAst.model_validate(value)
 
 
 def test_scene_presence_counts_frames_not_boxes_and_retains_real_evidence() -> None:
     engine = RuleEngine(task_id=8, camera_id=9, ast=smoke_scene_ast())
     started = 1788346800000
-    smoke = person().model_copy(update={'class_name': 'smoke', 'confidence': 0.8})
-    second = person(0.55).model_copy(update={
-        'class_name': 'smoke', 'confidence': 0.9, 'track_id': 'track-2',
-    })
-    irrelevant = person().model_copy(update={'class_name': 'flame', 'confidence': 0.99})
+    smoke = person().model_copy(update={"class_name": "smoke", "confidence": 0.8})
+    second = person(0.55).model_copy(
+        update={
+            "class_name": "smoke",
+            "confidence": 0.9,
+            "track_id": "track-2",
+        }
+    )
+    irrelevant = person().model_copy(update={"class_name": "flame", "confidence": 0.99})
     first = engine.evaluate([smoke, second, irrelevant], started)
-    assert [item.state for item in first] == ['DETECTED']
+    assert [item.state for item in first] == ["DETECTED"]
     transitions = engine.evaluate([smoke, second, irrelevant], started + 100)
-    alarms = [item for item in transitions if item.state == 'ALARM']
+    alarms = [item for item in transitions if item.state == "ALARM"]
     assert len(alarms) == 1
     assert alarms[0].track_id is None
-    assert alarms[0].object_snapshot['class'] == 'smoke'
-    assert alarms[0].object_snapshot['confidence'] == 0.9
-    assert alarms[0].object_snapshot['bbox'] == second.bbox.model_dump()
+    assert alarms[0].object_snapshot["class"] == "smoke"
+    assert alarms[0].object_snapshot["confidence"] == 0.9
+    assert alarms[0].object_snapshot["bbox"] == second.bbox.model_dump()
     closed = engine.evaluate([], started + 500)
-    assert [item.state for item in closed] == ['RECOVERED', 'CLOSED']
+    assert [item.state for item in closed] == ["RECOVERED", "CLOSED"]
     assert all(item.source_event_id == alarms[0].source_event_id for item in closed)
-    assert all(item.object_snapshot['class'] == 'smoke' for item in closed)
+    assert all(item.object_snapshot["class"] == "smoke" for item in closed)
 
 
 def test_scene_presence_survives_track_changes_and_dedup_window_boundary() -> None:
     ast = smoke_scene_ast()
-    ast.condition['children'][2]['seconds'] = 1
+    ast.condition["children"][2]["seconds"] = 1
     engine = RuleEngine(task_id=8, camera_id=9, ast=ast)
     started = 1788346829900
     transitions = []
     for index, offset in enumerate((0, 100, 1100, 31000, 61000)):
-        detected = person().model_copy(update={
-            'class_name': 'smoke', 'track_id': f'changing-track-{index}',
-        })
+        detected = person().model_copy(
+            update={
+                "class_name": "smoke",
+                "track_id": f"changing-track-{index}",
+            }
+        )
         transitions.extend(engine.evaluate([detected], started + offset))
-    assert sum(item.state == 'ALARM' for item in transitions) == 1
+    assert sum(item.state == "ALARM" for item in transitions) == 1
 
 
 def test_scene_presence_ignores_other_classes_and_outside_roi() -> None:
     engine = RuleEngine(task_id=8, camera_id=9, ast=smoke_scene_ast())
-    outside = person(0.95).model_copy(update={'class_name': 'smoke'})
+    outside = person(0.95).model_copy(update={"class_name": "smoke"})
     for offset in (0, 100, 1000, 2000):
         assert engine.evaluate([person(), outside], 1788346800000 + offset) == []

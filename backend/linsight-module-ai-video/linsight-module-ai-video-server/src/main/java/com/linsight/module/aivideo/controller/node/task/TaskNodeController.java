@@ -3,6 +3,7 @@ package com.linsight.module.aivideo.controller.node.task;
 import com.linsight.framework.common.pojo.CommonResult;
 import com.linsight.module.aivideo.controller.node.task.vo.TaskCommandDetailRespVO;
 import com.linsight.module.aivideo.controller.node.task.vo.TaskRuntimeReportReqVO;
+import com.linsight.module.aivideo.controller.node.task.vo.TaskRemovalReportReqVO;
 import com.linsight.module.aivideo.service.task.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,6 +34,14 @@ public class TaskNodeController {
     public CommonResult<Boolean> report(@Valid @RequestBody TaskRuntimeReportReqVO reqVO,
                                          Authentication authentication) {
         taskService.reportRuntime((Long) authentication.getPrincipal(), reqVO);
+        return success(true);
+    }
+
+    @PostMapping("/removal/report")
+    @Operation(summary = "同步网关已持久化的识别任务删除记录")
+    public CommonResult<Boolean> removal(@Valid @RequestBody TaskRemovalReportReqVO reqVO,
+                                          Authentication authentication) {
+        taskService.reportRemoval((Long) authentication.getPrincipal(), reqVO);
         return success(true);
     }
 }

@@ -74,6 +74,30 @@ class RuleAstValidatorTest {
         assertTrue(RuleAstValidator.validate(value, "AREA_INTRUSION").isEmpty());
     }
 
+    @Test
+    void estimatesLowFpsConfirmationOnSampleBoundaries() {
+        RuleAstValidator.ConfirmationLatency estimate = RuleAstValidator
+                .estimateConfirmationLatency(ast(), 0.2);
+
+        assertEquals(15.0, estimate.minimumSeconds());
+        assertTrue(estimate.conflictsWithEventVisibilityTarget());
+    }
+
+    @Test
+    void ruleOnlyConfirmationCanMeetTwoSecondTarget() {
+        Map<String, Object> value = ast();
+        value.put("condition", Map.of("type", "AND", "children", List.of(
+                Map.of("type", "ROI_ENTER", "regionId", "main", "objectClasses", List.of("person")),
+                Map.of("type", "N_OF_M", "n", 3, "m", 5),
+                Map.of("type", "DURATION", "seconds", 0))));
+
+        RuleAstValidator.ConfirmationLatency estimate = RuleAstValidator
+                .estimateConfirmationLatency(value, 2);
+
+        assertEquals(1.0, estimate.minimumSeconds());
+        assertFalse(estimate.conflictsWithEventVisibilityTarget());
+    }
+
     private static Map<String, Object> ast() {
         Map<String, Object> ast = new LinkedHashMap<>();
         ast.put("schemaVersion", "1.0");

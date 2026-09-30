@@ -104,9 +104,43 @@ class EventServiceImplTest {
         assertEquals("ai-video.event.changed", payload.get("type"));
         assertEquals("1.0", payload.get("version"));
         assertEquals("CREATED", ((Map<?, ?>) payload.get("data")).get("changeType"));
+        assertEquals(request.getSourceEventId(), ((Map<?, ?>) payload.get("data")).get("sourceEventId"));
 
         when(eventMapper.selectBySourceEventId(request.getSourceEventId())).thenReturn(eventCaptor.getValue());
         assertEquals(9001L, service.ingest(request, 88L));
+    }
+
+    @Test
+    void plateEventStillEnqueuesPlatformWebhookWithItsOwnSourceAndLocation() {
+        EventIngestReqVO request = request();
+        request.setEventType("VEHICLE_PLATE_RECOGNIZED");
+        request.setObjectSnapshot(Map.of("class", "license_plate", "attributes", Map.of(
+                "plateNumber", "皖A12345", "ocrStatus", "CONFIRMED", "plateConfidence", 0.95)));
+        request.setTaskSnapshot(Map.of("location", Map.of(
+                "locationCode", "S01", "locationName", "一号料仓", "cameraName", "车头机位")));
+        org.mockito.Mockito.doAnswer(invocation -> {
+            ((EventDO) invocation.getArgument(0)).setId(9001L);
+            return 1;
+        }).when(eventMapper).insert(any(EventDO.class));
+        var webhook = mock(WebhookService.class);
+        ReflectionTestUtils.setField(service, "webhookService", webhook);
+
+        service.ingest(request, 88L);
+        var captured = ArgumentCaptor.forClass(EventOutboxDO.class);
+        verify(outboxMapper).insert(captured.capture());
+        var outbox = captured.getValue();
+        Map<String, Object> payload = JsonUtils.parseMap(outbox.getPayload());
+        assertEquals("PLATFORM", payload.get("deliverySource"));
+        Map<?, ?> data = (Map<?, ?>) payload.get("data");
+        assertEquals(request.getSourceEventId(), data.get("sourceEventId"));
+        assertEquals("皖A12345", ((Map<?, ?>) ((Map<?, ?>) data.get("result")).get("attributes")).get("plateNumber"));
+        assertEquals("S01", ((Map<?, ?>) data.get("location")).get("locationCode"));
+        outbox.setId(9101L);
+        when(outboxMapper.selectById(9101L)).thenReturn(outbox);
+
+        service.dispatchOutbox(9101L);
+        verify(webhook).enqueueEvent(9001L, outbox.getPayload());
+        assertEquals("SENT", outbox.getStatus());
     }
 
     @Test

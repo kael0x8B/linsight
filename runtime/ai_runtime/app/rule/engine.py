@@ -19,9 +19,11 @@ class _TrackState:
     activity_id: str | None = None
     alarmed: bool = False
     last_center: tuple[float, float] | None = None
+    stationary_center: tuple[float, float] | None = None
     path_length: float = 0.0
     observed_since_millis: int | None = None
     last_detection: DetectionObject | None = None
+    recovery_since_millis: int | None = None
 
 
 @dataclass
@@ -30,18 +32,61 @@ class RuleEngine:
     camera_id: int
     ast: RuleAst
     _states: dict[str, _TrackState] = field(default_factory=dict)
+    max_observation_gap_millis: int | None = None
+    _last_observation_millis: int | None = None
+    # Stable identities (e.g. a confirmed plate) can survive detector track loss.
+    # Opt-in keeps existing geometric TRACK activity semantics unchanged.
+    identity_deduplication: bool = False
+    _identity_last_seen: dict[str, int] = field(default_factory=dict)
+
+    def interrupt_observation(self) -> None:
+        """An unavailable frame is unknown, not proof of absence or recovery."""
+        for key, state in list(self._states.items()):
+            if not state.alarmed:
+                self._states.pop(key, None)
+                continue
+            state.history.clear()
+            state.stable_since_millis = None
+            state.last_match_millis = None
+            state.recovery_since_millis = None
+        self._last_observation_millis = None
 
     def evaluate(
         self, objects: list[DetectionObject], occurred_at_millis: int
     ) -> list[RuleTransition]:
+        if self._last_observation_millis is not None and (
+            occurred_at_millis <= self._last_observation_millis
+            or (
+                self.max_observation_gap_millis is not None
+                and occurred_at_millis - self._last_observation_millis
+                > self.max_observation_gap_millis
+            )
+        ):
+            self.interrupt_observation()
         if not self._schedule_active(occurred_at_millis):
+            self.interrupt_observation()
             return []
+        self._last_observation_millis = occurred_at_millis
+        if self.identity_deduplication:
+            self._identity_last_seen = {
+                key: seen for key, seen in self._identity_last_seen.items()
+                if 0 <= occurred_at_millis - seen < self.ast.dedup.window_seconds * 1000
+            }
         n, m, duration_seconds = _thresholds(self.ast.condition)
         count_condition = _count_condition(self.ast.condition)
         if count_condition is not None:
             comparison, minimum, classes = count_condition
+            count_node = (
+                _find_condition(self.ast.condition, "COUNT_BELOW")
+                or _find_condition(self.ast.condition, "ROI_ENTER")
+                or {}
+            )
+            region = next(
+                (item for item in self.ast.regions if item.id == count_node.get("regionId")),
+                self.ast.regions[0],
+            )
             observed = sum(
-                detected.class_name in classes and self._inside_region(detected)
+                detected.class_name in classes and self._inside_region(detected, region)
                 for detected in objects
             )
             return self._evaluate_scene_count(
@@ -64,18 +109,45 @@ class RuleEngine:
             # matching object for evidence. Motion rules still need track state.
             classes = _object_classes(self.ast.condition)
             candidates = [
-                detected for detected in objects
+                detected
+                for detected in objects
                 if detected.class_name in classes and self._inside_region(detected)
             ]
-            objects = [max(candidates, key=lambda item: item.confidence).model_copy(
-                update={"track_id": None}
-            )] if candidates else []
+            objects = (
+                [
+                    max(candidates, key=lambda item: item.confidence).model_copy(
+                        update={"track_id": None}
+                    )
+                ]
+                if candidates
+                else []
+            )
         transitions: list[RuleTransition] = []
         matched_ids: set[str] = set()
         observed_ids: set[str] = set()
         for detected in objects:
             track_id = detected.track_id or "untracked"
             observed_ids.add(track_id)
+            state = self._states.get(track_id)
+            if detected.attributes.get("eventCandidate") is False:
+                if state is not None and not state.alarmed:
+                    state.history.append(False)
+                    state.stable_since_millis = None
+                if self._inside_region(detected):
+                    if state is not None and state.alarmed:
+                        matched_ids.add(track_id)
+                        state.last_match_millis = occurred_at_millis
+                    if self.identity_deduplication and track_id in self._identity_last_seen:
+                        self._identity_last_seen[track_id] = occurred_at_millis
+                continue
+            if (
+                self.identity_deduplication
+                and state is None
+                and track_id in self._identity_last_seen
+                and self._inside_region(detected)
+            ):
+                self._identity_last_seen[track_id] = occurred_at_millis
+                continue
             state = self._states.setdefault(track_id, _TrackState(deque(maxlen=m)))
             matched = self._matches_roi(detected, state, occurred_at_millis)
             if matched:
@@ -83,7 +155,7 @@ class RuleEngine:
                 state.last_detection = detected
             state.history.append(matched)
             matched_frames = sum(state.history)
-            stable = len(state.history) >= n and matched_frames >= n
+            stable = matched and len(state.history) >= n and matched_frames >= n
             if matched:
                 state.last_match_millis = occurred_at_millis
                 if state.state == "IDLE":
@@ -102,16 +174,17 @@ class RuleEngine:
             if stable:
                 if state.stable_since_millis is None:
                     state.stable_since_millis = occurred_at_millis
-                    state.state = "PENDING"
-                    transitions.append(
-                        self._transition(
-                            "PENDING",
-                            detected,
-                            occurred_at_millis,
-                            state.active_dedup_key,
-                            state.activity_id,
+                    if not state.alarmed:
+                        state.state = "PENDING"
+                        transitions.append(
+                            self._transition(
+                                "PENDING",
+                                detected,
+                                occurred_at_millis,
+                                state.active_dedup_key,
+                                state.activity_id,
+                            )
                         )
-                    )
                 elapsed = occurred_at_millis - state.stable_since_millis
                 if (
                     elapsed >= duration_seconds * 1000
@@ -143,6 +216,8 @@ class RuleEngine:
                             self.ast.cooldown_seconds * 1000
                         )
                         state.state = "COOLDOWN"
+                if state.alarmed and self.identity_deduplication:
+                    self._identity_last_seen[track_id] = occurred_at_millis
             elif not matched:
                 state.stable_since_millis = None
 
@@ -155,9 +230,17 @@ class RuleEngine:
                 # a tracked person becoming compliant/unknown in a PPE task).
                 state.history.append(False)
                 state.stable_since_millis = None
+                state.stationary_center = None
+            if state.last_match_millis is None and state.recovery_since_millis is None:
+                state.recovery_since_millis = occurred_at_millis
+            recovery_start = (
+                state.last_match_millis
+                if state.last_match_millis is not None
+                else state.recovery_since_millis
+            )
             if (
-                state.last_match_millis is not None
-                and occurred_at_millis - state.last_match_millis >= recovery_millis
+                recovery_start is not None
+                and occurred_at_millis - recovery_start >= recovery_millis
             ):
                 snapshot = state.last_detection or DetectionObject.model_validate(
                     {
@@ -209,12 +292,28 @@ class RuleEngine:
         if not inside:
             state.path_length = 0.0
             state.observed_since_millis = None
+            state.stationary_center = None
+            if _find_condition(self.ast.condition, "STATIONARY") is not None:
+                state.history.clear()
+                state.stable_since_millis = None
             return False
         if state.observed_since_millis is None:
             state.observed_since_millis = occurred_at_millis
         stationary = _find_condition(self.ast.condition, "STATIONARY")
-        if stationary is not None and movement > float(stationary["maxMovement"]):
-            return False
+        if stationary is not None:
+            # Compare with the parking position, not just the previous frame.
+            # Otherwise a slowly moving vehicle accumulates a false parking alarm.
+            if state.stationary_center is None:
+                state.stationary_center = center
+            displacement = (
+                (center[0] - state.stationary_center[0]) ** 2
+                + (center[1] - state.stationary_center[1]) ** 2
+            ) ** 0.5
+            if displacement > float(stationary["maxMovement"]):
+                state.stationary_center = center
+                state.history.clear()
+                state.stable_since_millis = None
+                return False
         loitering = _find_condition(self.ast.condition, "LOITERING")
         if loitering is not None:
             elapsed = occurred_at_millis - state.observed_since_millis
@@ -224,8 +323,8 @@ class RuleEngine:
             )
         return True
 
-    def _inside_region(self, detected: DetectionObject) -> bool:
-        region = self.ast.regions[0]
+    def _inside_region(self, detected: DetectionObject, region: Region | None = None) -> bool:
+        region = region or self.ast.regions[0]
         bbox = detected.bbox
         x = bbox.x + bbox.width / 2
         y = bbox.y + bbox.height if region.point_mode == "FOOT" else bbox.y + bbox.height / 2
@@ -261,6 +360,7 @@ class RuleEngine:
         transitions: list[RuleTransition] = []
         stable = matched and len(state.history) >= n and sum(state.history) >= n
         if matched:
+            state.recovery_since_millis = None
             state.last_match_millis = occurred_at_millis
             if state.state == "IDLE":
                 state.active_dedup_key = self._dedup_key(key, occurred_at_millis)
@@ -278,16 +378,17 @@ class RuleEngine:
         if stable:
             if state.stable_since_millis is None:
                 state.stable_since_millis = occurred_at_millis
-                state.state = "PENDING"
-                transitions.append(
-                    self._transition(
-                        "PENDING",
-                        snapshot,
-                        occurred_at_millis,
-                        state.active_dedup_key,
-                        state.activity_id,
+                if not state.alarmed:
+                    state.state = "PENDING"
+                    transitions.append(
+                        self._transition(
+                            "PENDING",
+                            snapshot,
+                            occurred_at_millis,
+                            state.active_dedup_key,
+                            state.activity_id,
+                        )
                     )
-                )
             if (
                 occurred_at_millis - state.stable_since_millis >= duration_seconds * 1000
                 and occurred_at_millis >= state.cooldown_until_millis
@@ -311,10 +412,11 @@ class RuleEngine:
                 state.state = "COOLDOWN"
         elif not matched:
             state.stable_since_millis = None
+            if state.recovery_since_millis is None:
+                state.recovery_since_millis = occurred_at_millis
             if (
                 state.active_dedup_key is not None
-                and state.last_match_millis is not None
-                and occurred_at_millis - state.last_match_millis
+                and occurred_at_millis - state.recovery_since_millis
                 >= round(self.ast.recovery_seconds * 1000)
             ):
                 if state.alarmed:

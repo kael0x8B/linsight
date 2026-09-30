@@ -47,6 +47,25 @@ class NodeDeploymentFlowTest {
         verifyNoInteractions(nodeService);
         verify(deploymentRunner).run(eq(100L), eq(7L), any(), isNull(), eq(false));
     }
+    @Test void differentHostsWithTheSameSshKeyDoNotShareADeploymentLock() {
+        var first = request();
+        var second = request();
+        second.setHost("other-edge.example");
+        second.setNodeCode("edge-2");
+        second.setRequestId("request-2");
+
+        service.createDeployment(first);
+        service.createDeployment(second);
+
+        var deployments = ArgumentCaptor.forClass(NodeDeploymentDO.class);
+        verify(deploymentMapper, times(2)).insert(deployments.capture());
+        assertNotEquals(deployments.getAllValues().get(0).getResourceKey(),
+                deployments.getAllValues().get(1).getResourceKey());
+        assertEquals(NodeDeploymentServiceImpl.hostResourceKey("edge.example", 22),
+                deployments.getAllValues().get(0).getResourceKey());
+        assertEquals(NodeDeploymentServiceImpl.hostResourceKey("OTHER-EDGE.EXAMPLE", 22),
+                deployments.getAllValues().get(1).getResourceKey());
+    }
     @Test void returnedRequestIdIsIdempotentAndDoesNotReconnect() {
         var previous = new NodeDeploymentDO(); previous.setId(99L); previous.setHost("edge.example"); previous.setNodeCode("edge-1");
         when(deploymentMapper.selectByRequestId("request-1")).thenReturn(previous);

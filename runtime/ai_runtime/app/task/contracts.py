@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Annotated, Literal
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, StrictBool, model_validator
 
@@ -11,6 +12,7 @@ class TaskInferenceParameters(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     schema_version: Literal["1.0"] = Field(alias="schemaVersion")
+    stream_type: Literal["MAIN", "SUB"] = Field(default="SUB", alias="streamType")
     validation_only: StrictBool = Field(default=False, alias="validationOnly")
     confidence: Annotated[float, Field(ge=0.01, le=1.0)] = 0.5
     nms_threshold: Annotated[float, Field(alias="nmsThreshold", ge=0.01, le=1.0)] = 0.5
@@ -20,12 +22,19 @@ class TaskInferenceParameters(BaseModel):
     person_confidence: Annotated[float, Field(alias="personConfidence", ge=0.01, le=1.0)] = 0.5
     ppe_confidence: Annotated[float, Field(alias="ppeConfidence", ge=0.01, le=1.0)] = 0.5
     unknown_policy: Literal["NO_ALARM"] = Field(default="NO_ALARM", alias="unknownPolicy")
+    # Compatibility-only fields for existing task payloads. Behavior alarm
+    # confirmation is owned by RuleEngine and no longer runs here as a second gate.
     temporal_n: Annotated[int, Field(alias="temporalN", ge=1, le=30)] = 2
     temporal_m: Annotated[int, Field(alias="temporalM", ge=1, le=60)] = 3
     duration_seconds: Annotated[float, Field(alias="durationSeconds", ge=0, le=300)] = 1.0
     ocr_vote_frames: Annotated[int, Field(alias="ocrVoteFrames", ge=2, le=30)] = 5
     ocr_min_votes: Annotated[int, Field(alias="ocrMinVotes", ge=2, le=30)] = 3
+    ocr_min_confidence: float = Field(default=0.75, alias="ocrMinConfidence", ge=0.01, le=1)
+    ocr_vote_max_age_seconds: float = Field(default=10, alias="ocrVoteMaxAgeSeconds", ge=1, le=60)
+    plate_use_rule_roi: StrictBool = Field(default=False, alias="plateUseRuleRoi")
+    plate_max_candidates: int = Field(default=10, alias="plateMaxCandidates", ge=1, le=30)
     class_filter: list[str] = Field(default_factory=list, alias="classFilter", max_length=80)
+    algorithm: dict = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_windows(self) -> "TaskInferenceParameters":
@@ -36,6 +45,16 @@ class TaskInferenceParameters(BaseModel):
         return self
 
 
+class TaskDisplayNames(BaseModel):
+    """Optional operator-facing labels; execution identity still uses immutable IDs."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    task: str | None = Field(default=None, min_length=1, max_length=100)
+    camera: str | None = Field(default=None, min_length=1, max_length=100)
+    algorithm: str | None = Field(default=None, min_length=1, max_length=100)
+
+
 class TaskStartRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -44,9 +63,14 @@ class TaskStartRequest(BaseModel):
     config_version: int = Field(alias="configVersion", gt=0)
     camera_id: int = Field(alias="cameraId", gt=0)
     source_url: SecretStr = Field(alias="sourceUrl")
+    stream_urls: dict[Literal["MAIN", "SUB"], SecretStr] = Field(
+        default_factory=dict, alias="streamUrls", max_length=2
+    )
     algorithm_id: int = Field(alias="algorithmId", gt=0)
     pipeline_version_id: int = Field(alias="pipelineVersionId", gt=0)
     pipeline: dict
+    display_names: TaskDisplayNames | None = Field(default=None, alias="displayNames")
+    algorithm_resources: dict = Field(default_factory=dict, alias="algorithmResources")
     model_version_id: int = Field(alias="modelVersionId", gt=0)
     model_bindings: dict[str, Annotated[int, Field(gt=0)]] = Field(
         default_factory=dict, alias="modelBindings", max_length=20
@@ -58,6 +82,14 @@ class TaskStartRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_rule_binding(self) -> "TaskStartRequest":
+        for value in self.stream_urls.values():
+            try:
+                url = urlsplit(value.get_secret_value())
+                valid = url.scheme in {"rtsp", "rtsps"} and bool(url.hostname)
+            except ValueError:
+                valid = False
+            if not valid:
+                raise ValueError("主/子码流地址必须是有效的 RTSP 地址")
         if not self.model_bindings:
             self.model_bindings = {"primary": self.model_version_id}
         elif self.model_version_id not in self.model_bindings.values():
@@ -91,9 +123,7 @@ class TaskOverlayFrame(BaseModel):
     source_height: int = Field(alias="sourceHeight", gt=0)
     objects: list[DetectionObject] = Field(max_length=512)
     image_base64: str | None = Field(default=None, alias="imageBase64", max_length=349_528)
-    stream_id: str | None = Field(
-        default=None, alias="streamId", pattern=r"^[0-9a-f-]{36}$"
-    )
+    stream_id: str | None = Field(default=None, alias="streamId", pattern=r"^[0-9a-f-]{36}$")
     source_pts: int | None = Field(default=None, alias="sourcePts", ge=0, le=2**53 - 1)
     frame_key: str | None = Field(default=None, alias="frameKey", pattern=r"^[0-9a-f]{32}$")
 

@@ -13,10 +13,15 @@ def queued(root: Path, finalized: bool = True) -> PendingEvent:
     directory.mkdir(exist_ok=True)
     (directory / "snapshot.jpg").write_bytes(b"snapshot")
     (directory / "evidence.mp4").write_bytes(b"video")
-    return PendingEvent.model_validate({
-        "sourceEventId": "event-1", "payload": {}, "finalized": finalized,
-        "snapshotPath": directory / "snapshot.jpg", "videoPath": directory / "evidence.mp4",
-    })
+    return PendingEvent.model_validate(
+        {
+            "sourceEventId": "event-1",
+            "payload": {},
+            "finalized": finalized,
+            "snapshotPath": directory / "snapshot.jpg",
+            "videoPath": directory / "evidence.mp4",
+        }
+    )
 
 
 def test_ack_removes_only_finalized_uploaded_media(tmp_path: Path) -> None:
@@ -44,15 +49,16 @@ def test_cleanup_survives_failed_unlink_and_restart(tmp_path: Path) -> None:
     with patch.object(Path, "unlink", side_effect=PermissionError):
         store.acknowledge_event(event.source_event_id)
     assert event.snapshot_path.exists()
-    assert store._connection.execute(
-        "SELECT COUNT(*) FROM delivered_media_cleanup"
-    ).fetchone()[0] == 2
+    assert (
+        store._connection.execute("SELECT COUNT(*) FROM delivered_media_cleanup").fetchone()[0] == 2
+    )
     store.close()
     reopened = OfflineEventStore(database)
     assert not event.snapshot_path.parent.exists()
-    assert reopened._connection.execute(
-        "SELECT COUNT(*) FROM delivered_media_cleanup"
-    ).fetchone()[0] == 0
+    assert (
+        reopened._connection.execute("SELECT COUNT(*) FROM delivered_media_cleanup").fetchone()[0]
+        == 0
+    )
     reopened.close()
 
 
@@ -79,10 +85,16 @@ def test_cleanup_rejects_external_or_symlink_paths(tmp_path: Path) -> None:
     link = directory / "snapshot.jpg"
     link.symlink_to(external)
     for value in (external, link):
-        store.upsert_event(PendingEvent.model_validate({
-            "sourceEventId": "event-1", "payload": {}, "finalized": True,
-            "snapshotPath": value,
-        }))
+        store.upsert_event(
+            PendingEvent.model_validate(
+                {
+                    "sourceEventId": "event-1",
+                    "payload": {},
+                    "finalized": True,
+                    "snapshotPath": value,
+                }
+            )
+        )
         store.acknowledge_event("event-1")
     assert external.read_bytes() == b"keep"
     assert link.is_symlink()
@@ -104,10 +116,15 @@ def test_failed_media_delivery_never_acknowledges(tmp_path: Path, failure: str) 
         client.upload_event_media.side_effect = RuntimeError("upload unavailable")
     runtime = AsyncMock()
     with pytest.raises((ValueError, RuntimeError)):
-        asyncio.run(_deliver_event(
-            SimpleNamespace(runtime_data_root=tmp_path), object(), client,
-            runtime, event.model_dump(mode="json", by_alias=True),
-        ))
+        asyncio.run(
+            _deliver_event(
+                SimpleNamespace(runtime_data_root=tmp_path),
+                object(),
+                client,
+                runtime,
+                event.model_dump(mode="json", by_alias=True),
+            )
+        )
     runtime.acknowledge_event.assert_not_called()
     assert event.snapshot_path.exists() and event.video_path.exists()
 
@@ -124,8 +141,13 @@ def test_successful_media_delivery_acknowledges_after_both_uploads(tmp_path: Pat
         assert client.upload_event_media.await_count == 2
 
     runtime.acknowledge_event.side_effect = acknowledge
-    asyncio.run(_deliver_event(
-        SimpleNamespace(runtime_data_root=tmp_path), object(), client,
-        runtime, event.model_dump(mode="json", by_alias=True),
-    ))
+    asyncio.run(
+        _deliver_event(
+            SimpleNamespace(runtime_data_root=tmp_path),
+            object(),
+            client,
+            runtime,
+            event.model_dump(mode="json", by_alias=True),
+        )
+    )
     runtime.acknowledge_event.assert_awaited_once()

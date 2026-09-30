@@ -131,6 +131,16 @@
       "clearAll": "清空全部"
     },
     "recognition": {
+      "syncBuffer": "同步缓冲",
+      "syncBufferSettings": "设置同步缓冲",
+      "syncBufferValue": "同步缓冲 {0} ms",
+      "syncBufferActual": "当前帧实际等待 {0} ms，会随网络抖动略有变化。",
+      "syncBufferHint": "可设置 0–1800 ms。数值越小，画面越实时；识别结果未及时到达时，暂不显示对应的框。",
+      "syncBufferSavedLocally": "应用后立即生效，在此浏览器按账号保存，并用于所有预览；网关本地入口独立保存。",
+      "syncBufferSaveFailed": "浏览器未能保存设置，本次观看仍可使用，刷新后可能恢复默认值。",
+      "syncBufferReset": "恢复 500 ms",
+      "syncBufferApply": "应用",
+      "shortHold": "识别框短时保持",
       "title": "识别能力",
       "description": "来自本摄像头关联的任务；运行状态按最近心跳更新。",
       "unavailable": "能力信息暂不可用，请刷新重试。",

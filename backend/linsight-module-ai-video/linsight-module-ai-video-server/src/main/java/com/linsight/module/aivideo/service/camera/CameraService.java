@@ -24,4 +24,7 @@ public interface CameraService {
      */
     String getRuntimeStreamUrl(Long id, String streamType);
 
+    /** Configured alternatives for encrypted storage on the owning gateway; never a browser response. */
+    java.util.Map<String, String> getRuntimeStreamUrls(Long id);
+
 }

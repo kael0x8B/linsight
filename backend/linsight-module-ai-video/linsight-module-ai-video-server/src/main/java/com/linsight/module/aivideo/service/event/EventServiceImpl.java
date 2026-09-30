@@ -447,6 +447,20 @@ public class EventServiceImpl implements EventService {
     }
 
     private void enqueue(EventDO event, String changeType, String actor) {
+        Map<String, Object> data = new java.util.LinkedHashMap<>();
+        data.put("changeType", changeType);
+        data.put("eventId", event.getId());
+        data.put("eventNo", event.getEventNo());
+        data.put("eventType", event.getEventType());
+        data.put("severity", event.getSeverity());
+        data.put("status", event.getStatus());
+        data.put("occurredTime", event.getOccurredTime());
+        if (event.getSourceEventId() != null) data.put("sourceEventId", event.getSourceEventId());
+        data.put("cameraId", event.getCameraId());
+        data.put("taskId", event.getTaskId());
+        if (event.getObjectSnapshot() != null) data.put("result", JsonUtils.parseMap(event.getObjectSnapshot()));
+        Map<String, Object> task = event.getTaskSnapshot() == null ? null : JsonUtils.parseMap(event.getTaskSnapshot());
+        if (task != null && task.get("location") != null) data.put("location", task.get("location"));
         EventOutboxDO outbox = new EventOutboxDO();
         outbox.setEventId(event.getId());
         outbox.setMessageType("ai-video-event");
@@ -455,14 +469,8 @@ public class EventServiceImpl implements EventService {
                 "version", "1.0",
                 "messageId", UUID.randomUUID().toString(),
                 "occurredAt", LocalDateTime.now(),
-                "data", Map.of(
-                        "changeType", changeType,
-                        "eventId", event.getId(),
-                        "eventNo", event.getEventNo(),
-                        "eventType", event.getEventType(),
-                        "severity", event.getSeverity(),
-                        "status", event.getStatus(),
-                        "occurredTime", event.getOccurredTime()))));
+                "deliverySource", "PLATFORM",
+                "data", data)));
         outbox.setStatus("PENDING");
         outbox.setAttempts(0);
         outbox.setNextAttemptTime(LocalDateTime.now());

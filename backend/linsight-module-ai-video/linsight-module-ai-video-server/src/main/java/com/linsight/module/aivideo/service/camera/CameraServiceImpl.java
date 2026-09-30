@@ -99,6 +99,23 @@ public class CameraServiceImpl implements CameraService {
         if (StrUtil.isBlank(streamUri)) {
             throw exception(CAMERA_PREVIEW_STREAM_NOT_CONFIGURED);
         }
+        return runtimeStreamUrl(camera, streamUri);
+    }
+
+    @Override
+    public java.util.Map<String, String> getRuntimeStreamUrls(Long id) {
+        CameraDO camera = validateExists(id);
+        java.util.Map<String, String> streams = new java.util.LinkedHashMap<>();
+        if (StrUtil.isNotBlank(camera.getMainStreamUri())) {
+            streams.put("MAIN", runtimeStreamUrl(camera, camera.getMainStreamUri()));
+        }
+        if (StrUtil.isNotBlank(camera.getSubStreamUri())) {
+            streams.put("SUB", runtimeStreamUrl(camera, camera.getSubStreamUri()));
+        }
+        return streams;
+    }
+
+    private String runtimeStreamUrl(CameraDO camera, String streamUri) {
         String pathAndQuery = normalizePathAndQuery(streamUri);
         String userInfo = "";
         if (StrUtil.isNotBlank(camera.getUsername())) {

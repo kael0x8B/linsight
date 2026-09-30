@@ -20,11 +20,18 @@ paths=(
   /etc/systemd/system/linsight-local-console.service
   /etc/systemd/system/linsight-node-power.path /etc/systemd/system/linsight-node-power.service
   /usr/local/sbin/linsight-node-power /etc/tmpfiles.d/linsight.conf
+  /usr/local/sbin/linsight-accelerator-metrics-permissions
+  /etc/systemd/system/linsight-accelerator-metrics-permissions.service
+  /usr/local/sbin/linsight-disk-pressure-cleanup /etc/linsight/disk-pressure.env
+  /etc/systemd/system/linsight-disk-pressure-cleanup.service
+  /etc/systemd/system/linsight-disk-pressure-cleanup.timer
   /var/lib/linsight/edge-agent/current /var/lib/linsight/edge-agent/previous
   /var/lib/linsight/edge-agent/pending-activation.json
   /var/lib/linsight/edge-agent/failed-activation-version
 )
-services=(linsight-ai-runtime.service linsight-edge-agent.service linsight-local-console.service linsight-node-power.path)
+services=(linsight-ai-runtime.service linsight-edge-agent.service linsight-local-console.service
+  linsight-node-power.path linsight-accelerator-metrics-permissions.service
+  linsight-disk-pressure-cleanup.timer)
 case "$action" in
   prepare)
     install -d -m 0700 "$base" "$backup" "$backup/root"

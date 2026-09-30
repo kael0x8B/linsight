@@ -54,6 +54,7 @@ public class CameraOverviewService {
                     .effectiveStatus(effectiveStatus(task, node, cutoff)).activeRunId(task.activeRunId())
                     .lastHeartbeatTime(task.lastHeartbeatTime()).validationOnly(task.validationOnly())
                     .errorCode(task.errorCode()).errorMessage(task.errorMessage())
+                    .regions(task.regions())
                     .sampleFps(task.sampleFps()).analysisFps(task.analysisFps())
                     .totalLatencyMillis(task.totalLatencyMillis()).executionBackend(task.executionBackend()).build());
         }

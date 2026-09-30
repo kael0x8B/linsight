@@ -27,9 +27,15 @@ def test_real_offline_seed_without_ensurepip_and_partial_retry(tmp_path, monkeyp
     environment.create_environment(target)
     environment.create_environment(target)
     result = subprocess.run(  # noqa: S603 - interpreter created inside pytest tmp_path
-        [str(target / "bin/python"), "-I", "-c",
-         "import pip,sys; print(sys.prefix); print(pip.__file__)"],
-        check=True, capture_output=True, text=True,
+        [
+            str(target / "bin/python"),
+            "-I",
+            "-c",
+            "import pip,sys; print(sys.prefix); print(pip.__file__)",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
     )
     assert all(str(target) in line for line in result.stdout.splitlines())
     assert not (tmp_path / "forbidden-target").exists()

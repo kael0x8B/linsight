@@ -47,6 +47,7 @@ class NodeDeploymentWheelhouseTest {
         prepare("safe-1.0-py3-none-any.whl");
         Files.createDirectories(source.resolve("ai_runtime"));
         Files.createDirectories(source.resolve("edge_agent"));
+        writeGatewayConsoleBundle();
         var properties = new com.linsight.module.aivideo.integration.ssh.NodeDeploymentProperties();
         properties.setRuntimeSourceDir(source.toString());
         var runner = new NodeDeploymentRunner();
@@ -61,5 +62,18 @@ class NodeDeploymentWheelhouseTest {
         }
         assertTrue(names.contains("deployment-wheels/manifest.json"));
         assertTrue(names.contains("deployment-wheels/safe-1.0-py3-none-any.whl"));
+    }
+
+    private void writeGatewayConsoleBundle() throws Exception {
+        Path directory = source.resolve("gateway-console");
+        Files.createDirectories(directory);
+        byte[] artifact = "gateway console artifact".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        String digest = NodeDeploymentRunner.sha256(artifact);
+        String fileName = "gateway-console-" + digest.substring(0, 12) + ".tar.gz";
+        Files.write(directory.resolve(fileName), artifact);
+        Files.writeString(directory.resolve("manifest.json"), """
+                {"schemaVersion":"1.0","artifactType":"linsightGatewayConsole",
+                 "artifact":{"fileName":"%s","sha256":"%s"}}
+                """.formatted(fileName, digest));
     }
 }

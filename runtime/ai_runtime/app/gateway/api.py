@@ -8,9 +8,18 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from ai_runtime.app.gateway.service import GatewayChange, GatewayConflict
+from ai_runtime.app.capability.packages import MAX_PACKAGE_BYTES, AlgorithmPackageStore
+from ai_runtime.app.gateway.event_delivery import DeliveryConflict
+from ai_runtime.app.gateway.service import (
+    ConfirmationLatencyConflict,
+    GatewayCapacityExceeded,
+    GatewayCapacityPreflight,
+    GatewayChange,
+    GatewayConflict,
+)
 from ai_runtime.app.model.contracts import DeployModelRequest
 from ai_runtime.app.stream.webrtc import WebRtcUnavailableError
+from ai_runtime.app.task.image_recognition import ImageRecognitionError, TaskImageRequest
 
 
 class GatewayRpc(BaseModel):
@@ -30,6 +39,72 @@ def build_gateway_router(service, authenticate):
             payload = request.payload
             if request.action == "snapshot":
                 result = service.snapshot()
+            elif request.action.startswith("validation."):
+                result = await service.image_validation.invoke(request.action, payload)
+            elif request.action == "task.recognize-image":
+                result = await service.recognize_image(TaskImageRequest.model_validate(payload))
+            elif request.action == "task-removal.list":
+                result = [
+                    {key: value for key, value in removal.items() if key != "platformManaged"}
+                    for removal in service.store.removals(pending_only=True)
+                    if removal["platformManaged"]
+                ][:100]
+            elif request.action == "task-removal.ack" and gateway_origin == "PLATFORM":
+                service.store.acknowledge_removal(
+                    int(payload["taskId"]),
+                    str(payload["requestId"]),
+                    int(payload["gatewayRevision"]),
+                )
+                result = {"acknowledged": True}
+            elif request.action == "event-stream.status":
+                result = service.event_stream.status()
+            elif request.action == "event-stream.configure":
+                result = service.event_stream.configure(
+                    payload["enabled"], payload.get("rotateKey", False),
+                    int(payload["expectedRevision"]),
+                )
+            elif request.action == "algorithm.list":
+                result = AlgorithmPackageStore(service.settings.runtime_data_root).list()
+            elif request.action == "algorithm.install":
+                encoded = payload.get("base64", "")
+                if len(encoded) > (MAX_PACKAGE_BYTES * 4 // 3 + 4):
+                    raise ValueError("算法包过大")
+                result = AlgorithmPackageStore(service.settings.runtime_data_root).install(
+                    base64.b64decode(encoded, validate=True), payload.get("sha256")
+                )
+            elif request.action == "algorithm.resource":
+                encoded = payload.get("base64", "")
+                if len(encoded) > 14 * 1024 * 1024:
+                    raise ValueError("算法资源过大")
+                content = base64.b64decode(encoded, validate=True)
+                digest = hashlib.sha256(content).hexdigest()
+                if digest != payload.get("sha256"):
+                    raise ValueError("算法资源校验失败")
+                root = service.settings.runtime_data_root / "algorithm-resources"
+                root.mkdir(parents=True, exist_ok=True)
+                path = root / (digest + ".jpg")
+                if not path.exists():
+                    path.write_bytes(content)
+                    os.chmod(path, 0o600)
+                result = {"path": str(path.resolve())}
+            elif request.action == "algorithm.uninstall":
+                digest = payload.get("sha256", "")
+                store = AlgorithmPackageStore(service.settings.runtime_data_root)
+                path, _ = store.resolve(digest)
+                if any(
+                    doc["config"].get("pipeline", {}).get("algorithmPackage", {}).get("sha256")
+                    == digest
+                    for doc in service.store.all()
+                ):
+                    return {
+                        "ok": False,
+                        "code": 409,
+                        "message": "算法包仍被配置引用，请先移除或切换关联配置",
+                    }
+                import shutil
+
+                shutil.rmtree(path)
+                result = {"removed": True}
             elif request.action in {
                 "preview.open",
                 "preview.status",
@@ -38,6 +113,12 @@ def build_gateway_router(service, authenticate):
                 "preview.frames",
             }:
                 result = await service.preview.invoke(request.action, payload)
+            elif request.action == "task.remove":
+                result = await service.remove(GatewayChange.model_validate(payload))
+            elif request.action == "task.capacity.preflight":
+                result = await service.capacity_preflight(
+                    GatewayCapacityPreflight.model_validate(payload)
+                )
             elif request.action == "task.save":
                 result = await service.change(
                     GatewayChange.model_validate(payload),
@@ -55,8 +136,8 @@ def build_gateway_router(service, authenticate):
                     return {"ok": False, "code": 409, "message": str(error)}
             elif request.action == "access.password":
                 password = payload.get("password", "")
-                if not isinstance(password, str) or not 12 <= len(password) <= 256:
-                    return {"ok": False, "code": 422, "message": "密码长度须为 12–256 位"}
+                if not isinstance(password, str) or not 6 <= len(password) <= 256:
+                    return {"ok": False, "code": 422, "message": "密码长度须为 6–256 位"}
                 root = service.settings.runtime_data_root / "gateway"
                 temporary = root / f".password-{uuid4()}"
                 try:
@@ -109,6 +190,13 @@ def build_gateway_router(service, authenticate):
             else:
                 return {"ok": False, "code": 400, "message": "不支持的网关操作"}
             return {"ok": True, "data": result}
+        except ImageRecognitionError as error:
+            return {
+                "ok": False,
+                "code": error.code,
+                "message": str(error),
+                "diagnosticId": error.diagnostic_id,
+            }
         except WebRtcUnavailableError as error:
             return {
                 "ok": False,
@@ -116,12 +204,21 @@ def build_gateway_router(service, authenticate):
                 "message": "视频连接暂不可用，请重试",
                 "diagnosticId": error.diagnostic_id,
             }
-        except GatewayConflict:
+        except GatewayCapacityExceeded as error:
+            return {
+                "ok": False,
+                "code": 409,
+                "message": str(error),
+                "data": error.report,
+            }
+        except (GatewayConflict, DeliveryConflict):
             return {
                 "ok": False,
                 "code": 409,
                 "message": "配置已被修改，请刷新后重新提交；当前草稿仍保留",
             }
+        except ConfirmationLatencyConflict as error:
+            return {"ok": False, "code": 422, "message": str(error)}
         except ValidationError as error:
             fields = [".".join(map(str, e["loc"])) for e in error.errors()]
             return {"ok": False, "code": 422, "message": "配置校验失败：" + ", ".join(fields)}

@@ -6,23 +6,24 @@ export DEBIAN_FRONTEND=noninteractive
 export LC_ALL=C
 mode="${1:-check}"
 bootstrap="${2:-}"
+python_bin="${LINSIGHT_PYTHON:-python3}"
 [[ "$mode" = install || "$mode" = check ]] || exit 64
 
 fail() { echo "LINSIGHT_ERROR=$*"; exit 1; }
-python_minor=$(python3 -c 'import sys; assert (3,12) <= sys.version_info < (3,14), "Python 3.12/3.13 required"; print(f"{sys.version_info.major}.{sys.version_info.minor}")') \
+python_minor=$("$python_bin" -c 'import sys; assert (3,12) <= sys.version_info < (3,14), "Python 3.12/3.13 required"; print(f"{sys.version_info.major}.{sys.version_info.minor}")') \
   || fail '需要可用的 Python 3.12 或 3.13；未修改系统 Python'
 probe=$(mktemp -d /tmp/linsight-venv-check.XXXXXX)
 trap 'rm -rf -- "$probe"' EXIT
 
 check_capabilities() {
   missing=()
-  if ! timeout 45s python3 -m venv "$probe/venv" >"$probe/venv.log" 2>&1 \
+  if ! timeout 45s "$python_bin" -m venv "$probe/venv" >"$probe/venv.log" 2>&1 \
       || ! "$probe/venv/bin/python" -m pip --version >>"$probe/venv.log" 2>&1; then
     echo '[DEPENDENCY] Python venv/pip 不可用：'
     tail -n 12 "$probe/venv.log"
     if [[ -n "$bootstrap" ]]; then
       echo '[DEPENDENCY] 使用随包 pip 实测应用隔离环境，保留系统 Python 与锁定包'
-      if ! timeout 120s python3 -I "$bootstrap" --probe "$probe"; then
+      if ! timeout 120s "$python_bin" -I "$bootstrap" --probe "$probe"; then
         fail '随包 Python 隔离环境实测失败，未安装系统包；请检查上方 bootstrap 错误'
       fi
     else
@@ -135,7 +136,7 @@ try_plan() {
 plan_ready=false
 if contains "$venv_package" "${missing[@]}"; then
   # Only coordinate distro Python packages when they own the active interpreter.
-  interpreter=$(readlink -f "$(command -v python3)")
+  interpreter=$(readlink -f "$(command -v "$python_bin")")
   owner=$(dpkg-query -S "$interpreter" 2>/dev/null || true)
   # Debian/Ubuntu normally place the binary in pythonX.Y-minimal, not pythonX.Y.
   contains "${owner%%:*}" "$python_package" "${python_package}-minimal" \

@@ -131,6 +131,16 @@
       "clearAll": "Clear all"
     },
     "recognition": {
+      "syncBuffer": "Sync buffer",
+      "syncBufferSettings": "Set sync buffer",
+      "syncBufferValue": "Sync buffer {0} ms",
+      "syncBufferActual": "This frame waited {0} ms; network jitter may change the actual wait.",
+      "syncBufferHint": "Set 0–1800 ms. Lower values show more recent video; boxes are omitted when matching results have not arrived.",
+      "syncBufferSavedLocally": "Applies immediately to all previews and is saved for this account in this browser. Local gateway settings are separate.",
+      "syncBufferSaveFailed": "The browser could not save this setting. It applies for now but may reset after a reload.",
+      "syncBufferReset": "Reset to 500 ms",
+      "syncBufferApply": "Apply",
+      "shortHold": "Briefly retaining the last detection",
       "title": "Recognition capabilities",
       "description": "Tasks configured for this camera; status reflects recent heartbeats.",
       "unavailable": "Capability details unavailable. Refresh to retry.",

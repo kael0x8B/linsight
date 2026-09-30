@@ -1,0 +1,130 @@
+{
+  "schemaVersion": "1.0",
+  "sdkVersion": "1.0",
+  "code": "crowd-limit-package",
+  "version": "1.0.0",
+  "name": "区域人数超限",
+  "category": "REGION",
+  "eventType": "PEOPLE_LIMIT",
+  "description": "区域人数持续达到阈值后告警，适用于限员区域；不判断人员身份。",
+  "entrypoint": "processor.py",
+  "timeoutMillis": 5000,
+  "models": [
+    {
+      "slot": "primary",
+      "name": "通用目标检测模型",
+      "taskType": "OBJECT_DETECTION",
+      "formats": [
+        "ONNX",
+        "RKNN"
+      ],
+      "labels": [
+        "person"
+      ]
+    }
+  ],
+  "parameterSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "confidence"
+    ],
+    "properties": {
+      "confidence": {
+        "type": "number",
+        "title": "目标置信度",
+        "minimum": 0.01,
+        "maximum": 1
+      }
+    }
+  },
+  "defaultParameters": {
+    "confidence": 0.5
+  },
+  "defaultRule": {
+    "schemaVersion": "1.0",
+    "eventType": "PEOPLE_LIMIT",
+    "severity": "MAJOR",
+    "cooldownSeconds": 60,
+    "recoverySeconds": 5,
+    "dedup": {
+      "scope": "CAMERA_TASK_TYPE",
+      "windowSeconds": 60
+    },
+    "schedule": {
+      "timezone": "Asia/Shanghai",
+      "weekly": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "start": "00:00",
+          "end": "23:59"
+        }
+      ]
+    },
+    "regions": [
+      {
+        "id": "main",
+        "name": "检测区域",
+        "type": "POLYGON",
+        "pointMode": "CENTROID",
+        "overlapThreshold": 0.2,
+        "sourceWidth": 1920,
+        "sourceHeight": 1080,
+        "points": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 1
+          },
+          {
+            "x": 0,
+            "y": 1
+          }
+        ]
+      }
+    ],
+    "condition": {
+      "type": "AND",
+      "children": [
+        {
+          "type": "ROI_ENTER",
+          "regionId": "main",
+          "objectClasses": [
+            "person"
+          ]
+        },
+        {
+          "type": "COUNT",
+          "min": 5,
+          "objectClasses": [
+            "person"
+          ]
+        },
+        {
+          "type": "N_OF_M",
+          "n": 3,
+          "m": 5
+        },
+        {
+          "type": "DURATION",
+          "seconds": 10
+        }
+      ]
+    }
+  }
+}

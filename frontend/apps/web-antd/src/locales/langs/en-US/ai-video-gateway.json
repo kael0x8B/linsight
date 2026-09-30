@@ -1,0 +1,11 @@
+{
+  "streamType": "Recognition stream",
+  "streamMain": "Main stream · Distant objects",
+  "streamSub": "Substream · Lower load",
+  "streamSwitchHelp": "Save to apply. Running recognition briefly restarts. Configure missing stream addresses in Advanced settings. Upgrade the gateway if local switching is unavailable.",
+  "streamMainUrl": "Main stream RTSP address",
+  "streamSubUrl": "Substream RTSP address",
+  "streamAddressHelp": "Leave blank to keep the saved address. Addresses are encrypted on the gateway for switching without the platform.",
+  "streamAddressSaved": "Saved; leave blank to keep",
+  "streamAddressMissing": "Not saved; enter the full RTSP address"
+}

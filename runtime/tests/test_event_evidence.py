@@ -25,6 +25,11 @@ def task_request() -> TaskStartRequest:
             "algorithmId": 10,
             "pipelineVersionId": 11,
             "pipeline": {"schemaVersion": "1.0", "nodes": [], "edges": []},
+            "displayNames": {
+                "task": "东门区域入侵",
+                "camera": "东门摄像头",
+                "algorithm": "区域入侵",
+            },
             "modelVersionId": 12,
             "modelBindings": {"person-detector": 12, "face-recognizer": 15},
             "ruleId": 13,
@@ -359,6 +364,7 @@ def test_evidence_buffer_writes_snapshot_and_playable_mp4(tmp_path: Path) -> Non
             "person-detector": 12,
             "face-recognizer": 15,
         }
+        assert pending.payload["taskSnapshot"]["displayNames"]["task"] == "东门区域入侵"
         assert pending.payload["modelSnapshot"]["modelBindings"]["face-recognizer"] == 15
         store.close()
 
@@ -444,11 +450,11 @@ def test_video_encoding_does_not_hold_up_new_analysis_frames(tmp_path: Path, mon
     asyncio.run(scenario())
 
 
-@pytest.mark.skipif(shutil.which('ffmpeg') is None, reason='ffmpeg is required')
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg is required")
 def test_same_millisecond_frames_do_not_discard_the_alarm_video(tmp_path: Path) -> None:
     async def scenario():
-        store = OfflineEventStore(tmp_path / 'delivery.sqlite3')
-        buffer = EvidenceBuffer(task_request(), store, tmp_path, 'ffmpeg', 10, 1, 5)
+        store = OfflineEventStore(tmp_path / "delivery.sqlite3")
+        buffer = EvidenceBuffer(task_request(), store, tmp_path, "ffmpeg", 10, 1, 5)
         for timestamp in (1000, 1000, 1500, 2000):
             await buffer.observe_frame(jpeg(), timestamp)
         await buffer.start(transition())
@@ -459,4 +465,5 @@ def test_same_millisecond_frames_do_not_discard_the_alarm_video(tmp_path: Path) 
         assert pending.finalized and pending.capture_error is None
         assert pending.video_path is not None and pending.video_path.stat().st_size > 0
         store.close()
+
     asyncio.run(scenario())

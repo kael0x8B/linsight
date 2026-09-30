@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "1.0",
+  "sdkVersion": "1.0",
+  "version": "1.0.1",
+  "entrypoint": "processor.py",
+  "timeoutMillis": 5000,
+  "code": "region-intrusion-package",
+  "name": "区域入侵",
+  "category": "REGION",
+  "description": "在指定警戒区域检测人员；由模型检测与区域规则组成。",
+  "models": [
+    {
+      "slot": "person",
+      "name": "人员检测模型",
+      "taskType": "OBJECT_DETECTION",
+      "labels": [
+        "person"
+      ],
+      "formats": [
+        "ONNX",
+        "RKNN"
+      ]
+    }
+  ],
+  "parameterSchema": {
+    "type": "object",
+    "required": [
+      "roi"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "roi": {
+        "type": "object",
+        "title": "识别区域",
+        "x-widget": "roi",
+        "required": [
+          "x",
+          "y",
+          "width",
+          "height"
+        ],
+        "properties": {
+          "x": {
+            "type": "number",
+            "title": "区域左侧（0–1）",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "y": {
+            "type": "number",
+            "title": "区域顶部（0–1）",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "width": {
+            "type": "number",
+            "title": "区域宽度（0–1）",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "height": {
+            "type": "number",
+            "title": "区域高度（0–1）",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    }
+  },
+  "defaultParameters": {
+    "roi": {
+      "x": 0.15,
+      "y": 0.15,
+      "width": 0.7,
+      "height": 0.7
+    }
+  },
+  "eventType": "AREA_INTRUSION"
+}

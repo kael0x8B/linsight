@@ -1,12 +1,14 @@
 import asyncio
 import hashlib
 import sys
+import tempfile
 from collections import Counter, OrderedDict
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
 import onnxruntime as ort
+import psutil
 from PIL import Image
 
 from ai_runtime.app.model.backends import (
@@ -30,6 +32,8 @@ from ai_runtime.app.model.face_pair import FacePairAdapter, FaceQualityError, Rk
 from ai_runtime.app.model.generic import GenericOnnxAdapter
 from ai_runtime.app.model.isolated import IsolatedAdapter
 from ai_runtime.app.model.person import DetectionAdapter
+from ai_runtime.app.model.plate import ChinesePlateOcrAdapter, Yolo26PlateAdapter, YoloPlateAdapter
+from ai_runtime.app.model.plate_routed import RoutedPlateOcrAdapter
 from ai_runtime.app.model.registry import require_adapter
 from ai_runtime.app.model.rknn import RknnAdapter
 
@@ -51,6 +55,26 @@ class PoolEntry:
     artifact_format: str
     backend: str
     adapter: ExecutableAdapter
+
+
+@dataclass(frozen=True)
+class ModelCapacityPlan:
+    """Read-only admission result for one node's shared model pool."""
+
+    allowed: bool
+    slot_allowed: bool
+    memory_allowed: bool
+    slot_limit: int
+    current_model_ids: tuple[int, ...]
+    projected_model_ids: tuple[int, ...]
+    artifact_bytes: dict[int, int]
+    memory_budget_bytes: dict[int, int]
+    current_memory_budget_bytes: int
+    projected_memory_budget_bytes: int
+    memory_total_bytes: int
+    memory_available_bytes: int
+    memory_available_after_bytes: int
+    memory_safety_reserve_bytes: int
 
 
 class ModelPool:
@@ -110,7 +134,7 @@ class ModelPool:
             and not (
                 request.runtime_manifest is not None
                 and request.runtime_manifest.decoder.type
-                in {"FACE_PAIR_SFACE", "FACE_PAIR_SFACE_RKNN"}
+                in {"FACE_PAIR_SFACE", "FACE_PAIR_SFACE_RKNN", "PLATE_OCR_ROUTED"}
             )
         ):
             python = await self.dependencies.ensure(request.artifact_format)
@@ -256,6 +280,79 @@ class ModelPool:
                 self._release_locked(lease)
                 raise
 
+    async def capacity_preflight(
+        self,
+        current_model_ids: Iterable[int],
+        projected_model_ids: Iterable[int],
+        registry: DeployedModelRegistry | None = None,
+        *,
+        memory_safety_ratio: float = 0.05,
+        memory_min_reserve_bytes: int = 512 * 1024 * 1024,
+    ) -> ModelCapacityPlan:
+        """Estimate admission without loading, evicting, pinning, or releasing a model.
+
+        Model memory is budgeted from the already verified local artifact. The 2x,
+        minimum-64 MiB allowance covers weights plus a conservative execution buffer;
+        it is deliberately an admission estimate rather than a claim about live RSS.
+        """
+        current = tuple(sorted(set(current_model_ids)))
+        projected = tuple(sorted(set(projected_model_ids)))
+        registry = registry or self._registry
+        if registry is None and (current or projected):
+            raise ModelUnavailableError("模型本地注册信息不可用，请重新部署模型")
+        requested = set(current) | set(projected)
+        try:
+            payloads = (
+                await asyncio.to_thread(registry.load_payloads, requested)
+                if requested and registry is not None
+                else []
+            )
+        except (OSError, RuntimeError, ValueError) as error:
+            raise ModelUnavailableError("模型本地文件校验失败，请重新部署模型") from error
+        by_id = {value["modelVersionId"]: value for value in payloads}
+        missing = requested - set(by_id)
+        if missing:
+            raise ModelUnavailableError(
+                f"模型 {', '.join(map(str, sorted(missing)))} 未部署到当前节点，请先部署模型"
+            )
+        artifact_bytes = await asyncio.to_thread(_artifact_sizes, by_id, tuple(sorted(requested)))
+        memory_budget = {
+            model_id: max(size * 2, 64 * 1024 * 1024) for model_id, size in artifact_bytes.items()
+        }
+        current_budget = sum(memory_budget[value] for value in current)
+        projected_budget = sum(memory_budget[value] for value in projected)
+        async with self._lock:
+            memory = psutil.virtual_memory()
+            # Stopping a task releases its lease, but leaves reusable adapters in
+            # the pool. Their memory is already absent from system availability.
+            # Charge only models which actually need loading, including dead workers.
+            added = sum(
+                memory_budget[value]
+                for value in projected
+                if not self.is_loaded(value, by_id[value].get("device"))
+            )
+        reserve = max(memory_min_reserve_bytes, int(memory.total * memory_safety_ratio))
+        # An unused cached model is not reclaimed until it is really evicted.
+        available_after = max(0, int(memory.available) - added)
+        slot_allowed = len(projected) <= self._max_models
+        memory_allowed = available_after >= reserve
+        return ModelCapacityPlan(
+            allowed=slot_allowed and memory_allowed,
+            slot_allowed=slot_allowed,
+            memory_allowed=memory_allowed,
+            slot_limit=self._max_models,
+            current_model_ids=current,
+            projected_model_ids=projected,
+            artifact_bytes=artifact_bytes,
+            memory_budget_bytes=memory_budget,
+            current_memory_budget_bytes=current_budget,
+            projected_memory_budget_bytes=projected_budget,
+            memory_total_bytes=int(memory.total),
+            memory_available_bytes=int(memory.available),
+            memory_available_after_bytes=available_after,
+            memory_safety_reserve_bytes=reserve,
+        )
+
     def _release_locked(self, lease: ModelLease) -> None:
         for key in lease:
             self._pins[key] -= 1
@@ -286,14 +383,47 @@ class ModelPool:
         key, entry = await self._borrow(request.model_version_id, request.device)
         try:
             if image is not None and (
-                isinstance(entry.adapter, (GenericOnnxAdapter, RknnAdapter, FacePairAdapter))
+                isinstance(
+                    entry.adapter,
+                    (
+                        GenericOnnxAdapter,
+                        RknnAdapter,
+                        FacePairAdapter,
+                        YoloPlateAdapter,
+                        Yolo26PlateAdapter,
+                        ChinesePlateOcrAdapter,
+                    ),
+                )
                 or (isinstance(entry.adapter, IsolatedAdapter) and entry.artifact_format == "RKNN")
             ):
                 return await self._inference(
                     key, entry.adapter.infer_image, image, request.parameters
                 )
+            if image is not None:
+                # Legacy/file-only adapters still need the supplied crop, which
+                # the live pipeline no longer writes to request.image_path.
+                return await self._inference(
+                    key, _infer_image_file_fallback, entry.adapter, image, request.parameters
+                )
             return await self._inference(
                 key, entry.adapter.infer, str(request.image_path), request.parameters
+            )
+        except (OSError, ValueError):
+            self._inference_errors += 1
+            raise
+
+    async def test_batch(
+        self, request: ModelTestRequest, images: list[Image.Image]
+    ) -> list[ModelTestResult]:
+        """Run a manifest classification model once for a bounded crop batch."""
+        if not images:
+            return []
+        key, entry = await self._borrow(request.model_version_id, request.device)
+        try:
+            if not isinstance(entry.adapter, GenericOnnxAdapter):
+                raise ModelUnavailableError("该模型不支持批量图像推理")
+            return await self._inference(
+                key, entry.adapter.infer_images, images, request.parameters
             )
         except (OSError, ValueError):
             self._inference_errors += 1
@@ -371,6 +501,15 @@ class ModelPool:
             await self.dependencies.close()
 
 
+def _infer_image_file_fallback(adapter, image: Image.Image, parameters) -> ModelTestResult:
+    # Keep temporary pixels alive until the native/isolated inference completes,
+    # including cancellation of the caller. Never overwrite a shared frame path.
+    with tempfile.TemporaryDirectory(prefix="linsight-model-image-") as directory:
+        path = Path(directory) / "input.png"
+        image.save(path, format="PNG")
+        return adapter.infer(str(path), parameters)
+
+
 def _deploy_response(
     request: DeployModelRequest, backend: str, reused: bool
 ) -> DeployModelResponse:
@@ -390,6 +529,13 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _artifact_sizes(payloads: dict[int, dict], model_ids: tuple[int, ...]) -> dict[int, int]:
+    return {
+        model_id: Path(str(payloads[model_id]["artifactPath"])).stat().st_size
+        for model_id in model_ids
+    }
+
+
 def _load_adapter(
     path: Path,
     artifact_format: str,
@@ -400,6 +546,16 @@ def _load_adapter(
     digest: str,
     onnx_intra_op_threads: int = 2,
 ) -> tuple[ExecutableAdapter, str]:
+    if runtime_manifest is not None and runtime_manifest.decoder.type == "PLATE_OCR_ROUTED":
+        if artifact_format != "ARCHIVE" or device != "CPU":
+            raise ValueError("routed plate OCR requires a CPU ARCHIVE")
+        directory, members = extract_archive(path, digest)
+        if {member.relative_to(directory).as_posix() for member in members} != {
+            "specialist.onnx", "site.onnx",
+        }:
+            raise ValueError("routed OCR archive must contain specialist.onnx and site.onnx")
+        adapter = RoutedPlateOcrAdapter(directory, onnx_intra_op_threads)
+        return adapter, adapter.backend
     if runtime_manifest is not None and runtime_manifest.decoder.type in {
         "FACE_PAIR_SFACE",
         "FACE_PAIR_SFACE_RKNN",
@@ -443,6 +599,18 @@ def _load_adapter(
         except Exception as error:
             raise ValueError(f"invalid or unsupported ONNX artifact: {error}") from error
         if runtime_manifest is not None:
+            if runtime_manifest.decoder.type in {
+                "YOLO_PLATE", "YOLO26_PLATE_POSE", "CHINESE_PLATE_CTC"
+            }:
+                adapter = {
+                    "YOLO_PLATE": YoloPlateAdapter,
+                    "YOLO26_PLATE_POSE": Yolo26PlateAdapter,
+                    "CHINESE_PLATE_CTC": ChinesePlateOcrAdapter,
+                }[runtime_manifest.decoder.type]
+                return (
+                    adapter(session, device),
+                    "ONNX_RUNTIME_MANIFEST_" + runtime_manifest.decoder.type,
+                )
             if runtime_manifest.decoder.type == "LPRNET":
                 return LprNetAdapter(session, device), "ONNX_RUNTIME_MANIFEST_LPRNET"
             if runtime_manifest.decoder.type == "LPD_YUNET":

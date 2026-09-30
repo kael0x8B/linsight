@@ -18,6 +18,7 @@ def test_heartbeat_uses_platform_epoch_millis_contract() -> None:
         "agentVersion": "0.1.0",
         "activationGuard": None,
         "modelUninstall": "v1",
+        "algorithmPackageSdk": "1.0",
         "agentRollbackAvailable": False,
         "failedAgentVersion": None,
         "hostName": settings.host_name,

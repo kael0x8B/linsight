@@ -19,11 +19,19 @@ export default defineConfig(async () => {
           '@form-create/antd-designer > codemirror/addon/hint/javascript-hint',
         ],
       },
-      build: { rollupOptions: { input: { index: 'index.html', gateway: 'gateway.html' } } },
+      build: {
+        rollupOptions: {
+          input: { index: 'index.html', gateway: 'gateway.html' },
+        },
+      },
       server: {
         allowedHosts: true,
         proxy: {
-          '/gateway-api': { target: process.env.LINSIGHT_GATEWAY_PROXY_TARGET ?? 'http://127.0.0.1:48901' },
+          '/gateway-api': {
+            target:
+              process.env.LINSIGHT_GATEWAY_PROXY_TARGET ??
+              'http://127.0.0.1:48901',
+          },
           '/admin-api': {
             changeOrigin: true,
             // 本地开发统一转发到 LInsight 后端，保留 /admin-api 前缀。

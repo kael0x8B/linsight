@@ -263,15 +263,10 @@ onBeforeUnmount(() => {
       <div class="ai-page ai-page-stack h-full">
         <AiPageHeader
           title="模型单图测试"
-          description="验证模型版本、节点部署和标准化输出，定位预处理、推理与后处理耗时。"
+          description="上传图片，验证模型的识别结果。"
           icon="lucide:scan-search"
-          status="Inference Lab"
         />
-        <Alert
-          message="单图测试现已按模型版本的真实制品格式下发：支持 ONNX、TorchScript、受信任预置 PT checkpoint 和 ZIP 模型包；多阶段 ZIP 仍需对应流水线适配器。"
-          show-icon
-          type="warning"
-        />
+
         <Alert v-if="error" :message="error" show-icon type="error">
           <template #action>
             <Button @click="loadInitial">重试</Button>

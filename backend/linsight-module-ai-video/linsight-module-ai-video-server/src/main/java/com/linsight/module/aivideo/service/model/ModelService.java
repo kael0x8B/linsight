@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Collection;
 
 public interface ModelService {
+    List<java.util.Map<String, Object>> getExecutableOptions();
     java.util.Map<Long, java.util.Map<String, String>> getVersionDisplayNames(Collection<Long> versionIds);
     Long createModel(ModelSaveReqVO reqVO);
     void updateModel(ModelSaveReqVO reqVO);

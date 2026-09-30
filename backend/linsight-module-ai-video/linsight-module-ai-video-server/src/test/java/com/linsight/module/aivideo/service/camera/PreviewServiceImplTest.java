@@ -58,10 +58,10 @@ class PreviewServiceImplTest {
     @Test
     void createPreviewMustKeepSourceSecretInsideRuntimeBoundary() {
         when(runtimePreviewClient.isEnabled()).thenReturn(true);
-        when(cameraService.getRuntimeStreamUrl(7L, "SUB"))
+        when(cameraService.getRuntimeStreamUrl(7L, "MAIN"))
                 .thenReturn("rtsp://operator:secret@192.0.2.10/private");
         RuntimePreviewClient.Session runtimeSession = runtimeSession();
-        when(runtimePreviewClient.createSession(eq(3L), eq(1L), eq(7L), anyString(), eq("SUB")))
+        when(runtimePreviewClient.createSession(eq(3L), eq(1L), eq(7L), anyString(), eq("MAIN")))
                 .thenReturn(runtimeSession);
 
         PreviewSessionRespVO result = previewService.createPreview(7L, 3L, "MAIN", 1L, 9L);
@@ -72,7 +72,7 @@ class PreviewServiceImplTest {
         assertFalse(result.toString().contains("secret"));
         assertEquals(3L, result.getNodeId());
         verify(runtimePreviewClient).createSession(3L, 1L, 7L,
-                "rtsp://operator:secret@192.0.2.10/private", "SUB");
+                "rtsp://operator:secret@192.0.2.10/private", "MAIN");
     }
 
     @Test
@@ -92,7 +92,7 @@ class PreviewServiceImplTest {
         when(cameraService.getRuntimeStreamUrl(7L, "SUB")).thenReturn("rtsp://192.0.2.10/live");
         when(runtimePreviewClient.createSession(anyLong(), anyLong(), anyLong(), anyString(), anyString()))
                 .thenReturn(runtimeSession());
-        previewService.createPreview(7L, 3L, "MAIN", 1L, 9L);
+        previewService.createPreview(7L, 3L, "SUB", 1L, 9L);
 
         ServiceException exception = assertThrows(ServiceException.class,
                 () -> previewService.getPreview("session-1", 1L, 10L));
@@ -108,7 +108,7 @@ class PreviewServiceImplTest {
         when(cameraService.getRuntimeStreamUrl(7L, "SUB")).thenReturn("rtsp://192.0.2.10/live");
         when(runtimePreviewClient.createSession(anyLong(), anyLong(), anyLong(), anyString(), anyString()))
                 .thenReturn(runtimeSession());
-        previewService.createPreview(7L, 3L, "MAIN", 1L, 9L);
+        previewService.createPreview(7L, 3L, "SUB", 1L, 9L);
         NodeOverlayReportReqVO overlay = overlay();
 
         previewService.publishOverlay(overlay, 3L);
@@ -165,6 +165,7 @@ class PreviewServiceImplTest {
         when(runtimePreviewClient.createSession(anyLong(), anyLong(), anyLong(), anyString(), anyString()))
                 .thenReturn(runtimeSession());
         previewService.createPreview(7L, 3L, "SUB", 1L, 9L);
+        clearInvocations(taskService);
         now.set(TimeUnit.SECONDS.toNanos(80));
         assertThrows(ServiceException.class, () -> previewService.getPreview("session-1", 1L, 10L));
         now.set(TimeUnit.SECONDS.toNanos(91));
@@ -191,13 +192,14 @@ class PreviewServiceImplTest {
     }
 
     @Test
-    void createWebRtcPreviewMustUseSubStreamAndReturnAnswer() {
+    void createWebRtcPreviewMustUseActiveRecognitionStreamAndReturnAnswer() {
         when(runtimePreviewClient.isEnabled()).thenReturn(true);
-        when(cameraService.getRuntimeStreamUrl(7L, "SUB"))
-                .thenReturn("rtsp://operator:secret@192.0.2.10/sub");
+        when(taskService.getActiveStreamType(7L, 3L)).thenReturn("MAIN");
+        when(cameraService.getRuntimeStreamUrl(7L, "MAIN"))
+                .thenReturn("rtsp://operator:secret@192.0.2.10/main");
         RuntimePreviewClient.Session runtimeSession = webRtcSession();
         when(runtimePreviewClient.createWebRtcSession(3L, 1L, 7L,
-                "rtsp://operator:secret@192.0.2.10/sub", "offer-sdp", "offer"))
+                "rtsp://operator:secret@192.0.2.10/main", "offer-sdp", "offer"))
                 .thenReturn(runtimeSession);
 
         PreviewSessionRespVO result = previewService.createWebRtcPreview(
@@ -207,7 +209,7 @@ class PreviewServiceImplTest {
         assertEquals("answer-sdp", result.getAnswerSdp());
         assertEquals("answer", result.getAnswerType());
         assertNull(result.getManifestUrl());
-        verify(cameraService).getRuntimeStreamUrl(7L, "SUB");
+        verify(cameraService).getRuntimeStreamUrl(7L, "MAIN");
     }
 
     @Test

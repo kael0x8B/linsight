@@ -3,6 +3,7 @@ import type { AiVideoAlgorithmApi } from '#/api/ai-video/algorithm';
 import type { AiVideoTaskApi } from '#/api/ai-video/task';
 
 import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 
 import { useAccess } from '@vben/access';
 import { Page } from '@vben/common-ui';
@@ -41,7 +42,8 @@ import {
 import { getEventPage } from '#/api/ai-video/event';
 import { getTaskPage } from '#/api/ai-video/task';
 import { AiPageHeader } from '#/components/ai-video';
-import { router } from '#/router';
+
+const router = useRouter();
 
 const { hasAccessByCodes } = useAccess();
 const canRecord = computed(() =>
@@ -103,8 +105,7 @@ const metricsPass = computed(
     evidenceComplete.value &&
     form.eventPrecision >= form.minEventPrecision &&
     form.eventRecall >= form.minEventRecall &&
-    form.falsePositivesPerStreamHour <=
-      form.maxFalsePositivesPerStreamHour &&
+    form.falsePositivesPerStreamHour <= form.maxFalsePositivesPerStreamHour &&
     form.missedEvents <= form.maxMissedEvents &&
     form.endToEndP95Ms <= form.maxEndToEndP95Ms &&
     form.averageFps >= form.minAverageFps &&
@@ -201,7 +202,10 @@ function acceptancePayload() {
 }
 
 async function saveAcceptance() {
-  if (!selectedAlgorithm.value?.currentPipelineVersionId || !selectedTaskId.value) {
+  if (
+    !selectedAlgorithm.value?.currentPipelineVersionId ||
+    !selectedTaskId.value
+  ) {
     message.warning('请先选择已发布 Pipeline 的算法和对应任务');
     return;
   }
@@ -216,7 +220,10 @@ async function saveAcceptance() {
       (item) => item.id === selectedAlgorithm.value?.currentPipelineVersionId,
     );
     if (!current) throw new Error('当前 Pipeline 版本不存在');
-    const dag = JSON.parse(JSON.stringify(current.dag)) as Record<string, unknown>;
+    const dag = JSON.parse(JSON.stringify(current.dag)) as Record<
+      string,
+      unknown
+    >;
     dag.acceptance = acceptancePayload();
     const versionId = await savePipeline({
       algorithmId: selectedAlgorithm.value.id,
@@ -250,26 +257,26 @@ onMounted(async () => {
     <div class="ai-page ai-page-stack h-full">
       <AiPageHeader
         title="视频识别验收"
-        description="把已发布的动态 AI 能力绑定到真实任务，以固定测试集和现场指标形成可追溯的验收版本。"
+        description="使用测试集和现场指标验证识别效果。"
         icon="lucide:clipboard-check"
-        status="Video Acceptance"
       >
         <template #extra>
           <Button @click="router.push('/ai-video/task')">任务中心</Button>
-          <Button type="primary" :disabled="!canRecord || !evidenceComplete" :loading="saving" @click="saveAcceptance">
+          <Button
+            type="primary"
+            :disabled="!canRecord || !evidenceComplete"
+            :loading="saving"
+            @click="saveAcceptance"
+          >
             <IconifyIcon icon="lucide:save" />记录验收
           </Button>
         </template>
       </AiPageHeader>
 
-      <Alert
-        message="这里只记录真实视频或固定测试集的验收证据，不会因为页面保存成功就伪造算法效果。未达阈值时只生成待验收版本，不会替换当前可运行 Pipeline。"
-        show-icon
-        type="warning"
-      />
-
       <Steps
-        :current="metricsPass ? 3 : selectedTaskId ? 2 : selectedAlgorithmId ? 1 : 0"
+        :current="
+          metricsPass ? 3 : selectedTaskId ? 2 : selectedAlgorithmId ? 1 : 0
+        "
         :items="[
           { title: '选择能力' },
           { title: '绑定任务' },
@@ -301,26 +308,49 @@ onMounted(async () => {
               </FormItem>
             </Form>
             <Descriptions bordered :column="1" size="small">
-              <DescriptionsItem label="能力编码">{{ selectedAlgorithm?.code ?? '-' }}</DescriptionsItem>
+              <DescriptionsItem label="能力编码">
+                {{ selectedAlgorithm?.code ?? '-' }}
+              </DescriptionsItem>
               <DescriptionsItem label="Pipeline 状态">
-                <Tag :color="selectedAlgorithm?.pipelineAcceptanceStatus === 'PASS' ? 'green' : 'orange'">
-                  {{ selectedAlgorithm?.pipelineAcceptanceStatus ?? 'UNPUBLISHED' }}
+                <Tag
+                  :color="
+                    selectedAlgorithm?.pipelineAcceptanceStatus === 'PASS'
+                      ? 'green'
+                      : 'orange'
+                  "
+                >
+                  {{
+                    selectedAlgorithm?.pipelineAcceptanceStatus ?? 'UNPUBLISHED'
+                  }}
                 </Tag>
               </DescriptionsItem>
-              <DescriptionsItem label="任务状态">{{ selectedTask?.actualStatus ?? '-' }}</DescriptionsItem>
+              <DescriptionsItem label="任务状态">
+                {{ selectedTask?.actualStatus ?? '-' }}
+              </DescriptionsItem>
             </Descriptions>
             <Divider />
             <Row :gutter="12">
-              <Col :span="12"><Statistic title="任务已产出事件" :value="taskEventTotal" /></Col>
-              <Col :span="12"><Statistic title="已标记误报" :value="falsePositiveTotal" /></Col>
+              <Col :span="12">
+                <Statistic title="任务已产出事件" :value="taskEventTotal" />
+              </Col>
+              <Col :span="12">
+                <Statistic title="已标记误报" :value="falsePositiveTotal" />
+              </Col>
             </Row>
           </Card>
 
           <Card class="mt-4" title="验收完整度">
-            <Progress :percent="completionPercent" :status="metricsPass ? 'success' : 'active'" />
+            <Progress
+              :percent="completionPercent"
+              :status="metricsPass ? 'success' : 'active'"
+            />
             <Alert
               class="mt-4"
-              :message="metricsPass ? '指标达到所填阈值，可以发布验收版本。' : '仍有证据未填写或指标未达到阈值。'"
+              :message="
+                metricsPass
+                  ? '指标达到所填阈值，可以发布验收版本。'
+                  : '仍有证据未填写或指标未达到阈值。'
+              "
               :type="metricsPass ? 'success' : 'info'"
               show-icon
             />
@@ -331,9 +361,31 @@ onMounted(async () => {
           <Card title="2. 固定测试集与证据">
             <Form layout="vertical">
               <Row :gutter="16">
-                <Col :span="8"><FormItem label="测试集版本" required><Input v-model:value="form.datasetVersion" placeholder="例如 plant-a-v1" /></FormItem></Col>
-                <Col :span="16"><FormItem label="测试集 SHA256" required><Input v-model:value="form.datasetSha256" :maxlength="64" placeholder="64 位 SHA256" /></FormItem></Col>
-                <Col :span="24"><FormItem label="视频/报告证据引用" required><Input v-model:value="form.evidenceRef" placeholder="对象存储引用、内部报告编号或受控文件路径" /></FormItem></Col>
+                <Col :span="8">
+                  <FormItem label="测试集版本" required>
+                    <Input
+                      v-model:value="form.datasetVersion"
+                      placeholder="例如 plant-a-v1"
+                    />
+                  </FormItem>
+                </Col>
+                <Col :span="16">
+                  <FormItem label="测试集 SHA256" required>
+                    <Input
+                      v-model:value="form.datasetSha256"
+                      :maxlength="64"
+                      placeholder="64 位 SHA256"
+                    />
+                  </FormItem>
+                </Col>
+                <Col :span="24">
+                  <FormItem label="视频/报告证据引用" required>
+                    <Input
+                      v-model:value="form.evidenceRef"
+                      placeholder="对象存储引用、内部报告编号或受控文件路径"
+                    />
+                  </FormItem>
+                </Col>
               </Row>
             </Form>
           </Card>
@@ -341,28 +393,163 @@ onMounted(async () => {
           <Card class="mt-4" title="3. 实测指标与验收阈值">
             <Form layout="vertical">
               <Row :gutter="16">
-                <Col :span="8"><FormItem label="事件准确率"><InputNumber v-model:value="form.eventPrecision" :min="0" :max="1" :step="0.01" /></FormItem></Col>
-                <Col :span="8"><FormItem label="最低准确率"><InputNumber v-model:value="form.minEventPrecision" :min="0" :max="1" :step="0.01" /></FormItem></Col>
-                <Col :span="8"><FormItem label="事件召回率"><InputNumber v-model:value="form.eventRecall" :min="0" :max="1" :step="0.01" /></FormItem></Col>
-                <Col :span="8"><FormItem label="最低召回率"><InputNumber v-model:value="form.minEventRecall" :min="0" :max="1" :step="0.01" /></FormItem></Col>
-                <Col :span="8"><FormItem label="每路每小时误报"><InputNumber v-model:value="form.falsePositivesPerStreamHour" :min="0" :step="0.1" /></FormItem></Col>
-                <Col :span="8"><FormItem label="允许最大误报"><InputNumber v-model:value="form.maxFalsePositivesPerStreamHour" :min="0" :step="0.1" /></FormItem></Col>
-                <Col :span="8"><FormItem label="漏报事件数"><InputNumber v-model:value="form.missedEvents" :min="0" :precision="0" /></FormItem></Col>
-                <Col :span="8"><FormItem label="允许最大漏报"><InputNumber v-model:value="form.maxMissedEvents" :min="0" :precision="0" /></FormItem></Col>
-                <Col :span="8"><FormItem label="端到端 P95(ms)"><InputNumber v-model:value="form.endToEndP95Ms" :min="0" /></FormItem></Col>
-                <Col :span="8"><FormItem label="最大 P95(ms)"><InputNumber v-model:value="form.maxEndToEndP95Ms" :min="1" :max="1999" /></FormItem></Col>
-                <Col :span="8"><FormItem label="平均分析 FPS"><InputNumber v-model:value="form.averageFps" :min="0.1" :step="0.1" /></FormItem></Col>
-                <Col :span="8"><FormItem label="最低分析 FPS"><InputNumber v-model:value="form.minAverageFps" :min="0.1" :step="0.1" /></FormItem></Col>
-                <Col :span="8"><FormItem label="CPU 峰值(%)"><InputNumber v-model:value="form.cpuPeakPercent" :min="0" :max="100" /></FormItem></Col>
-                <Col :span="8"><FormItem label="内存峰值(MiB)"><InputNumber v-model:value="form.memoryPeakMiB" :min="0" /></FormItem></Col>
-                <Col :span="8"><FormItem label="加速器显存峰值(MiB)"><InputNumber v-model:value="form.acceleratorMemoryPeakMiB" :min="0" /></FormItem></Col>
-                <Col :span="8"><FormItem label="冷却与去重验证"><Switch v-model:checked="form.cooldownDedupPass" checked-children="通过" un-checked-children="未通过" /></FormItem></Col>
-                <Col :span="24"><FormItem label="验收备注"><Input.TextArea v-model:value="form.note" :rows="3" placeholder="记录测试摄像头、光照、遮挡、硬件和异常样本情况" /></FormItem></Col>
+                <Col :span="8">
+                  <FormItem label="事件准确率">
+                    <InputNumber
+                      v-model:value="form.eventPrecision"
+                      :min="0"
+                      :max="1"
+                      :step="0.01"
+                    />
+                  </FormItem>
+                </Col>
+                <Col :span="8">
+                  <FormItem label="最低准确率">
+                    <InputNumber
+                      v-model:value="form.minEventPrecision"
+                      :min="0"
+                      :max="1"
+                      :step="0.01"
+                    />
+                  </FormItem>
+                </Col>
+                <Col :span="8">
+                  <FormItem label="事件召回率">
+                    <InputNumber
+                      v-model:value="form.eventRecall"
+                      :min="0"
+                      :max="1"
+                      :step="0.01"
+                    />
+                  </FormItem>
+                </Col>
+                <Col :span="8">
+                  <FormItem label="最低召回率">
+                    <InputNumber
+                      v-model:value="form.minEventRecall"
+                      :min="0"
+                      :max="1"
+                      :step="0.01"
+                    />
+                  </FormItem>
+                </Col>
+                <Col :span="8">
+                  <FormItem label="每路每小时误报">
+                    <InputNumber
+                      v-model:value="form.falsePositivesPerStreamHour"
+                      :min="0"
+                      :step="0.1"
+                    />
+                  </FormItem>
+                </Col>
+                <Col :span="8">
+                  <FormItem label="允许最大误报">
+                    <InputNumber
+                      v-model:value="form.maxFalsePositivesPerStreamHour"
+                      :min="0"
+                      :step="0.1"
+                    />
+                  </FormItem>
+                </Col>
+                <Col :span="8">
+                  <FormItem label="漏报事件数">
+                    <InputNumber
+                      v-model:value="form.missedEvents"
+                      :min="0"
+                      :precision="0"
+                    />
+                  </FormItem>
+                </Col>
+                <Col :span="8">
+                  <FormItem label="允许最大漏报">
+                    <InputNumber
+                      v-model:value="form.maxMissedEvents"
+                      :min="0"
+                      :precision="0"
+                    />
+                  </FormItem>
+                </Col>
+                <Col :span="8">
+                  <FormItem label="端到端 P95(ms)">
+                    <InputNumber v-model:value="form.endToEndP95Ms" :min="0" />
+                  </FormItem>
+                </Col>
+                <Col :span="8">
+                  <FormItem label="最大 P95(ms)">
+                    <InputNumber
+                      v-model:value="form.maxEndToEndP95Ms"
+                      :min="1"
+                      :max="1999"
+                    />
+                  </FormItem>
+                </Col>
+                <Col :span="8">
+                  <FormItem label="平均分析 FPS">
+                    <InputNumber
+                      v-model:value="form.averageFps"
+                      :min="0.1"
+                      :step="0.1"
+                    />
+                  </FormItem>
+                </Col>
+                <Col :span="8">
+                  <FormItem label="最低分析 FPS">
+                    <InputNumber
+                      v-model:value="form.minAverageFps"
+                      :min="0.1"
+                      :step="0.1"
+                    />
+                  </FormItem>
+                </Col>
+                <Col :span="8">
+                  <FormItem label="CPU 峰值(%)">
+                    <InputNumber
+                      v-model:value="form.cpuPeakPercent"
+                      :min="0"
+                      :max="100"
+                    />
+                  </FormItem>
+                </Col>
+                <Col :span="8">
+                  <FormItem label="内存峰值(MiB)">
+                    <InputNumber v-model:value="form.memoryPeakMiB" :min="0" />
+                  </FormItem>
+                </Col>
+                <Col :span="8">
+                  <FormItem label="加速器显存峰值(MiB)">
+                    <InputNumber
+                      v-model:value="form.acceleratorMemoryPeakMiB"
+                      :min="0"
+                    />
+                  </FormItem>
+                </Col>
+                <Col :span="8">
+                  <FormItem label="冷却与去重验证">
+                    <Switch
+                      v-model:checked="form.cooldownDedupPass"
+                      checked-children="通过"
+                      un-checked-children="未通过"
+                    />
+                  </FormItem>
+                </Col>
+                <Col :span="24">
+                  <FormItem label="验收备注">
+                    <Input.TextArea
+                      v-model:value="form.note"
+                      :rows="3"
+                      placeholder="记录测试摄像头、光照、遮挡、硬件和异常样本情况"
+                    />
+                  </FormItem>
+                </Col>
               </Row>
             </Form>
             <Space>
-              <Tag :color="metricsPass ? 'green' : 'orange'">{{ metricsPass ? 'PASS' : 'PENDING' }}</Tag>
-              <span class="text-muted-foreground">结论由当前指标与可编辑阈值实时计算，服务端会再次校验。</span>
+              <Tag :color="metricsPass ? 'green' : 'orange'">
+                {{ metricsPass ? 'PASS' : 'PENDING' }}
+              </Tag>
+              <span class="text-muted-foreground"
+                >结论由当前指标与可编辑阈值实时计算，服务端会再次校验。</span
+              >
             </Space>
           </Card>
         </Col>

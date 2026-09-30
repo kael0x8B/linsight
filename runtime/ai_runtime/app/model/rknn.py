@@ -13,6 +13,14 @@ from ai_runtime.app.model.contracts import ModelTestParameters, ModelTestResult
 from ai_runtime.app.model.generic import decode_manifest_outputs
 from ai_runtime.app.model.manifest import RuntimeManifest
 from ai_runtime.app.model.person import _elapsed_ms
+from ai_runtime.app.model.plate import (
+    combine_yolo26_pose_outputs,
+    decode_chinese_plate_ctc,
+    decode_yolo26_plate_pose,
+    decode_yolo_plate,
+    plate_letterbox,
+    plate_number_region,
+)
 
 
 def require_rknn_sdk():
@@ -37,7 +45,14 @@ class RknnAdapter:
             or preprocess.layout != "NHWC"
         ):
             raise ValueError("RKNN requires explicit dimensions and UINT8 NHWC input")
-        if manifest.decoder.type not in {"AUTO_DETECTION", "CLASSIFICATION", "CTC_GREEDY"}:
+        if manifest.decoder.type not in {
+            "AUTO_DETECTION",
+            "CLASSIFICATION",
+            "CTC_GREEDY",
+            "YOLO_PLATE",
+            "YOLO26_PLATE_POSE",
+            "CHINESE_PLATE_CTC",
+        }:
             raise ValueError("RKNN decoder is not supported")
         self._manifest = manifest
         self._lock = threading.Lock()
@@ -63,7 +78,13 @@ class RknnAdapter:
         width, height = preprocess.input_width, preprocess.input_height
         source_width, source_height = source.size
         rgb = source if source.mode == "RGB" else source.convert("RGB")
-        image = rgb.resize((width, height), Image.Resampling.BILINEAR)
+        if self._manifest.decoder.type in {"YOLO_PLATE", "YOLO26_PLATE_POSE"}:
+            image, ratio, pad_x, pad_y = plate_letterbox(rgb)
+        elif self._manifest.decoder.type == "CHINESE_PLATE_CTC":
+            number_region, offset = plate_number_region(rgb)
+            image = number_region.resize((width, height), Image.Resampling.BILINEAR)
+        else:
+            image = rgb.resize((width, height), Image.Resampling.BILINEAR)
         array = np.asarray(image, dtype=np.uint8)
         if preprocess.color == "BGR":
             array = array[..., ::-1]
@@ -81,7 +102,36 @@ class RknnAdapter:
             outputs = [np.array(output, copy=True) for output in outputs]
         inference_ms = _elapsed_ms(started)
         started = perf_counter()
-        objects = decode_manifest_outputs(self._manifest, outputs, width, height, parameters)
+        if self._manifest.decoder.type == "YOLO_PLATE":
+            objects = decode_yolo_plate(
+                outputs[0],
+                source_width,
+                source_height,
+                ratio,
+                pad_x,
+                pad_y,
+                parameters.confidence,
+                parameters.nms_threshold,
+            )
+        elif self._manifest.decoder.type == "YOLO26_PLATE_POSE":
+            objects = decode_yolo26_plate_pose(
+                combine_yolo26_pose_outputs(outputs),
+                source_width, source_height, ratio, pad_x, pad_y,
+                parameters.confidence, parameters.nms_threshold,
+            )
+        elif self._manifest.decoder.type == "CHINESE_PLATE_CTC":
+            if len(outputs) != 2:
+                raise ValueError("CHINESE_PLATE_CTC requires character and colour outputs")
+            objects = decode_chinese_plate_ctc(*outputs)
+            for detected in objects:
+                detected.attributes.update(
+                    {
+                        "ocrNumberRegionLeft": offset / source_width,
+                        "ocrLayout": "YELLOW_SIDEBAR" if offset else "STANDARD",
+                    }
+                )
+        else:
+            objects = decode_manifest_outputs(self._manifest, outputs, width, height, parameters)
         return ModelTestResult(
             sourceWidth=source_width,
             sourceHeight=source_height,

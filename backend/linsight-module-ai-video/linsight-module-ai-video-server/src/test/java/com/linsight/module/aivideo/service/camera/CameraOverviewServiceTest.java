@@ -27,7 +27,7 @@ class CameraOverviewServiceTest {
 
     private TaskCameraCapabilityDTO task(Long id, String status, LocalDateTime heartbeat) {
         return new TaskCameraCapabilityDTO(id, "Helmet", 2L, 10L, 1L, status, "RUNNING", "run",
-                heartbeat, true, 1.0, 0.7, 1400.0, "CPU", null, null);
+                heartbeat, true, 1.0, 0.7, 1400.0, "CPU", null, null, List.of());
     }
 
     @Test

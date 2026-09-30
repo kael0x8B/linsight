@@ -1,0 +1,16 @@
+{
+  "input": [
+    {"class": "person", "confidence": 0.66, "bbox": {"x": 0.1, "y": 0.1, "width": 0.3, "height": 0.8}, "trackId": "person-1", "attributes": {}},
+    {"class": "no_helmet", "confidence": 0.93, "bbox": {"x": 0.17, "y": 0.12, "width": 0.1, "height": 0.15}, "attributes": {}}
+  ],
+  "expected": {
+    "class": "person", "confidence": 0.66,
+    "bbox": {"x": 0.1, "y": 0.1, "width": 0.3, "height": 0.8}, "trackId": "person-1",
+    "attributes": {
+      "helmet": "absent", "ppeConfirmedPerson": true, "eventCandidate": true,
+      "displayLabel": "未佩戴安全帽", "displayConfidence": 0.93,
+      "displayState": "alert", "visibleByDefault": true,
+      "displayBoxX": 0.17, "displayBoxY": 0.12, "displayBoxWidth": 0.1, "displayBoxHeight": 0.15
+    }
+  }
+}

@@ -105,6 +105,8 @@ class ModelCommandExecutor:
             await self._report(command, "RUNNING", "VERIFYING", diagnostic_id)
             deploy_payload = {
                 "modelVersionId": detail.model_version_id,
+                **({"displayName": detail.display_name} if detail.display_name else {}),
+                **({"version": detail.version} if detail.version else {}),
                 "artifactPath": str(artifact.resolve()),
                 "artifactFormat": detail.artifact_format,
                 "trustedArtifact": detail.trusted_artifact,
@@ -373,6 +375,86 @@ class ModelCommandExecutor:
         if command.command_type == "START_TASK":
             if detail.stream_url is None:
                 raise ValueError("task start command is missing stream URL")
+            package = detail.pipeline.get("algorithmPackage")
+            if package:
+                if detail.algorithm_package_url is None:
+                    raise ValueError("algorithm package download is missing")
+                import base64
+
+                from ai_runtime.app.capability.packages import MAX_PACKAGE_BYTES
+
+                root = self._data_root / "algorithm-downloads"
+                root.mkdir(parents=True, exist_ok=True)
+                digest = package["sha256"]
+                if len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
+                    raise ValueError("invalid algorithm package digest")
+                path = root / (digest + ".zip")
+                if not path.exists() or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+                    async with httpx.AsyncClient(timeout=60, trust_env=False) as client:
+                        async with client.stream(
+                            "GET", detail.algorithm_package_url.get_secret_value()
+                        ) as response:
+                            response.raise_for_status()
+                            data = bytearray()
+                            async for chunk in response.aiter_bytes():
+                                data.extend(chunk)
+                                if len(data) > MAX_PACKAGE_BYTES:
+                                    raise ValueError("algorithm package too large")
+                    if hashlib.sha256(data).hexdigest() != digest:
+                        raise ValueError("algorithm package hash mismatch")
+                    path.write_bytes(data)
+                installed = await self._runtime.gateway_rpc(
+                    {
+                        "action": "algorithm.install",
+                        "payload": {
+                            "sha256": digest,
+                            "base64": base64.b64encode(path.read_bytes()).decode(),
+                        },
+                    }
+                )
+                if not installed.get("ok"):
+                    raise ValueError("algorithm package installation failed")
+            resources = {}
+            for resource_key, entries in (detail.algorithm_resources or {}).items():
+                local_entries = []
+                for entry in entries:
+                    digest = entry["sha256"]
+                    if len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
+                        raise ValueError("invalid algorithm resource digest")
+                    root = self._data_root / "algorithm-resources"
+                    root.mkdir(parents=True, exist_ok=True)
+                    path = root / (digest + ".jpg")
+                    if not path.exists() or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+                        async with httpx.AsyncClient(timeout=30, trust_env=False) as client:
+                            async with client.stream("GET", entry["url"]) as response:
+                                response.raise_for_status()
+                                content = bytearray()
+                                async for chunk in response.aiter_bytes():
+                                    content.extend(chunk)
+                                    if len(content) > 10 * 1024 * 1024:
+                                        raise ValueError("algorithm reference too large")
+                        if hashlib.sha256(content).hexdigest() != digest:
+                            raise ValueError("algorithm reference hash mismatch")
+                        path.write_bytes(content)
+                        os.chmod(path, 0o600)
+                    import base64
+
+                    saved = await self._runtime.gateway_rpc(
+                        {
+                            "action": "algorithm.resource",
+                            "payload": {
+                                "sha256": digest,
+                                "base64": base64.b64encode(path.read_bytes()).decode(),
+                            },
+                        }
+                    )
+                    if not saved.get("ok"):
+                        raise ValueError("algorithm resource install failed")
+                    local_entries.append(
+                        {key: value for key, value in entry.items() if key != "url"}
+                        | {"path": saved["data"]["path"]}
+                    )
+                resources[resource_key] = local_entries
             result = await self._runtime.start_task(
                 {
                     "taskId": detail.task_id,
@@ -380,9 +462,14 @@ class ModelCommandExecutor:
                     "configVersion": detail.config_version,
                     "cameraId": detail.camera_id,
                     "sourceUrl": detail.stream_url.get_secret_value(),
+                    **({"streamUrls": {
+                        key: value.get_secret_value() for key, value in detail.stream_urls.items()
+                    }} if detail.stream_urls else {}),
                     "algorithmId": detail.algorithm_id,
                     "pipelineVersionId": detail.pipeline_version_id,
                     "pipeline": detail.pipeline,
+                    **({"displayNames": detail.display_names} if detail.display_names else {}),
+                    **({"algorithmResources": resources} if package else {}),
                     "modelVersionId": detail.model_version_id,
                     "modelBindings": detail.model_bindings,
                     "ruleId": detail.rule_id,

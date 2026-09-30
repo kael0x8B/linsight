@@ -11,12 +11,20 @@ import { IconifyIcon } from '@vben/icons';
 import { Alert, Button, Popover, Tag, Tooltip } from 'ant-design-vue';
 
 import { TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
-import { getModelPage } from '#/api/ai-video/model';
+import { getModel, getModelPage } from '#/api/ai-video/model';
 import { AiPageHeader, AiStatusIndicator } from '#/components/ai-video';
 
 import { useModelGridColumns, useModelGridFormSchema } from './data';
+import DeployableCatalog from './modules/deployable-catalog.vue';
 import ModelForm from './modules/model-form.vue';
 import VersionDrawer from './modules/version-drawer.vue';
+const deployableView = ref(true);
+async function openDeployable(modelId: number, versionId: number) {
+  const model = await getModel(modelId);
+  modelVersionDrawerApi
+    .setData({ ...model, initialVersionId: versionId })
+    .open();
+}
 
 const { hasAccessByCodes } = useAccess();
 const canCreate = computed(() => hasAccessByCodes(['ai-video:model:create']));
@@ -113,24 +121,34 @@ function publishStatusColor(status?: string) {
     <FormModal @success="refresh" />
     <ModelVersionDrawer @success="refresh" />
 
-    <div class="ai-page ai-page-stack">
+    <div v-if="deployableView" class="ai-page ai-page-stack">
       <AiPageHeader
         title="模型中心"
-        description="每个模型管理多个文件版本；在模型详情中上传、测试和部署版本。"
+        description="管理可部署模型。"
         icon="lucide:box"
-        status="Model Registry"
       >
-        <template #extra
-          ><Button v-if="canCreate" type="primary" @click="createModel"
-            ><IconifyIcon icon="lucide:plus" />新增模型</Button
-          ></template
-        >
+        <template #extra>
+          <Button @click="deployableView = false"> 模型资产与历史版本 </Button>
+        </template>
       </AiPageHeader>
-      <Alert
-        message="同一模型的新版权重或 ONNX / RKNN 文件，请进入“版本与部署”上传新版本。识别类别来自模型文件配置；关联算法包含默认模型和当前已发布编排，算法验收状态与模型识别类别分开展示。"
-        show-icon
-        type="info"
-      />
+      <DeployableCatalog @detail="openDeployable" />
+    </div>
+    <div v-else class="ai-page ai-page-stack">
+      <Button class="self-start" @click="deployableView = true">
+        返回可部署模型
+      </Button>
+      <AiPageHeader
+        title="模型中心"
+        description="管理模型文件与历史版本。"
+        icon="lucide:box"
+      >
+        <template #extra>
+          <Button v-if="canCreate" type="primary" @click="createModel">
+            <IconifyIcon icon="lucide:plus" />新增模型
+          </Button>
+        </template>
+      </AiPageHeader>
+
       <Alert v-if="loadError" :message="loadError" show-icon type="error">
         <template #action>
           <Button size="small" @click="refresh">重试</Button>
@@ -172,13 +190,20 @@ function publishStatusColor(status?: string) {
             <span v-else class="text-muted-foreground">未上传</span>
           </template>
           <template #outputLabels="{ row }">
-            <Tooltip v-if="row.outputLabels?.length" :title="row.outputLabels.join('、')">
+            <Tooltip
+              v-if="row.outputLabels?.length"
+              :title="row.outputLabels.join('、')"
+            >
               <div class="model-capability-cell__summary">
                 {{ row.outputLabels.slice(0, 3).join('、') }}
               </div>
-              <div class="model-capability-cell__meta">共 {{ row.outputLabels.length }} 类</div>
+              <div class="model-capability-cell__meta">
+                共 {{ row.outputLabels.length }} 类
+              </div>
             </Tooltip>
-            <span v-else class="text-muted-foreground">{{ row.latestVersionId ? '未声明识别类别' : '上传版本后显示' }}</span>
+            <span v-else class="text-muted-foreground">{{
+              row.latestVersionId ? '未声明识别类别' : '上传版本后显示'
+            }}</span>
           </template>
           <template #capabilities="{ row }">
             <Popover v-if="row.capabilities?.length" placement="bottomLeft">
@@ -269,8 +294,8 @@ function publishStatusColor(status?: string) {
 <style scoped>
 .model-name-cell {
   display: grid;
-  min-width: 0;
   gap: 3px;
+  min-width: 0;
   padding-block: 5px;
   line-height: 1.25;
 }
@@ -283,31 +308,31 @@ function publishStatusColor(status?: string) {
 }
 
 .model-name-cell__title {
-  color: hsl(var(--foreground));
   font-size: 13px;
   font-weight: 600;
+  color: hsl(var(--foreground));
 }
 
 .model-name-cell__code {
-  color: hsl(var(--muted-foreground));
   font-family: var(--font-family-mono, ui-monospace, monospace);
   font-size: 11px;
+  color: hsl(var(--muted-foreground));
 }
 
 .model-version-cell {
   display: grid;
-  min-width: 0;
-  align-items: center;
-  gap: 8px;
   grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
 }
 
 .model-version-cell__value {
   display: block;
   overflow: hidden;
+  text-overflow: ellipsis;
   font-family: var(--font-family-mono, ui-monospace, monospace);
   font-size: 12px;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -317,24 +342,24 @@ function publishStatusColor(status?: string) {
 
 .model-capability-cell {
   min-width: 0;
-  cursor: help;
   line-height: 1.35;
   text-align: left;
+  cursor: help;
 }
 
 .model-capability-cell__summary {
   overflow: hidden;
-  color: hsl(var(--foreground));
+  text-overflow: ellipsis;
   font-size: 12px;
   font-weight: 600;
-  text-overflow: ellipsis;
+  color: hsl(var(--foreground));
   white-space: nowrap;
 }
 
 .model-capability-cell__meta {
   margin-top: 3px;
-  color: hsl(var(--muted-foreground));
   font-size: 11px;
+  color: hsl(var(--muted-foreground));
 }
 
 .model-capability-popover {
@@ -349,36 +374,36 @@ function publishStatusColor(status?: string) {
 
 .model-capability-popover__list {
   display: grid;
-  max-height: 320px;
   gap: 6px;
+  max-height: 320px;
   overflow-y: auto;
 }
 
 .model-capability-popover__item {
   display: grid;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
+  align-items: center;
   padding: 7px 8px;
   background: hsl(var(--muted) / 42%);
   border-radius: 6px;
-  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .model-capability-popover__name {
   overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 12px;
   font-weight: 500;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .model-capability-popover__code {
-  overflow: hidden;
   margin-top: 2px;
-  color: hsl(var(--muted-foreground));
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-family: var(--font-family-mono, ui-monospace, monospace);
   font-size: 10px;
-  text-overflow: ellipsis;
+  color: hsl(var(--muted-foreground));
   white-space: nowrap;
 }
 </style>

@@ -48,9 +48,7 @@ def test_external_acceptance_rejects_unstructured_or_tampered_files(tmp_path) ->
     assert "sha256 does not match" in result.detail
 
 
-def test_dependency_audit_is_fresh_and_bound_to_current_locks(
-    tmp_path, monkeypatch
-) -> None:
+def test_dependency_audit_is_fresh_and_bound_to_current_locks(tmp_path, monkeypatch) -> None:
     frontend_lock = tmp_path / "frontend/pnpm-lock.yaml"
     runtime_lock = tmp_path / "runtime/uv.lock"
     backend_pom = tmp_path / "backend/pom.xml"
@@ -100,9 +98,7 @@ def test_dependency_audit_is_fresh_and_bound_to_current_locks(
                 "sourceManifestSha256": MODULE.backend_dependency_manifest_sha256(),
                 "unacceptedRiskCount": 0,
                 "sbomSha256": hashlib.sha256(sbom.read_bytes()).hexdigest(),
-                "riskAcceptanceExpiresAt": (
-                    datetime.now(UTC) + timedelta(days=30)
-                ).isoformat(),
+                "riskAcceptanceExpiresAt": (datetime.now(UTC) + timedelta(days=30)).isoformat(),
             },
         },
     }

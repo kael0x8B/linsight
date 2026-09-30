@@ -75,9 +75,12 @@ export function getWebhookPage(params: AiVideoWebhookApi.EndpointPageParams) {
 }
 
 export function getWebhook(id: number) {
-  return requestClient.get<AiVideoWebhookApi.Endpoint>('/ai-video/webhook/get', {
-    params: { id },
-  });
+  return requestClient.get<AiVideoWebhookApi.Endpoint>(
+    '/ai-video/webhook/get',
+    {
+      params: { id },
+    },
+  );
 }
 
 export function createWebhook(data: AiVideoWebhookApi.SaveEndpoint) {

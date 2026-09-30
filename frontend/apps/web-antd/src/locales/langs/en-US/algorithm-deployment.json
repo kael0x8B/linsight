@@ -1,0 +1,17 @@
+{
+  "deploy": "Deploy and start",
+  "basic": "Recognition",
+  "advanced": "Advanced settings",
+  "intro": "Choose a camera and algorithm. Required models and packages are prepared automatically with default recognition settings.",
+  "matched": "Recognition resources matched automatically",
+  "offline": "The gateway is offline or unavailable. Reconnect it before deploying recognition.",
+  "noCamera": "No camera is available. Connect and enable a camera first.",
+  "noAlgorithm": "No deployable algorithm is available. Ask an administrator to publish the required resources.",
+  "summary": "Reuse {installed} installed resources and install {pending} resources. Recognition starts when all resources are ready.",
+  "customize": "Adjust recognition settings or model versions",
+  "resourcesMissing": "Resources are not ready. Ask an administrator to prepare a compatible published version.",
+  "parametersRequired": "This algorithm needs additional configuration. Complete the advanced settings.",
+  "noPermission": "Your account needs permission to save, start, or install models. Contact an administrator.",
+  "withRule": "Alert conditions are included. Adjust the detection area and confirmation settings under Alert conditions.",
+  "withoutRule": "Recognition results are displayed by default. Configure Alert conditions to generate alerts."
+}

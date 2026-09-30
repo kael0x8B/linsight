@@ -1,0 +1,103 @@
+{
+  "schemaVersion": "1.0",
+  "sdkVersion": "1.0",
+  "code": "people-counting-package",
+  "version": "1.0.0",
+  "name": "人员统计",
+  "category": "REGION",
+  "eventType": "PEOPLE_COUNT",
+  "outputMode": "STATISTICS",
+  "description": "统计摄像头区域内的当前人数，支持框选区域和实时人数显示。无需人员库。",
+  "entrypoint": "processor.py",
+  "timeoutMillis": 5000,
+  "models": [
+    {
+      "slot": "person",
+      "name": "人员检测模型",
+      "taskType": "OBJECT_DETECTION",
+      "formats": [
+        "ONNX",
+        "RKNN"
+      ],
+      "labels": [
+        "person"
+      ]
+    }
+  ],
+  "parameterSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "roi": {
+        "type": "object",
+        "title": "人数统计区域",
+        "x-widget": "roi",
+        "required": [
+          "x",
+          "y",
+          "width",
+          "height"
+        ],
+        "properties": {
+          "x": {
+            "type": "number",
+            "title": "区域左侧（0–1）",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "y": {
+            "type": "number",
+            "title": "区域顶部（0–1）",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "width": {
+            "type": "number",
+            "title": "区域宽度（0–1）",
+            "minimum": 0.01,
+            "maximum": 1
+          },
+          "height": {
+            "type": "number",
+            "title": "区域高度（0–1）",
+            "minimum": 0.01,
+            "maximum": 1
+          }
+        }
+      },
+      "personConfidence": {
+        "type": "number",
+        "title": "人员置信度",
+        "minimum": 0.01,
+        "maximum": 1,
+        "description": "低于此值的检测不计入人数。"
+      },
+      "showPersonBoxes": {
+        "type": "boolean",
+        "title": "显示人员框"
+      },
+      "useFootPoint": {
+        "type": "boolean",
+        "title": "按人员框底部判断区域",
+        "description": "关闭时按人员框中心计数，适合高空俯视画面。"
+      }
+    },
+    "required": [
+      "roi",
+      "useFootPoint",
+      "personConfidence",
+      "showPersonBoxes"
+    ]
+  },
+  "defaultParameters": {
+    "roi": {
+      "x": 0,
+      "y": 0,
+      "width": 1,
+      "height": 1
+    },
+    "personConfidence": 0.35,
+    "showPersonBoxes": true,
+    "useFootPoint": false
+  }
+}

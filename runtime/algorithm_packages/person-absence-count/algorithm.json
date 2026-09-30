@@ -1,0 +1,125 @@
+{
+  "schemaVersion": "1.0",
+  "sdkVersion": "1.0",
+  "code": "person-absence-package",
+  "version": "1.0.0",
+  "name": "人员离岗检测",
+  "category": "REGION",
+  "eventType": "PERSON_ABSENCE",
+  "description": "指定岗位区域人数低于要求并持续一段时间后告警，返岗后恢复。按区域人数判断，不识别具体人员身份。",
+  "entrypoint": "processor.py",
+  "timeoutMillis": 5000,
+  "models": [
+    {
+      "slot": "person",
+      "name": "人员检测模型",
+      "taskType": "OBJECT_DETECTION",
+      "formats": [
+        "ONNX",
+        "RKNN"
+      ],
+      "labels": [
+        "person"
+      ]
+    }
+  ],
+  "parameterSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "personConfidence": {
+        "type": "number",
+        "title": "人员置信度",
+        "minimum": 0.01,
+        "maximum": 1,
+        "description": "低于此值的人员不计入岗位人数；请根据现场画面调节。"
+      }
+    },
+    "required": [
+      "personConfidence"
+    ]
+  },
+  "defaultParameters": {
+    "personConfidence": 0.35
+  },
+  "defaultRule": {
+    "schemaVersion": "1.0",
+    "eventType": "PERSON_ABSENCE",
+    "severity": "MAJOR",
+    "cooldownSeconds": 60,
+    "recoverySeconds": 5,
+    "dedup": {
+      "scope": "CAMERA_TASK_TYPE",
+      "windowSeconds": 60
+    },
+    "schedule": {
+      "timezone": "Asia/Shanghai",
+      "weekly": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "start": "00:00",
+          "end": "23:59"
+        }
+      ]
+    },
+    "regions": [
+      {
+        "id": "main",
+        "name": "岗位区域",
+        "type": "POLYGON",
+        "pointMode": "FOOT",
+        "overlapThreshold": 0.2,
+        "sourceWidth": 1920,
+        "sourceHeight": 1080,
+        "points": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 1
+          },
+          {
+            "x": 0,
+            "y": 1
+          }
+        ]
+      }
+    ],
+    "condition": {
+      "type": "AND",
+      "children": [
+        {
+          "type": "COUNT_BELOW",
+          "regionId": "main",
+          "objectClasses": [
+            "person"
+          ],
+          "min": 1
+        },
+        {
+          "type": "N_OF_M",
+          "n": 3,
+          "m": 5
+        },
+        {
+          "type": "DURATION",
+          "seconds": 60
+        }
+      ]
+    }
+  }
+}

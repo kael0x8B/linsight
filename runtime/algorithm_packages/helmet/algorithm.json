@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.0",
+  "sdkVersion": "1.0",
+  "version": "1.0.3",
+  "entrypoint": "processor.py",
+  "timeoutMillis": 5000,
+  "code": "helmet-detection-package",
+  "name": "安全帽检测",
+  "category": "PPE",
+  "description": "按人员头部位置一对一关联安全帽检测结果；没有明确证据时保持待确认。",
+  "models": [
+    {
+      "slot": "person",
+      "name": "人员检测模型",
+      "taskType": "OBJECT_DETECTION",
+      "labels": [
+        "person"
+      ],
+      "formats": [
+        "ONNX",
+        "RKNN"
+      ]
+    },
+    {
+      "slot": "ppe",
+      "name": "安全帽检测模型",
+      "taskType": "OBJECT_DETECTION",
+      "labels": [
+        "helmet",
+        "no_helmet"
+      ],
+      "formats": [
+        "ONNX",
+        "RKNN"
+      ]
+    }
+  ],
+  "parameterSchema": {
+    "type": "object",
+    "properties": {
+      "personConfidence": {
+        "type": "number",
+        "title": "人员置信度",
+        "minimum": 0.01,
+        "maximum": 1
+      },
+      "ppeConfidence": {
+        "type": "number",
+        "title": "穿戴置信度",
+        "minimum": 0.01,
+        "maximum": 1
+      },
+      "showPersonBox": {
+        "type": "boolean",
+        "title": "显示人员全身框",
+        "description": "关闭时显示模型实际检测到的部位；没有明确穿戴结果时显示人员位置并标记待确认。此选项只影响展示。"
+      }
+    },
+    "required": [
+      "personConfidence",
+      "ppeConfidence"
+    ],
+    "additionalProperties": false
+  },
+  "defaultParameters": {
+    "personConfidence": 0.5,
+    "ppeConfidence": 0.5,
+    "showPersonBox": false
+  },
+  "eventType": "SAFETY_HELMET"
+}

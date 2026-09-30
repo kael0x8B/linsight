@@ -41,7 +41,10 @@ export function useLogFormSchema(): VbenFormSchema[] {
     },
     {
       component: 'Input',
-      componentProps: { allowClear: true, placeholder: '正文、上下文或诊断 ID' },
+      componentProps: {
+        allowClear: true,
+        placeholder: '正文、上下文或诊断 ID',
+      },
       fieldName: 'keyword',
       label: '关键字',
     },
@@ -56,13 +59,29 @@ export function useLogFormSchema(): VbenFormSchema[] {
 
 export function useLogColumns(): VxeTableGridOptions<AiVideoNodeLogApi.Log>['columns'] {
   return [
-    { field: 'loggedAt', minWidth: 180, title: '时间', formatter: ({ cellValue }) => formatDateTime(cellValue) },
+    {
+      field: 'loggedAt',
+      minWidth: 180,
+      title: '时间',
+      formatter: ({ cellValue }) => formatDateTime(cellValue),
+    },
     { field: 'level', slots: { default: 'level' }, title: '级别', width: 90 },
     { field: 'component', minWidth: 120, title: '组件' },
     { field: 'taskId', title: '任务 ID', width: 100 },
     { field: 'runId', minWidth: 180, title: 'Run ID' },
-    { field: 'message', minWidth: 420, slots: { default: 'message' }, title: '日志正文' },
+    {
+      field: 'message',
+      minWidth: 420,
+      slots: { default: 'message' },
+      title: '日志正文',
+    },
     { field: 'diagnosticId', minWidth: 180, title: '诊断 ID' },
-    { field: 'actions', fixed: 'right', slots: { default: 'actions' }, title: '操作', width: 100 },
+    {
+      field: 'actions',
+      fixed: 'right',
+      slots: { default: 'actions' },
+      title: '操作',
+      width: 100,
+    },
   ];
 }

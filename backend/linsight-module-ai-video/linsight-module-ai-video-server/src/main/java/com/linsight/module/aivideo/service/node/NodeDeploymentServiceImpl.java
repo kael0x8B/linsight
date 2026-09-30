@@ -13,9 +13,14 @@ import com.linsight.module.aivideo.integration.ssh.NodeSshClient;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static com.linsight.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -72,6 +77,10 @@ public class NodeDeploymentServiceImpl implements NodeDeploymentService {
         if (!preflight.isSupported()) {
             throw exception(NODE_DEPLOYMENT_PREFLIGHT_FAILED, "目标节点不满足系统、权限或资源条件，请重新预检");
         }
+        if (!"ROLLBACK".equals(request.getAction()) && !preflight.isPythonSupported()
+                && !Boolean.TRUE.equals(request.getInstallDependencies())) {
+            throw exception(NODE_DEPLOYMENT_PREFLIGHT_FAILED, "目标节点缺少 Python 3.12/3.13，请启用自动安装依赖");
+        }
         validateExistingNodeCode(preflight, request.getNodeCode());
         boolean rollback = "ROLLBACK".equals(request.getAction());
         if (rollback && !preflight.isSourceRollbackAvailable()) {
@@ -102,7 +111,9 @@ public class NodeDeploymentServiceImpl implements NodeDeploymentService {
         String queuedMessage = redeploy ? "在线升级任务已创建，等待重新部署" : "部署任务已创建，等待执行";
         deployment.setMessage(queuedMessage);
         deployment.setOutputLog("[QUEUED] " + queuedMessage + "\n");
-        String key = redeploy ? "node:" + request.getNodeId() : "host:" + preflight.getHostKeyFingerprint();
+        // Cloned gateway images can share an SSH host key. Reserve the network endpoint,
+        // while the preflight fingerprint still pins the SSH connection itself.
+        String key = redeploy ? "node:" + request.getNodeId() : hostResourceKey(request.getHost(), request.getPort());
         deployment.setResourceKey(key);
         Long reserved = operationService.exclusive("code:" + request.getNodeCode(), () -> operationService.exclusive(key, () -> {
             NodeDeploymentDO duplicate = deploymentMapper.selectByRequestId(request.getRequestId());
@@ -127,6 +138,16 @@ public class NodeDeploymentServiceImpl implements NodeDeploymentService {
             request.setPassword(null);
         }
         return deployment.getId();
+    }
+
+    static String hostResourceKey(String host, int port) {
+        String endpoint = host.trim().toLowerCase(Locale.ROOT) + ":" + port;
+        try {
+            return "host:" + HexFormat.of().formatHex(
+                    MessageDigest.getInstance("SHA-256").digest(endpoint.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException error) {
+            throw new IllegalStateException("SHA-256 unavailable", error);
+        }
     }
 
     @Override
@@ -160,11 +181,13 @@ public class NodeDeploymentServiceImpl implements NodeDeploymentService {
             warnings.add("未发现 RKNPU 设备，本次按 ONNX Runtime CPU 模式部署");
         }
         if (rknpu) {
-            warnings.add(python.startsWith("3.12.")
+            warnings.add(python.startsWith("3.12.") || !pythonSupported
                     ? "已发现 RKNPU 硬件；部署将安装 RKNN SDK，加载 RKNN 模型后使用 NPU，现有 ONNX 模型继续使用 CPU"
                     : "已发现 RKNPU 硬件；RKNN SDK 需要 ARM64 Python 3.12，当前 Python 环境仅支持 CPU 模型");
         }
-        if (!pythonSupported) warnings.add("需要 Python 3.12 或更高版本（且低于 3.14）");
+        if (!pythonSupported) warnings.add("当前系统 Python " + (python.isBlank() ? "未安装" : python)
+                + "；启用自动安装后将独立安装 Python " + NodeDeploymentRunner.MANAGED_PYTHON_VERSION
+                + "，不更改系统 python3");
         if (pythonSupported && !"1".equals(values.get("VENV"))) warnings.add("Python venv/pip 实测不可用，部署时将尝试补齐对应 Python 版本的 venv 包；不会解除系统包锁定");
         if (!"1".equals(values.get("SUDO"))) warnings.add("未发现 sudo，无法执行控制台自动安装");
         boolean osSupported = "1".equals(values.get("OS_SUPPORTED"));
@@ -179,7 +202,8 @@ public class NodeDeploymentServiceImpl implements NodeDeploymentService {
         result.setPythonVersion(python.isBlank() ? "未安装" : python);
         result.setPythonSupported(pythonSupported);
         result.setVenvAvailable("1".equals(values.get("VENV")));
-        var wheelhouse = NodeDeploymentWheelhouse.directory(properties.resolveRuntimeSource(), arch, python);
+        var wheelhouse = NodeDeploymentWheelhouse.directory(properties.resolveRuntimeSource(), arch,
+                NodeDeploymentRunner.deploymentPythonVersion(python));
         result.setOfflineDependenciesAvailable(wheelhouse != null && java.nio.file.Files.isRegularFile(wheelhouse.resolve("manifest.json")));
         if (!result.isOfflineDependenciesAvailable()) warnings.add("控制面未准备此架构的离线依赖包，安装将访问外网；弱网环境建议先准备离线包");
         result.setFfmpegInstalled("1".equals(values.get("FFMPEG")));
@@ -188,9 +212,9 @@ public class NodeDeploymentServiceImpl implements NodeDeploymentService {
         result.setMemoryMb(parseLong(values.get("MEMORY_MB")));
         result.setMemoryAvailableMb(parseLong(values.get("MEMORY_AVAILABLE_MB")));
         result.setDiskAvailableMb(parseLong(values.get("DISK_MB")));
-        result.setExecutionMode(rknpu && python.startsWith("3.12.")
+        result.setExecutionMode(rknpu && (python.startsWith("3.12.") || !pythonSupported)
                 ? "ONNX CPU / RKNN NPU（由部署模型决定）" : "ONNX Runtime CPU");
-        result.setSupported(pythonSupported && architectureSupported && osSupported && result.isSudoAvailable()
+        result.setSupported(architectureSupported && osSupported && result.isSudoAvailable()
                 && result.getMemoryMb() >= 1024 && result.getMemoryAvailableMb() >= 256 && result.getDiskAvailableMb() >= 2048);
         if (result.getMemoryAvailableMb() < 256) warnings.add("可用内存不足 256 MB");
         if (result.getDiskAvailableMb() < 2048) warnings.add("可用磁盘不足 2 GB");

@@ -1,30 +1,31 @@
 <script setup lang="ts">
+import type { AiVideoRuleApi } from '#/api/ai-video/rule';
+import type { AiVideoTaskApi } from '#/api/ai-video/task';
+
 import { computed, ref, watch } from 'vue';
+
 import { useVbenModal } from '@vben/common-ui';
-import { Alert, Checkbox, FormItem, Select, message } from 'ant-design-vue';
+
+import { Alert, Checkbox, FormItem, message, Select } from 'ant-design-vue';
+
 import { getAlgorithm } from '#/api/ai-video/algorithm';
-import {
-  getPublishedRules,
-  getRuleVersions,
-  type AiVideoRuleApi,
-} from '#/api/ai-video/rule';
+import { getPublishedRules, getRuleVersions } from '#/api/ai-video/rule';
 import {
   getTask,
-  updateTaskRule,
-  stopTask,
   startTask,
-  type AiVideoTaskApi,
+  stopTask,
+  updateTaskRule,
 } from '#/api/ai-video/task';
 const emit = defineEmits(['success']);
 const task = ref<AiVideoTaskApi.Task>();
-const rules = ref<AiVideoRuleApi.Rule[]>([]),
-  versions = ref<AiVideoRuleApi.RuleVersion[]>([]);
-const ruleId = ref<number>(),
-  versionId = ref<number>(),
-  confirmed = ref(false),
-  loading = ref(false),
-  progress = ref(''),
-  error = ref('');
+const rules = ref<AiVideoRuleApi.Rule[]>([]);
+const versions = ref<AiVideoRuleApi.RuleVersion[]>([]);
+const confirmed = ref(false);
+const error = ref('');
+const loading = ref(false);
+const progress = ref('');
+const ruleId = ref<number>();
+const versionId = ref<number>();
 const restart = ref(false);
 let generation = 0;
 const selectedVersion = computed(() =>
@@ -95,8 +96,8 @@ const [Modal, api] = useVbenModal({
       emit('success');
       message.success(restart.value ? '已按新规则恢复运行' : '已切换规则版本');
       await api.close();
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : '切换失败';
+    } catch (cause) {
+      error.value = cause instanceof Error ? cause.message : '切换失败';
       emit('success');
       progress.value = '请检查任务状态；已完成的步骤会保留，可修复后重试。';
     } finally {
@@ -151,15 +152,16 @@ watch(ruleId, async (id) => {
       type="info"
       show-icon
     />
-    <FormItem label="规则"
-      ><Select
+    <FormItem label="规则">
+      <Select
         v-model:value="ruleId"
         class="w-full"
         :loading="loading"
         :options="rules.map((r) => ({ label: r.name, value: r.id }))"
-    /></FormItem>
-    <FormItem label="已发布版本"
-      ><Select
+      />
+    </FormItem>
+    <FormItem label="已发布版本">
+      <Select
         v-model:value="versionId"
         class="w-full"
         :loading="loading"
@@ -169,10 +171,11 @@ watch(ruleId, async (id) => {
             value: v.id,
           }))
         "
-    /></FormItem>
-    <Checkbox v-model:checked="confirmed"
-      >已确认此版本的区域、目标类别和生效时间适用于当前摄像头</Checkbox
-    >
+      />
+    </FormItem>
+    <Checkbox v-model:checked="confirmed">
+      已确认此版本的区域、目标类别和生效时间适用于当前摄像头
+    </Checkbox>
     <Alert
       v-if="progress"
       class="mt-4"

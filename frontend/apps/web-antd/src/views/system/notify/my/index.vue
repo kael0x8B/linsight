@@ -142,8 +142,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
 </script>
 <template>
   <Page auto-content-height>
-    <template #doc>
-    </template>
+    <template #doc> </template>
 
     <DetailModal @success="handleRefresh" />
     <Grid table-title="我的站内信">

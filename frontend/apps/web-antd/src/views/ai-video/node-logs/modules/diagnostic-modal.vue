@@ -1,9 +1,8 @@
 <script lang="ts" setup>
-import dayjs from 'dayjs';
-
 import { useVbenModal } from '@vben/common-ui';
 
-import { Alert, message } from 'ant-design-vue';
+import { message } from 'ant-design-vue';
+import dayjs from 'dayjs';
 
 import { useVbenForm, z } from '#/adapter/form';
 import { createNodeDiagnostic } from '#/api/ai-video/node-log';
@@ -57,11 +56,9 @@ const [Modal, modalApi] = useVbenModal({
     }
   },
   async onOpenChange(open) {
-    if (open) {
-      await formApi.setFieldValue('range', [dayjs().subtract(1, 'hour'), dayjs()]);
-    } else {
-      await formApi.resetForm();
-    }
+    await (open
+      ? formApi.setFieldValue('range', [dayjs().subtract(1, 'hour'), dayjs()])
+      : formApi.resetForm());
   },
 });
 </script>
@@ -69,11 +66,6 @@ const [Modal, modalApi] = useVbenModal({
 <template>
   <Modal title="生成节点诊断包">
     <div class="space-y-4">
-      <Alert
-        message="诊断包异步汇总节点元数据和最多 10,000 行脱敏日志；对象引用不直接暴露，下载地址仅有效 5 分钟。"
-        show-icon
-        type="info"
-      />
       <Form />
     </div>
   </Modal>

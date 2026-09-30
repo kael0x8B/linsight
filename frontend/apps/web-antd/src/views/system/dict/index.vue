@@ -15,8 +15,7 @@ function handleDictTypeSelect(dictType: string) {
 
 <template>
   <Page auto-content-height>
-    <template #doc>
-    </template>
+    <template #doc> </template>
 
     <div class="flex h-full">
       <!-- 左侧字典类型列表 -->

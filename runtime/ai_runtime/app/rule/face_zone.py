@@ -1,4 +1,5 @@
 """Presence-only trigger for a clearly designated, voluntary entrance scan position."""
+
 from uuid import uuid4
 
 

@@ -103,15 +103,20 @@ def test_unknown_tasks_and_foreign_or_expired_sessions_are_rejected_and_stopped_
 def test_multi_algorithm_preview_only_returns_enabled_same_camera_metadata():
     async def scenario():
         preview, document, frame = fixture()
-        document['config']['taskId'] = 7
-        preview.gateway.store.all.return_value = [document,
-            {'enabled': False, 'config': {'cameraId': 2, 'taskId': 8}},
-            {'enabled': True, 'config': {'cameraId': 3, 'taskId': 9}},
-            {'enabled': True, 'config': {'cameraId': 2, 'taskId': 10}}]
-        preview.gateway.tasks.latest_overlay.side_effect = lambda task_id: frame.model_copy(update={'task_id': task_id})
-        await preview.invoke('preview.open', {'taskId': 7, 'offerSdp': 'offer'})
-        result = await preview.invoke('preview.frames', {'taskId': 7, 'sessionId': 'session-7'})
-        assert [item['taskId'] for item in result] == [7, 10]
-        assert all('imageBase64' not in item for item in result)
+        document["config"]["taskId"] = 7
+        preview.gateway.store.all.return_value = [
+            document,
+            {"enabled": False, "config": {"cameraId": 2, "taskId": 8}},
+            {"enabled": True, "config": {"cameraId": 3, "taskId": 9}},
+            {"enabled": True, "config": {"cameraId": 2, "taskId": 10}},
+        ]
+        preview.gateway.tasks.latest_overlay.side_effect = lambda task_id: frame.model_copy(
+            update={"task_id": task_id}
+        )
+        await preview.invoke("preview.open", {"taskId": 7, "offerSdp": "offer"})
+        result = await preview.invoke("preview.frames", {"taskId": 7, "sessionId": "session-7"})
+        assert [item["taskId"] for item in result] == [7, 10]
+        assert all("imageBase64" not in item for item in result)
         assert preview.manager.create_session.await_count == 1
+
     asyncio.run(scenario())

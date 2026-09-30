@@ -56,8 +56,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
 
 <template>
   <Page auto-content-height>
-    <template #doc>
-    </template>
+    <template #doc> </template>
 
     <FormModal @success="handleRefresh" />
     <Grid table-title="地区列表">

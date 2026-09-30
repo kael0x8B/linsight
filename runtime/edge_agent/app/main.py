@@ -1,12 +1,15 @@
 import asyncio
+import json
 import logging
 import os
 import time
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
 import httpx
 
+from ai_runtime.app.gateway.platform_connection import read_platform_connection
 from ai_runtime.app.stream.contracts import StreamProbeRequest, StreamProbeResult
 from ai_runtime.app.stream.probe import StreamProbeService
 from edge_agent.app.client.control_plane import (
@@ -57,14 +60,66 @@ async def run(settings: AgentSettings, log_buffer: BufferedLogHandler) -> None:
             tasks.create_task(overlay_delivery_loop(settings, identity, client, runtime_client))
             tasks.create_task(event_delivery_loop(settings, identity, client, runtime_client))
             from edge_agent.app.command.entry_evidence import entry_evidence_loop
+
             tasks.create_task(entry_evidence_loop(settings, identity, client))
             from edge_agent.app.command.entry_station import entry_station_loop
+
             tasks.create_task(entry_station_loop(identity, client, runtime_client))
             tasks.create_task(log_delivery_loop(settings, identity, client, log_buffer))
             tasks.create_task(preview_tunnel_loop(settings, identity, runtime_client))
     finally:
         await client.close()
         await runtime_client.close()
+
+
+async def run_with_platform_reload(
+    settings: AgentSettings,
+    log_buffer: BufferedLogHandler,
+    poll_interval_seconds: float = 1.0,
+) -> None:
+    """Restart Agent loops when the authenticated local console changes the platform URL."""
+    deployed_url = settings.control_plane_url
+    try:
+        current_url = read_platform_connection(settings.runtime_data_root, deployed_url)[
+            "platformUrl"
+        ]
+    except (KeyError, OSError, ValueError, json.JSONDecodeError):
+        LOGGER.exception("Ignoring invalid local platform connection override")
+        current_url = deployed_url
+
+    while True:
+        active_settings = settings.model_copy(update={"control_plane_url": current_url})
+        worker = asyncio.create_task(run(active_settings, log_buffer), name="edge-agent-loops")
+        try:
+            while True:
+                done, _pending = await asyncio.wait({worker}, timeout=poll_interval_seconds)
+                if done:
+                    await worker
+                    return
+                try:
+                    next_url = read_platform_connection(settings.runtime_data_root, deployed_url)[
+                        "platformUrl"
+                    ]
+                except (KeyError, OSError, ValueError, json.JSONDecodeError):
+                    LOGGER.exception("Ignoring invalid local platform connection override")
+                    continue
+                if next_url == current_url:
+                    continue
+                LOGGER.warning(
+                    "Platform connection changed; restarting Agent loops old=%s new=%s",
+                    current_url,
+                    next_url,
+                )
+                current_url = next_url
+                worker.cancel()
+                with suppress(asyncio.CancelledError):
+                    await worker
+                break
+        finally:
+            if not worker.done():
+                worker.cancel()
+                with suppress(asyncio.CancelledError):
+                    await worker
 
 
 async def heartbeat_loop(
@@ -85,6 +140,7 @@ async def heartbeat_loop(
             store.save(identity)
             if runtime_health.get("runtimeStatus") == "UP":
                 from edge_agent.app.upgrade.activation import acknowledge
+
                 acknowledge(settings.upgrade_root, settings.agent_version)
             LOGGER.debug(
                 "Heartbeat accepted nodeId=%s sequence=%s clockOffsetMillis=%s",
@@ -208,6 +264,21 @@ async def command_loop(
             await asyncio.sleep(settings.command_poll_interval_seconds)
 
 
+async def sync_task_removals(identity, client, runtime_client) -> None:
+    try:
+        response = await runtime_client.gateway_rpc({"action": "task-removal.list"})
+        if not response.get("ok"):
+            return  # Older runtimes do not implement the removal journal.
+        for removal in response["data"]:
+            try:
+                await client.report_task_removal(identity, removal)
+                await runtime_client.gateway_rpc({"action": "task-removal.ack", "payload": removal})
+            except (httpx.HTTPError, RuntimeError, OSError, ValueError):
+                LOGGER.warning("Task removal report deferred taskId=%s", removal.get("taskId"))
+    except (httpx.HTTPError, RuntimeError, OSError, ValueError):
+        LOGGER.warning("Task removal synchronization deferred nodeId=%s", identity.node_id)
+
+
 async def task_report_loop(
     settings: AgentSettings,
     identity: NodeIdentity,
@@ -217,6 +288,7 @@ async def task_report_loop(
     previous_states: dict[int, tuple] = {}
     while True:
         try:
+            await sync_task_removals(identity, client, runtime_client)
             current_states: dict[int, tuple] = {}
             for status in await runtime_client.task_statuses():
                 if status.get("metrics", {}).get("gatewayPlatformManaged") is False:
@@ -355,7 +427,9 @@ async def overlay_delivery_loop(
             except (httpx.HTTPError, RuntimeError, OSError, ValueError, KeyError) as error:
                 LOGGER.warning(
                     "Overlay delivery failed nodeId=%s taskId=%s errorType=%s",
-                    identity.node_id, frame.get("taskId"), type(error).__name__,
+                    identity.node_id,
+                    frame.get("taskId"),
+                    type(error).__name__,
                 )
 
     while True:
@@ -367,9 +441,9 @@ async def overlay_delivery_loop(
             await asyncio.gather(*(forward(frame) for frame in frames))
             # The interval is a cadence, not an extra delay after an HTTP upload.
             # A 200 ms upload plus 100 ms sleep otherwise drops fast NPU results.
-            await asyncio.sleep(max(
-                0, settings.overlay_poll_interval_seconds - (time.monotonic() - started)
-            ))
+            await asyncio.sleep(
+                max(0, settings.overlay_poll_interval_seconds - (time.monotonic() - started))
+            )
         except (httpx.HTTPError, RuntimeError, OSError, ValueError, KeyError) as error:
             LOGGER.warning(
                 "Overlay delivery failed nodeId=%s errorType=%s",
@@ -434,8 +508,12 @@ def _runtime_media_path(root: Path, value: str) -> Path:
 
 async def collect_runtime_health(runtime_client: RuntimeClient) -> dict[str, object]:
     try:
-        await asyncio.wait_for(runtime_client.observability_snapshot(), timeout=2.0)
-        return {"runtimeStatus": "UP", "runtimeDiagnosticId": None}
+        snapshot = await asyncio.wait_for(runtime_client.observability_snapshot(), timeout=2.0)
+        return {
+            "runtimeStatus": "UP",
+            "runtimeDiagnosticId": None,
+            "modelEnvironment": snapshot.get("modelEnvironment"),
+        }
     except (TimeoutError, httpx.HTTPError, RuntimeError, OSError, ValueError):
         return {"runtimeStatus": "DOWN", "runtimeDiagnosticId": None}
 
@@ -446,17 +524,19 @@ def build_heartbeat_payload(
     runtime_health: dict[str, object] | None = None,
 ) -> dict[str, object]:
     from edge_agent.app.upgrade.activation import failed_version
+
     return {
         "sequence": sequence,
         # 控制面沿用项目基座的 LocalDateTime 毫秒时间戳协议。
         "agentTime": time.time_ns() // 1_000_000,
         "agentVersion": settings.agent_version,
         "modelUninstall": "v1",
+        "algorithmPackageSdk": "1.0",
         "activationGuard": os.environ.get("LINSIGHT_AGENT_ACTIVATION_GUARD"),
         "agentRollbackAvailable": (settings.upgrade_root / "previous").is_symlink(),
         "failedAgentVersion": failed_version(settings.upgrade_root),
         "hostName": settings.host_name,
-        **collect_resources(),
+        **collect_resources(settings.disk_cleanup_status_file),
         **(runtime_health or {}),
     }
 
@@ -497,7 +577,7 @@ def main() -> None:
         settings.log_buffer_capacity, settings.log_repeat_window_seconds
     )
     logging.getLogger().addHandler(log_buffer)
-    asyncio.run(run(settings, log_buffer))
+    asyncio.run(run_with_platform_reload(settings, log_buffer))
 
 
 if __name__ == "__main__":

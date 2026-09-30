@@ -3,7 +3,14 @@ import { computed, ref } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
 
-import { Alert, Button, Descriptions, DescriptionsItem, Input, message } from 'ant-design-vue';
+import {
+  Alert,
+  Button,
+  Descriptions,
+  DescriptionsItem,
+  Input,
+  message,
+} from 'ant-design-vue';
 
 import { useVbenForm, z } from '#/adapter/form';
 import { createNodeBootstrapToken } from '#/api/ai-video/node';

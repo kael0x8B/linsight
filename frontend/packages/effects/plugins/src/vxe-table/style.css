@@ -52,9 +52,8 @@
   --vxe-ui-font-primary-darken-color: hsl(var(--primary));
 
   /*
-   * Respect the height calculated by VxeGrid (`height: 100%` for auto-height
-   * grids). Forcing `height: auto !important` here makes an empty grid and its
-   * flex parent repeatedly enlarge one another while ResizeObserver relayouts.
+   * Respect the height calculated by VxeGrid for populated grids. The shared
+   * empty-state exception below breaks the auto-sized parent feedback loop.
    */
   min-height: 0;
 
@@ -62,13 +61,32 @@
 }
 
 /*
- * Empty auto-height grids can otherwise form a ResizeObserver feedback loop
- * with an unconstrained flex/tab parent. Keep the normal height calculation
- * for populated grids, but cap the shared empty state to one stable viewport.
- * A page can override the cap with --vxe-grid-empty-max-height when needed.
+ * VxeGrid turns both `height: auto` and `height: 100%` into `height: 100%`.
+ * Our wrapper is also `height: 100%`, so an empty grid inside an auto-sized
+ * tab/drawer measures itself as its parent's height and adds its own padding
+ * again on the next layout. A max-height only hides the loop until the cap is
+ * reached. Let the empty grid size to its fixed table viewport plus any query
+ * form, toolbar, and pager, while leaving fill-parent behaviour unchanged as
+ * soon as rows are present.
+ *
+ * Pages with a deliberately larger empty state can override
+ * --vxe-grid-empty-table-height on their container.
  */
 :root .vxe-grid:has(.vxe-table.is--empty) {
-  max-height: var(--vxe-grid-empty-max-height, 360px);
+  height: auto !important;
+  max-height: none;
+}
+
+:root
+  .vxe-grid:has(.vxe-table.is--empty)
+  .vxe-grid--layout-body-content-wrapper {
+  flex-grow: 0;
+}
+
+:root
+  .vxe-grid:has(.vxe-table.is--empty)
+  .vxe-grid--table-container {
+  flex: 0 0 var(--vxe-grid-empty-table-height, 120px);
 }
 
 .vxe-pager {

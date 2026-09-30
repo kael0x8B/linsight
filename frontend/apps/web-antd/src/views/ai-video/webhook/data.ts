@@ -25,11 +25,27 @@ export function endpointColumns(): VxeTableGridOptions<AiVideoWebhookApi.Endpoin
     { field: 'name', minWidth: 150, title: '端点名称' },
     { field: 'url', minWidth: 280, showOverflow: true, title: 'HTTPS 地址' },
     { field: 'status', slots: { default: 'status' }, title: '状态', width: 90 },
-    { field: 'scope', minWidth: 220, slots: { default: 'scope' }, title: '订阅范围' },
-    { field: 'successRate', slots: { default: 'successRate' }, title: '成功率', width: 100 },
+    {
+      field: 'scope',
+      minWidth: 220,
+      slots: { default: 'scope' },
+      title: '订阅范围',
+    },
+    {
+      field: 'successRate',
+      slots: { default: 'successRate' },
+      title: '成功率',
+      width: 100,
+    },
     { field: 'lastSuccessTime', minWidth: 165, title: '最近成功' },
     { field: 'lastFailureTime', minWidth: 165, title: '最近失败' },
-    { field: 'actions', fixed: 'right', slots: { default: 'actions' }, title: '操作', width: 280 },
+    {
+      field: 'actions',
+      fixed: 'right',
+      slots: { default: 'actions' },
+      title: '操作',
+      width: 280,
+    },
   ];
 }
 
@@ -74,12 +90,28 @@ export function deliveryColumns(): VxeTableGridOptions<AiVideoWebhookApi.Deliver
     { field: 'endpointId', title: '端点 ID', width: 100 },
     { field: 'eventType', minWidth: 150, title: '事件类型' },
     { field: 'severity', title: '等级', width: 90 },
-    { field: 'status', slots: { default: 'status' }, title: '状态', width: 110 },
+    {
+      field: 'status',
+      slots: { default: 'status' },
+      title: '状态',
+      width: 110,
+    },
     { field: 'attempts', title: '尝试次数', width: 100 },
     { field: 'responseStatus', title: 'HTTP', width: 90 },
-    { field: 'durationMs', slots: { default: 'duration' }, title: '耗时', width: 100 },
+    {
+      field: 'durationMs',
+      slots: { default: 'duration' },
+      title: '耗时',
+      width: 100,
+    },
     { field: 'nextAttemptTime', minWidth: 165, title: '下次重试' },
     { field: 'createTime', minWidth: 165, title: '创建时间' },
-    { field: 'actions', fixed: 'right', slots: { default: 'actions' }, title: '操作', width: 140 },
+    {
+      field: 'actions',
+      fixed: 'right',
+      slots: { default: 'actions' },
+      title: '操作',
+      width: 140,
+    },
   ];
 }

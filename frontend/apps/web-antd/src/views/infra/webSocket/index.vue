@@ -175,8 +175,7 @@ onMounted(async () => {
 
 <template>
   <Page>
-    <template #doc>
-    </template>
+    <template #doc> </template>
 
     <div class="mt-4 flex flex-col gap-4 md:flex-row">
       <!-- 左侧：建立连接、发送消息 -->

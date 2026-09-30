@@ -31,6 +31,8 @@ public interface ErrorCodeConstants {
     ErrorCode NODE_DEPLOYMENT_HOST_KEY_CHANGED = new ErrorCode(1_020_006_043, "SSH 主机指纹已变化，请重新执行预检并确认");
     ErrorCode NODE_LIFECYCLE_IN_PROGRESS = new ErrorCode(1_020_006_050, "节点已有部署、升级或运维操作；请在操作记录中完成/激活后重试");
     ErrorCode NODE_DELETE_ONLINE = new ErrorCode(1_020_006_051, "在线节点不能删除，请先关机并等待节点离线");
+    ErrorCode NODE_TASK_REMOVE_FAILED = new ErrorCode(1_020_006_053, "网关配置未移除，请确认网关已升级并在线，刷新状态后重试");
+    ErrorCode NODE_TASK_CAPACITY_PREFLIGHT_FAILED = new ErrorCode(1_020_006_054, "网关任务容量预检失败：{}");
     ErrorCode NODE_DELETE_REFERENCED = new ErrorCode(1_020_006_052, "节点仍有关联任务，请先迁移或删除任务");
 
 }

@@ -32,3 +32,24 @@
 - 不得把 `WAITING_FOR_*`、`PENDING` 或 Mock 结果改成 PASS。
 - 不得以重启全部服务替代根因定位；重启前必须留存证据。
 - 不得在命令、报告或截图中保存 RTSP 密码、节点密钥、访问令牌或签名 URL。
+
+## 节点日志保留与恢复
+
+控制面过滤 EDGE_AGENT 的 INFO/DEBUG 成功 HTTP 2xx 与成功心跳，保留 HTTP 失败及 WARN/ERROR。Agent 的 httpx/httpcore 使用 WARNING，成功心跳降为 DEBUG，任务状态仅在状态、runId 或错误变化时记录；重复 WARN/ERROR 使用有界汇总，保持重试 ACK 一致性。
+
+默认 DEBUG/INFO/WARN/ERROR 分别保留 1/3/7/14 天；按日志级别分批清理，避免长事务。人工清理应先固定范围和最大 ID，导出后校验 gzip、记录数量和 SHA256，再分批处理，不能扩大到未授权的业务或错误日志。
+
+本机已有备份位于 `artifacts/node-log-hygiene/`：`node-1-routine-before-587992.sql.gz` 和 `node-1-routine-before-588160.sql.gz`，校验记录为 `cleanup-result-initial.json` 和 `cleanup-result.json`。恢复前先在隔离数据库检验 gzip 内 SQL；导入保留原 ID，须检查主键冲突，按备份权限和生命周期管理。
+
+## 磁盘与证据清理
+
+先区分系统文件、运行模型、部署回退环境、日志、可再生安装缓存及待上传证据。当前运行版本、必要回退环境、设备密钥和未确认上传的证据必须保留。日志采用容量上限和轮转策略；具体容量按现场磁盘条件配置。
+
+Runtime 只有在证据生成完成、Agent 获得所有应上传媒体的成功响应后才接受确认。清理记录与事件确认在同一 SQLite 事务内保存，删除失败或重启后可重试；清理仅限当前事件的媒体，不跟随符号链接，也不删除其他待上传事件引用的文件。
+
+空文件、缺失文件或上传失败不得确认完成。历史媒体修复需核对本地 SHA256、平台元数据与从 MinIO 下载的实际字节；查不到事件关联的文件须单独保全，不伪造关联。网关本地历史保留与上传 ACK 分开管理，具体规则见 [网关双入口说明](GATEWAY_DUAL_ENTRY.md)。
+
+标准节点由 `linsight-disk-pressure-cleanup.timer` 每 15 分钟检查根分区：80% 清理固定白名单中的可再生
+缓存、过期部署暂存、旧回滚快照及超限 journal，90% 才追加 APT 缓存清理。自动处置只保留可审计回执，
+不删除 Runtime 事件目录、离线队列、未 ACK 证据、在用模型、设备密钥和当前/上一版本。若处置回执为
+`STILL_HIGH`，不得继续扩大自动删除范围，应先保全 snapshot，再扩容或按目录人工核查。

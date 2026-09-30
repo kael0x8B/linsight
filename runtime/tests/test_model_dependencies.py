@@ -69,8 +69,12 @@ def test_missing_dependencies_only_write_profile_and_use_cached_wheels(tmp_path,
     args = [call.args[0] for call in run.await_args_list]
     from ai_runtime.app.core import environment as environment_bootstrap
 
-    assert args[0] == [sys.executable, "-I", str(environment_bootstrap.__file__),
-                       str(manager.root / PROFILE)]
+    assert args[0] == [
+        sys.executable,
+        "-I",
+        str(environment_bootstrap.__file__),
+        str(manager.root / PROFILE),
+    ]
     assert "--no-index" in args[1]
     assert args[1][0] == str(python)
     assert "ultralytics==8.4.142" in args[1]

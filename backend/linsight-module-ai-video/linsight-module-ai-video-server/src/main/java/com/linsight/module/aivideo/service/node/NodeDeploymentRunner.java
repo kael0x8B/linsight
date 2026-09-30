@@ -1,5 +1,6 @@
 package com.linsight.module.aivideo.service.node;
 
+import com.linsight.framework.common.util.json.JsonUtils;
 import com.linsight.framework.tenant.core.util.TenantUtils;
 import com.linsight.module.aivideo.controller.admin.node.vo.NodeDeploymentCreateReqVO;
 import com.linsight.module.aivideo.dal.dataobject.node.EdgeNodeDO;
@@ -33,6 +34,8 @@ public class NodeDeploymentRunner {
     private final String executorOwner = UUID.randomUUID().toString();
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final Set<String> PACKAGE_ROOTS = Set.of("ai_runtime", "edge_agent");
+    private static final String GATEWAY_CONSOLE_MANIFEST = "gateway-console/manifest.json";
+    static final String MANAGED_PYTHON_VERSION = "3.12.14";
     private static final String SERVICE_DIAGNOSTIC_COMMAND = "sudo -S -p '' bash -c '"
             + "echo \"--- service state ---\"; "
             + "systemctl --no-pager --full status linsight-ai-runtime.service linsight-edge-agent.service || true; "
@@ -78,7 +81,8 @@ public class NodeDeploymentRunner {
                 return;
             }
             update(deploymentId, "RUNNING", "PACKAGING", 12, "正在生成 Runtime 与 Edge Agent 部署包");
-            byte[] runtimePackage = buildRuntimePackage(record.getTargetArch(), record.getPythonVersion());
+            byte[] runtimePackage = buildRuntimePackage(record.getTargetArch(),
+                    deploymentPythonVersion(record.getPythonVersion()));
             if (!redeploy) bootstrapToken = nodeService.createBootstrapToken(request.getNodeName(), 30).getToken();
             String runtimePackageSha256 = sha256(runtimePackage);
             recordRuntimePackageSha256(deploymentId, runtimePackageSha256);
@@ -100,9 +104,12 @@ public class NodeDeploymentRunner {
                     connection.upload(runtimePackage, remoteRoot + "/runtime.zip");
                     connection.upload(recoveryScript(), remoteRoot + "/recovery.sh");
                     connection.upload(dependencyScript(), remoteRoot + "/dependencies.sh");
+                    connection.upload(pythonScript(), remoteRoot + "/python.sh");
+                    connection.upload(diskPressureCleanupScript(), remoteRoot + "/disk-pressure-cleanup.sh");
                     connection.upload((record.getPreviousVersion() == null ? "" : record.getPreviousVersion())
                             .getBytes(StandardCharsets.UTF_8), remoteRoot + "/previous-version");
-                    connection.upload(runtimeEnv(runtimeKey).getBytes(StandardCharsets.UTF_8), remoteRoot + "/runtime.env");
+                    connection.upload(runtimeEnv(runtimeKey, request.getControlPlaneUrl())
+                            .getBytes(StandardCharsets.UTF_8), remoteRoot + "/runtime.env");
                     connection.upload(agentEnv(request, bootstrapToken, runtimeKey, runtimePackageSha256)
                                     .getBytes(StandardCharsets.UTF_8),
                             remoteRoot + "/agent.env");
@@ -132,8 +139,11 @@ public class NodeDeploymentRunner {
                             "服务已安装，但 60 秒内未收到节点 " + request.getNodeCode()
                                     + " 的目标版本健康心跳" + identityHint + "，请查看部署输出");
                 }
-                connection.execute("sudo -S -p '' bash /var/lib/linsight-deployments/" + deploymentId
-                                + "/restore.sh commit " + deploymentId, request.getPassword() + "\n",
+                connection.execute("sudo -S -p '' bash -c " + NodeDeploymentProbe.quote(
+                                "bash /var/lib/linsight-deployments/" + deploymentId
+                                        + "/restore.sh commit " + deploymentId
+                                        + " && systemctl start linsight-disk-pressure-cleanup.service"),
+                        request.getPassword() + "\n",
                         new RemoteOutputObserver(deploymentId));
                 } catch (Exception error) {
                     try {
@@ -194,6 +204,25 @@ public class NodeDeploymentRunner {
     static byte[] dependencyScript() throws java.io.IOException {
         try (var stream = NodeDeploymentRunner.class.getResourceAsStream("/node/deployment-dependencies.sh")) {
             if (stream == null) throw new IllegalStateException("部署依赖检查脚本缺失");
+            return stream.readAllBytes();
+        }
+    }
+
+    static byte[] pythonScript() throws java.io.IOException {
+        try (var stream = NodeDeploymentRunner.class.getResourceAsStream("/node/deployment-python.sh")) {
+            if (stream == null) throw new IllegalStateException("独立 Python 安装脚本缺失");
+            return stream.readAllBytes();
+        }
+    }
+
+    static String deploymentPythonVersion(String detectedVersion) {
+        return detectedVersion != null && detectedVersion.matches("3\\.(12|13)(?:\\..*)?")
+                ? detectedVersion : MANAGED_PYTHON_VERSION;
+    }
+
+    static byte[] diskPressureCleanupScript() throws java.io.IOException {
+        try (var stream = NodeDeploymentRunner.class.getResourceAsStream("/node/disk-pressure-cleanup.sh")) {
+            if (stream == null) throw new IllegalStateException("磁盘压力处置脚本缺失");
             return stream.readAllBytes();
         }
     }
@@ -338,6 +367,10 @@ public class NodeDeploymentRunner {
                             .forEach(path -> addFileUnchecked(zip, source, path));
                 }
             }
+            GatewayConsoleBundle gatewayConsole = requireGatewayConsoleBundle(source);
+            addFile(zip, source, gatewayConsole.manifest());
+            addFile(zip, source, gatewayConsole.artifact());
+            addOfflinePython(zip, source, architecture);
             for (Path wheel : NodeDeploymentWheelhouse.verifiedFiles(source, architecture, pythonVersion)) {
                 ZipEntry entry = new ZipEntry("deployment-wheels/" + wheel.getFileName());
                 entry.setTime(0L);
@@ -348,6 +381,62 @@ public class NodeDeploymentRunner {
         }
         return bytes.toByteArray();
     }
+
+    private static void addOfflinePython(ZipOutputStream zip, Path source, String architecture) throws Exception {
+        String target;
+        String expectedSha256;
+        if ("aarch64".equals(architecture) || "arm64".equals(architecture)) {
+            target = "aarch64";
+            expectedSha256 = "c0574c9c9fec561eb192ad510e4e79aaad039929b3531b3bb873e2f630fb14a9";
+        } else if ("x86_64".equals(architecture) || "amd64".equals(architecture)) {
+            target = "x86_64";
+            expectedSha256 = "5eae8cf79dd47fc2496a4fccc892936be831ce7a84d984b2299dfb1cdb592682";
+        } else {
+            return;
+        }
+        Path artifact = source.resolve("deployment-python/cpython-" + MANAGED_PYTHON_VERSION
+                + "+20260924-" + target + "-unknown-linux-gnu-install_only.tar.gz");
+        if (!Files.exists(artifact)) return;
+        if (Files.isSymbolicLink(artifact) || !Files.isRegularFile(artifact)
+                || !expectedSha256.equals(sha256(Files.readAllBytes(artifact)))) {
+            throw new IllegalStateException("离线 Python 安装包 SHA256 不匹配：" + artifact.getFileName());
+        }
+        addFile(zip, source, artifact);
+    }
+
+    private static GatewayConsoleBundle requireGatewayConsoleBundle(Path source) throws Exception {
+        Path manifest = source.resolve(GATEWAY_CONSOLE_MANIFEST);
+        if (!Files.isRegularFile(manifest)) {
+            throw new IllegalStateException("网关控制台制品缺失，请先执行 make gateway-console");
+        }
+        var value = JsonUtils.parseMap(Files.readString(manifest, StandardCharsets.UTF_8));
+        if (value == null || !"1.0".equals(value.get("schemaVersion"))
+                || !"linsightGatewayConsole".equals(value.get("artifactType"))
+                || !(value.get("artifact") instanceof java.util.Map<?, ?> artifact)) {
+            throw new IllegalStateException("网关控制台 manifest 无效");
+        }
+        Object rawFileName = artifact.get("fileName");
+        Object rawSha256 = artifact.get("sha256");
+        if (!(rawFileName instanceof String fileName)
+                || !fileName.matches("gateway-console-[0-9a-f]{12}\\.tar\\.gz")
+                || !(rawSha256 instanceof String expectedSha256)
+                || !expectedSha256.matches("[0-9a-f]{64}")) {
+            throw new IllegalStateException("网关控制台 manifest 的制品字段无效");
+        }
+        Path bundleDirectory = manifest.getParent().toAbsolutePath().normalize();
+        Path archive = bundleDirectory.resolve(fileName).normalize();
+        if (!archive.getParent().equals(bundleDirectory) || !Files.isRegularFile(archive)) {
+            throw new IllegalStateException("网关控制台制品文件缺失");
+        }
+        String actualSha256 = sha256(Files.readAllBytes(archive));
+        if (!MessageDigest.isEqual(actualSha256.getBytes(StandardCharsets.US_ASCII),
+                expectedSha256.getBytes(StandardCharsets.US_ASCII))) {
+            throw new IllegalStateException("网关控制台制品 SHA256 不匹配");
+        }
+        return new GatewayConsoleBundle(manifest, archive);
+    }
+
+    private record GatewayConsoleBundle(Path manifest, Path artifact) {}
 
     private static void addFileUnchecked(ZipOutputStream zip, Path root, Path file) {
         try { addFile(zip, root, file); } catch (Exception error) { throw new IllegalStateException(error); }
@@ -361,9 +450,10 @@ public class NodeDeploymentRunner {
         zip.closeEntry();
     }
 
-    private static String runtimeEnv(String runtimeKey) {
+    private static String runtimeEnv(String runtimeKey, String controlPlaneUrl) {
         return "LINSIGHT_RUNTIME_API_KEY=" + runtimeKey + "\n"
                 + "LINSIGHT_RUNTIME_DATA_ROOT=/var/lib/linsight/runtime-data\n"
+                + "LINSIGHT_RUNTIME_PLATFORM_URL=" + controlPlaneUrl.replaceAll("/+$", "") + "\n"
                 + "LINSIGHT_RUNTIME_PREVIEW_ROOT=/var/lib/linsight/preview\n";
     }
 
@@ -384,6 +474,7 @@ public class NodeDeploymentRunner {
                 + "LINSIGHT_AGENT_RUNTIME_API_KEY=" + runtimeKey + "\n"
                 + "LINSIGHT_AGENT_RUNTIME_DATA_ROOT=/var/lib/linsight/runtime-data\n"
                 + "LINSIGHT_AGENT_UPGRADE_ROOT=/var/lib/linsight/edge-agent\n"
+                + "LINSIGHT_AGENT_DISK_CLEANUP_STATUS_FILE=/var/lib/linsight/disk-pressure/last-run.env\n"
                 + "LINSIGHT_AGENT_EVENT_POLL_INTERVAL_SECONDS=0.5\n"
                 + "LINSIGHT_AGENT_OVERLAY_POLL_INTERVAL_SECONDS=0.1\n";
     }
@@ -401,18 +492,25 @@ public class NodeDeploymentRunner {
                 + "trap 'code=$?; if [ \"$code\" != 0 ] && [ -f " + recovery
                 + " ]; then LINSIGHT_DEPLOY_LOCK_HELD=1 bash " + recovery + " restore " + id + " || true; fi' EXIT\n"
                 + "echo 'LINSIGHT_PROGRESS=56 正在校验并解压 Runtime 包'\n"
-                + "python3 -c 'import sys; assert sys.version_info >= (3,12)'\n"
                 + "install -d -m 0755 /opt/linsight /etc/linsight\n"
                 + "install -d -m 0755 /var/cache/linsight/pip\n"
                 + "install -d -o " + username + " -g " + username + " -m 0700 /var/lib/linsight /var/lib/linsight/runtime-data /var/lib/linsight/preview\n"
+                + "echo 'LINSIGHT_PROGRESS=54 正在回收可再生缓存与过期回滚快照'\n"
+                + "LINSIGHT_DEPLOY_LOCK_HELD=1 bash " + remoteRoot + "/disk-pressure-cleanup.sh --force\n"
+                + "available_kib=$(df -Pk / | awk 'NR==2 {print $4}')\n"
+                + "[ \"$available_kib\" -ge 1572864 ] || { echo 'LINSIGHT_ERROR=安全清理后可用空间仍不足 1.5 GiB；未触碰待补传证据，请先扩容或人工核查'; exit 28; }\n"
                 + "printf '%s  %s\\n' '" + runtimePackageSha256 + "' '" + remoteRoot
                 + "/runtime.zip' | sha256sum -c -\n"
                 + "rm -rf /opt/linsight/runtime.new\nmkdir -p /opt/linsight/runtime.new\n"
                 + "python3 -c \"import zipfile; zipfile.ZipFile('" + remoteRoot + "/runtime.zip').extractall('/opt/linsight/runtime.new')\"\n"
+                + "source " + remoteRoot + "/python.sh " + (installDependencies ? "install" : "check") + "\n"
+                + "\"$LINSIGHT_PYTHON\" -I /opt/linsight/runtime.new/ai_runtime/app/gateway/console_artifact.py install "
+                + "--bundle-dir /opt/linsight/runtime.new/gateway-console "
+                + "--target /opt/linsight/runtime.new/gateway-console/current\n"
                 + dependencies
                 + "echo 'LINSIGHT_PROGRESS=66 正在创建隔离 Python 环境'\n"
                 + "rm -rf /opt/linsight/venv.new\n"
-                + "timeout 120s python3 -I /opt/linsight/runtime.new/ai_runtime/app/core/environment.py /opt/linsight/venv.new\n"
+                + "timeout 120s \"$LINSIGHT_PYTHON\" -I /opt/linsight/runtime.new/ai_runtime/app/core/environment.py /opt/linsight/venv.new\n"
                 + "echo 'LINSIGHT_PROGRESS=70 正在安装 Python 依赖，网络较慢时会自动重试'\n"
                 + "if [ -f /opt/linsight/runtime.new/deployment-wheels/manifest.json ]; then\n"
                 + "  echo 'LINSIGHT_PROGRESS=70 正在安装随包离线 Python 依赖'\n"
@@ -435,7 +533,7 @@ public class NodeDeploymentRunner {
                 // Optional model dependencies are prepared on demand in isolated profiles.
                 + "timeout 45s /opt/linsight/venv.new/bin/python -c 'import ai_runtime.app.main, edge_agent.app.main' "
                 + "|| { echo 'LINSIGHT_ERROR=新 Runtime/Agent 导入失败或超时，原服务未切换'; exit 1; }\n"
-                + "test -s /opt/linsight/runtime.new/edge_agent/app/console/gateway.html\n"
+                + "test -s /opt/linsight/runtime.new/gateway-console/current/gateway.html\n"
                 + "echo 'LINSIGHT_PROGRESS=80 正在切换 Runtime 并写入 systemd 服务'\n"
                 + "chown -R " + username + ":" + username + " /opt/linsight/runtime.new /opt/linsight/venv.new\n"
                 + "LINSIGHT_DEPLOY_LOCK_HELD=1 bash " + remoteRoot + "/recovery.sh prepare " + id + "\n"
@@ -450,7 +548,15 @@ public class NodeDeploymentRunner {
                 + "install -m 0600 " + remoteRoot + "/runtime.env /etc/linsight/runtime.env\n"
                 + "install -m 0600 " + remoteRoot + "/agent.env /etc/linsight/agent.env\n"
                 + "cat >/etc/systemd/system/linsight-ai-runtime.service <<'UNIT'\n[Unit]\nDescription=LInsight AI Runtime\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nUser=" + username + "\nWorkingDirectory=/opt/linsight/runtime\nEnvironmentFile=/etc/linsight/runtime.env\nExecStart=/opt/linsight/venv/bin/python -m uvicorn ai_runtime.app.main:create_app --factory --host 127.0.0.1 --port 48900\nRestart=on-failure\nRestartSec=3\nNoNewPrivileges=true\n\n[Install]\nWantedBy=multi-user.target\nUNIT\n"
-                + "cat >/etc/systemd/system/linsight-edge-agent.service <<'UNIT'\n[Unit]\nDescription=LInsight Edge Agent\nAfter=network-online.target linsight-ai-runtime.service\nWants=network-online.target\nRequires=linsight-ai-runtime.service\n\n[Service]\nType=simple\nUser=" + username + "\nWorkingDirectory=/opt/linsight/runtime\nEnvironmentFile=/etc/linsight/agent.env\nEnvironmentFile=-/etc/linsight/agent-upgrade.env\nExecStart=/opt/linsight/venv/bin/python -m edge_agent.app.upgrade.launcher\nRestart=always\nRestartSec=3\nNoNewPrivileges=true\n\n[Install]\nWantedBy=multi-user.target\nUNIT\n"
+                + "cat >/usr/local/sbin/linsight-accelerator-metrics-permissions <<'SCRIPT'\n#!/usr/bin/env bash\nset -u\nload=/sys/kernel/debug/rknpu/load\nif test -e \"$load\"; then\n  chgrp " + username + " /sys/kernel/debug /sys/kernel/debug/rknpu \"$load\" 2>/dev/null && chmod g+x /sys/kernel/debug /sys/kernel/debug/rknpu 2>/dev/null && chmod g+r \"$load\" 2>/dev/null || echo 'LINSIGHT_WARNING=无法授权 Edge Agent 读取 RKNPU 负载' >&2\nfi\nexit 0\nSCRIPT\n"
+                + "chmod 0755 /usr/local/sbin/linsight-accelerator-metrics-permissions\n"
+                + "cat >/etc/systemd/system/linsight-accelerator-metrics-permissions.service <<'UNIT'\n[Unit]\nDescription=Grant LInsight access to accelerator utilization only\nBefore=linsight-edge-agent.service\n\n[Service]\nType=oneshot\nExecStart=/usr/local/sbin/linsight-accelerator-metrics-permissions\nNoNewPrivileges=true\nPrivateTmp=true\n\n[Install]\nWantedBy=multi-user.target\nUNIT\n"
+                + "install -m 0755 " + remoteRoot + "/disk-pressure-cleanup.sh /usr/local/sbin/linsight-disk-pressure-cleanup\n"
+                + "printf 'LINSIGHT_DISK_CLEANUP_TRIGGER_PERCENT=80\\nLINSIGHT_DISK_CLEANUP_CRITICAL_PERCENT=90\\n' >/etc/linsight/disk-pressure.env\n"
+                + "chmod 0600 /etc/linsight/disk-pressure.env\n"
+                + "cat >/etc/systemd/system/linsight-disk-pressure-cleanup.service <<'UNIT'\n[Unit]\nDescription=LInsight bounded disk pressure remediation\nAfter=local-fs.target\n\n[Service]\nType=oneshot\nEnvironmentFile=/etc/linsight/disk-pressure.env\nExecStart=/usr/local/sbin/linsight-disk-pressure-cleanup\nNoNewPrivileges=true\nProtectSystem=full\nReadWritePaths=/opt/linsight /var/cache/linsight /var/lib/linsight-deployments /var/lib/linsight/edge-agent /var/lib/linsight/disk-pressure /tmp\nNice=10\nIOSchedulingClass=idle\nUNIT\n"
+                + "cat >/etc/systemd/system/linsight-disk-pressure-cleanup.timer <<'UNIT'\n[Unit]\nDescription=Check LInsight edge disk pressure every 15 minutes\n\n[Timer]\nOnBootSec=5min\nOnUnitActiveSec=15min\nRandomizedDelaySec=60\nPersistent=true\nUnit=linsight-disk-pressure-cleanup.service\n\n[Install]\nWantedBy=timers.target\nUNIT\n"
+                + "cat >/etc/systemd/system/linsight-edge-agent.service <<'UNIT'\n[Unit]\nDescription=LInsight Edge Agent\nAfter=network-online.target linsight-ai-runtime.service linsight-accelerator-metrics-permissions.service\nWants=network-online.target linsight-accelerator-metrics-permissions.service\nRequires=linsight-ai-runtime.service\n\n[Service]\nType=simple\nUser=" + username + "\nWorkingDirectory=/opt/linsight/runtime\nEnvironmentFile=/etc/linsight/agent.env\nEnvironmentFile=-/etc/linsight/agent-upgrade.env\nExecStart=/opt/linsight/venv/bin/python -m edge_agent.app.upgrade.launcher\nRestart=always\nRestartSec=3\nNoNewPrivileges=true\n\n[Install]\nWantedBy=multi-user.target\nUNIT\n"
                 + "install -d -o " + username + " -g " + username + " -m 0700 /run/linsight /var/lib/linsight/edge-agent\n"
                 + "rm -f /var/lib/linsight/edge-agent/current /var/lib/linsight/edge-agent/pending-activation.json /var/lib/linsight/edge-agent/failed-activation-version\n"
                 + "printf 'd /run/linsight 0700 " + username + " " + username
@@ -460,7 +566,7 @@ public class NodeDeploymentRunner {
                 + "cat >/etc/systemd/system/linsight-node-power.service <<'UNIT'\n[Unit]\nDescription=LInsight requested node lifecycle action\n\n[Service]\nType=oneshot\nExecStart=/usr/local/sbin/linsight-node-power\nNoNewPrivileges=true\nProtectSystem=strict\nReadWritePaths=/run/linsight\nPrivateTmp=true\nUNIT\n"
                 + "cat >/etc/systemd/system/linsight-node-power.path <<'UNIT'\n[Unit]\nDescription=Watch for LInsight node lifecycle requests\n\n[Path]\nPathExists=/run/linsight/node-power-request\nUnit=linsight-node-power.service\n\n[Install]\nWantedBy=multi-user.target\nUNIT\n"
                 + "echo 'LINSIGHT_PROGRESS=84 正在启动 Runtime 与 Edge Agent'\n"
-                + "systemctl daemon-reload\nsystemctl enable --now linsight-ai-runtime.service linsight-edge-agent.service linsight-node-power.path\n"
+                + "systemctl daemon-reload\nsystemctl enable --now linsight-ai-runtime.service linsight-accelerator-metrics-permissions.service linsight-edge-agent.service linsight-node-power.path linsight-disk-pressure-cleanup.timer\n"
                 + "echo 'LINSIGHT_PROGRESS=86 正在执行本机健康检查'\n"
                 + "for i in $(seq 1 30); do curl -fsS --connect-timeout 2 --max-time 3 http://127.0.0.1:48900/v1/health >/dev/null 2>&1 && break; "
                 + "echo \"[HEALTH] 等待 Runtime 就绪 ($i/30)\"; sleep 2; done\n"

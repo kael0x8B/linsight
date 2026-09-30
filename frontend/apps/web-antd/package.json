@@ -5,9 +5,6 @@
   "author": {
     "name": "LInsight Team"
   },
-  "devDependencies": {
-    "@types/video.js": "^7.3.58"
-  },
   "type": "module",
   "scripts": {
     "build": "pnpm vite build --mode production",
@@ -64,5 +61,8 @@
     "vue3-print-nb": "catalog:",
     "vue3-signature": "catalog:",
     "vuedraggable": "catalog:"
+  },
+  "devDependencies": {
+    "@types/video.js": "catalog:"
   }
 }

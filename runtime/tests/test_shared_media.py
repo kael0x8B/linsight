@@ -11,31 +11,38 @@ from PIL import Image
 from pydantic import SecretStr
 
 from ai_runtime.app.core.config import RuntimeSettings
+from ai_runtime.app.stream import shared
 from ai_runtime.app.stream.frame_stamp import STAMP_UUID, stamp_h264
-from ai_runtime.app.stream.shared import CameraMediaHub, CameraSource, DecodePacket
+from ai_runtime.app.stream.shared import (
+    CameraMediaHub,
+    CameraSource,
+    DecodePacket,
+    UnsupportedTimelineCodec,
+)
 
 
 def parse_stamp(data):
-    assert data[:5] == b'\x00\x00\x00\x01\x06'
-    escaped = data[5:].split(b'\x00\x00\x00\x01', 1)[0]
-    rbsp = escaped.replace(b'\x00\x00\x03', b'\x00\x00')
-    assert rbsp[0] == 5 and rbsp[1] in (40,56) and rbsp[2:18] == STAMP_UUID
-    return str(UUID(bytes=rbsp[18:34])), struct.unpack('>Q', rbsp[34:42])[0]
+    assert data[:5] == b"\x00\x00\x00\x01\x06"
+    escaped = data[5:].split(b"\x00\x00\x00\x01", 1)[0]
+    rbsp = escaped.replace(b"\x00\x00\x03", b"\x00\x00")
+    assert rbsp[0] == 5 and rbsp[1] in (40, 56) and rbsp[2:18] == STAMP_UUID
+    return str(UUID(bytes=rbsp[18:34])), struct.unpack(">Q", rbsp[34:42])[0]
 
 
 def test_source_stamp_preserves_high_pts_and_start_code_emulation():
-    identity = '00000001-0000-0003-0000-000000000002'
+    identity = "00000001-0000-0003-0000-000000000002"
     for pts in (0, 1, 255, 256, 90_000, 2**53 - 1):
-        encoded = stamp_h264(b'\x00\x00\x00\x01\x65abc', identity, pts)
+        encoded = stamp_h264(b"\x00\x00\x00\x01\x65abc", identity, pts)
         assert parse_stamp(encoded) == (identity, pts)
-        assert encoded.endswith(b'\x00\x00\x00\x01\x65abc')
+        assert encoded.endswith(b"\x00\x00\x00\x01\x65abc")
     with pytest.raises(ValueError):
-        stamp_h264(b'', identity, 2**53)
+        stamp_h264(b"", identity, 2**53)
 
 
 def test_rtp_time_stays_monotonic_across_a_source_pts_restart():
-    source = CameraSource(1, SecretStr('rtsp://192.0.2.1/sub'),
-                          RuntimeSettings(api_key='a-secure-runtime-test-key'))
+    source = CameraSource(
+        1, SecretStr("rtsp://192.0.2.1/sub"), RuntimeSettings(api_key="a-secure-runtime-test-key")
+    )
     assert source._transport_timestamp(90_000, 1.0) == 0
     assert source._transport_timestamp(93_600, 1.04) == 3600
     source._transport_offset = None  # Reopened source restarts its PTS.
@@ -44,16 +51,16 @@ def test_rtp_time_stays_monotonic_across_a_source_pts_restart():
 
 
 def write_h264_camera(video):
-    with av.open(str(video), 'w', format='mpegts') as output:
-        stream = output.add_stream('libx264', rate=25)
+    with av.open(str(video), "w", format="mpegts") as output:
+        stream = output.add_stream("libx264", rate=25)
         stream.width = 160
         stream.height = 120
-        stream.pix_fmt = 'yuv420p'
-        stream.options = {'preset': 'ultrafast', 'tune': 'zerolatency', 'bf': '0', 'g': '25'}
+        stream.pix_fmt = "yuv420p"
+        stream.options = {"preset": "ultrafast", "tune": "zerolatency", "bf": "0", "g": "25"}
         for index in range(150):
             pixels = np.full((120, 160, 3), 45, dtype=np.uint8)
-            pixels[30:70, index % 110:index % 110 + 35] = (200, 80, 40)
-            frame = av.VideoFrame.from_ndarray(pixels, format='rgb24')
+            pixels[30:70, index % 110 : index % 110 + 35] = (200, 80, 40)
+            frame = av.VideoFrame.from_ndarray(pixels, format="rgb24")
             frame.pts = index
             frame.time_base = Fraction(1, 25)
             for packet in stream.encode(frame):
@@ -62,13 +69,68 @@ def write_h264_camera(video):
             output.mux(packet)
 
 
+def write_hevc_camera(video):
+    with av.open(str(video), "w", format="mpegts") as output:
+        stream = output.add_stream("libx265", rate=25)
+        stream.width = 160
+        stream.height = 120
+        stream.pix_fmt = "yuv420p"
+        stream.options = {
+            "preset": "ultrafast",
+            "x265-params": ":".join(
+                (
+                    "pools=1",
+                    "frame-threads=1",
+                    "keyint=25",
+                    "min-keyint=25",
+                    "bframes=0",
+                    "log-level=error",
+                )
+            ),
+        }
+        for index in range(150):
+            pixels = np.full((120, 160, 3), 45, dtype=np.uint8)
+            pixels[30:70, index % 110 : index % 110 + 35] = (200, 80, 40)
+            frame = av.VideoFrame.from_ndarray(pixels, format="rgb24")
+            frame.pts = index
+            frame.time_base = Fraction(1, 25)
+            for packet in stream.encode(frame):
+                output.mux(packet)
+        for packet in stream.encode(None):
+            output.mux(packet)
+
+
+def test_hevc_preview_and_analysis_require_h264_without_fallback(tmp_path):
+    video = tmp_path / "camera-hevc.ts"
+    write_hevc_camera(video)
+
+    async def scenario():
+        settings = RuntimeSettings(api_key="a-secure-runtime-test-key", task_startup_seconds=8)
+        hub = CameraMediaHub(settings)
+        url = SecretStr(str(video))
+        capture = hub.capture_stream(8, url, settings)
+        try:
+            with pytest.raises(UnsupportedTimelineCodec, match="H.264"):
+                await hub.preview_player(8, url)
+            with pytest.raises(UnsupportedTimelineCodec, match="H.264"):
+                await capture.start()
+            assert not hub.sources
+        finally:
+            await hub.close()
+
+    asyncio.run(scenario())
+
 
 def test_real_h264_preview_and_analysis_share_frame_pts_and_decoder(tmp_path):
-    video = tmp_path / 'camera.ts'
+    video = tmp_path / "camera.ts"
     write_h264_camera(video)
 
     async def scenario():
-        settings = RuntimeSettings(api_key='a-secure-runtime-test-key', task_startup_seconds=5)
+        settings = RuntimeSettings(
+            api_key="a-secure-runtime-test-key",
+            task_capture_fps=10,
+            task_startup_seconds=5,
+        )
         hub = CameraMediaHub(settings)
         url = SecretStr(str(video))
         capture = hub.capture_stream(4, url, settings)
@@ -79,7 +141,7 @@ def test_real_h264_preview_and_analysis_share_frame_pts_and_decoder(tmp_path):
         track = player.subscribe()
         assert len(hub.sources) == 1
         assert capture._source is player.source
-        decoder = av.CodecContext.create('h264', 'r')
+        decoder = av.CodecContext.create("h264", "r")
         decoder.thread_count = 1
         captured = {}
         decoded = {}
@@ -87,7 +149,7 @@ def test_real_h264_preview_and_analysis_share_frame_pts_and_decoder(tmp_path):
         async def read_captures():
             for _ in range(25):
                 frame = await queue.get()
-                assert frame.frame_key and len(frame.frame_key)==32
+                assert frame.frame_key and len(frame.frame_key) == 32
                 captured[(frame.stream_id, frame.source_pts)] = frame
 
         async def read_video():
@@ -96,7 +158,7 @@ def test_real_h264_preview_and_analysis_share_frame_pts_and_decoder(tmp_path):
                 stamp = parse_stamp(bytes(packet))
                 assert stamp[1] == packet.pts
                 for frame in decoder.decode(packet):
-                    decoded[(stamp[0], frame.pts)] = frame.to_ndarray(format='rgb24')
+                    decoded[(stamp[0], frame.pts)] = frame.to_ndarray(format="rgb24")
 
         try:
             await asyncio.wait_for(asyncio.gather(read_captures(), read_video()), 5)
@@ -116,29 +178,181 @@ def test_real_h264_preview_and_analysis_share_frame_pts_and_decoder(tmp_path):
             player.stop()
             await asyncio.sleep(0.05)
             assert not hub.sources
-            assert track.readyState == 'ended'
+            assert track.readyState == "ended"
         finally:
             await capture.stop()
             player.stop()
             await hub.close()
+
+    asyncio.run(scenario())
+
+
+def test_capture_switch_retires_old_preview_without_a_second_camera_source(tmp_path):
+    main = tmp_path / "main.ts"
+    sub = tmp_path / "sub.ts"
+    write_h264_camera(main)
+    sub.write_bytes(main.read_bytes())
+
+    async def scenario():
+        settings = RuntimeSettings(api_key="a-secure-runtime-test-key", task_startup_seconds=5)
+        hub = CameraMediaHub(settings)
+        sub_player = await hub.preview_player(4, SecretStr(str(sub)))
+        sub_track = sub_player.subscribe()
+        capture = hub.capture_stream(4, SecretStr(str(main)), settings)
+        capture.subscribers[1] = asyncio.Queue(maxsize=1)
+        try:
+            await capture.start()
+            assert hub.sources[4] is capture._source
+            assert hub.sources[4].url.get_secret_value() == str(main)
+            assert sub_track.readyState == "ended"
+            assert len(hub.sources) == 1
+            with pytest.raises(ValueError, match="active media timeline"):
+                await hub.preview_player(4, SecretStr(str(sub)))
+        finally:
+            await capture.stop()
+            sub_player.stop()
+            await hub.close()
+
+    asyncio.run(scenario())
+
+
+def test_last_capture_subscriber_closes_rockchip_decoder_while_preview_can_remain(
+    tmp_path, monkeypatch
+):
+    async def scenario():
+        started = asyncio.Event()
+        closed = asyncio.Event()
+
+        class FakeRockchipDecoder:
+            def __init__(self, *_args, **_kwargs):
+                self.stderr_tail = []
+
+            async def start(self):
+                started.set()
+
+            async def offer(self, _packet):
+                pass
+
+            async def close(self):
+                closed.set()
+
+        monkeypatch.setattr(shared, "probe_rockchip", lambda _settings: True)
+        monkeypatch.setattr(shared, "RockchipMppDecoder", FakeRockchipDecoder)
+        source = CameraSource(
+            4,
+            SecretStr(str(tmp_path / "camera.ts")),
+            RuntimeSettings(api_key="a-secure-runtime-test-key"),
+        )
+
+        def callback(_frame):
+            return None
+
+        source.capture_callbacks.add(callback)
+        source._decode_worker = asyncio.create_task(source._decode_loop())
+        source._decode_queue.put_nowait(
+            DecodePacket(
+                data=b"frame",
+                pts=90_000,
+                dts=90_000,
+                timestamp_millis=1_789_000_000_123,
+                stream_id=source._stream_id,
+                generation=(source.capture_generation, source._decode_epoch),
+                keyframe=True,
+                extradata=None,
+                width=3840,
+                height=2160,
+            )
+        )
+        try:
+            await asyncio.wait_for(started.wait(), 1)
+            await source.deactivate_capture(callback)
+            assert closed.is_set()
+            assert source.decode_backend == "PENDING"
+            assert not source.capture_callbacks
+        finally:
+            await source.close()
+
+    asyncio.run(scenario())
+
+
+def test_rockchip_decoder_retries_on_a_later_keyframe_after_failure(tmp_path, monkeypatch):
+    async def scenario():
+        failed = asyncio.Event()
+        recovered = asyncio.Event()
+        offers = 0
+
+        class FakeRockchipDecoder:
+            def __init__(self, *_args, **_kwargs):
+                self.stderr_tail = []
+
+            async def start(self):
+                pass
+
+            async def offer(self, _packet):
+                nonlocal offers
+                offers += 1
+                if offers == 1:
+                    raise shared.RockchipDecodeError("transient decoder failure")
+                recovered.set()
+
+            async def close(self):
+                if offers == 1:
+                    failed.set()
+
+        monkeypatch.setattr(shared, "probe_rockchip", lambda _settings: True)
+        monkeypatch.setattr(shared, "RockchipMppDecoder", FakeRockchipDecoder)
+        monkeypatch.setattr(shared, "_HARDWARE_RETRY_SECONDS", 0.0)
+        source = CameraSource(
+            4,
+            SecretStr(str(tmp_path / "camera.ts")),
+            RuntimeSettings(api_key="a-secure-runtime-test-key"),
+        )
+        source.capture_callbacks.add(lambda _frame: None)
+        source._decode_worker = asyncio.create_task(source._decode_loop())
+
+        def keyframe() -> DecodePacket:
+            return DecodePacket(
+                data=b"frame",
+                pts=90_000,
+                dts=90_000,
+                timestamp_millis=1_789_000_000_123,
+                stream_id=source._stream_id,
+                generation=(source.capture_generation, source._decode_epoch),
+                keyframe=True,
+                extradata=None,
+                width=3840,
+                height=2160,
+            )
+
+        try:
+            source._decode_queue.put_nowait(keyframe())
+            await asyncio.wait_for(failed.wait(), 1)
+            assert source.decode_backend == "SOFTWARE_PYAV_FALLBACK"
+            source._decode_queue.put_nowait(keyframe())
+            await asyncio.wait_for(recovered.wait(), 1)
+            assert source.decode_backend == shared.ROCKCHIP_BACKEND
+            assert source.hardware_decode_failures == 1
+        finally:
+            await source.close()
+
     asyncio.run(scenario())
 
 
 def test_slow_analysis_decoder_does_not_stall_encoded_preview(tmp_path, monkeypatch):
     import time
 
-    video = tmp_path / 'slow-analysis.ts'
+    video = tmp_path / "slow-analysis.ts"
     write_h264_camera(video)
     original = CameraSource._decode
 
     def slow_decode(self, packet, sample=True):
-        time.sleep(.08)  # Deliberately slower than the camera's 40 ms frame interval.
+        time.sleep(0.08)  # Deliberately slower than the camera's 40 ms frame interval.
         return original(self, packet, sample)
 
-    monkeypatch.setattr(CameraSource, '_decode', slow_decode)
+    monkeypatch.setattr(CameraSource, "_decode", slow_decode)
 
     async def scenario():
-        settings = RuntimeSettings(api_key='a-secure-runtime-test-key', task_startup_seconds=5)
+        settings = RuntimeSettings(api_key="a-secure-runtime-test-key", task_startup_seconds=5)
         hub = CameraMediaHub(settings)
         url = SecretStr(str(video))
         capture = hub.capture_stream(4, url, settings)
@@ -160,50 +374,74 @@ def test_slow_analysis_decoder_does_not_stall_encoded_preview(tmp_path, monkeypa
             if player is not None:
                 player.stop()
             await hub.close()
+
     asyncio.run(scenario())
 
 
 def test_catching_up_skips_old_images_without_breaking_h264_references(tmp_path):
-    video = tmp_path / 'catch-up.ts'
+    video = tmp_path / "catch-up.ts"
     write_h264_camera(video)
-    source = CameraSource(4, SecretStr(str(video)),
-        RuntimeSettings(api_key='a-secure-runtime-test-key'))
-    reference = av.CodecContext.create('h264', 'r')
+    source = CameraSource(
+        4, SecretStr(str(video)), RuntimeSettings(api_key="a-secure-runtime-test-key")
+    )
+    reference = av.CodecContext.create("h264", "r")
     reference.thread_count = 1
     with av.open(str(video)) as input_file:
         packets = [p for p in input_file.demux(video=0) if p.pts is not None][:12]
         for index, packet in enumerate(packets):
             expected = reference.decode(packet)
-            actual = source._decode(DecodePacket(bytes(packet), packet.pts, 1000 + index * 40,
-                source._stream_id, (0, 0), packet.is_keyframe,
-                packet.stream.codec_context.extradata), sample=index == 11)
+            actual = source._decode(
+                DecodePacket(
+                    bytes(packet),
+                    packet.pts,
+                    packet.dts if packet.dts is not None else -1,
+                    1000 + index * 40,
+                    source._stream_id,
+                    (0, 0),
+                    packet.is_keyframe,
+                    packet.stream.codec_context.extradata,
+                    packet.stream.codec_context.width,
+                    packet.stream.codec_context.height,
+                ),
+                sample=index == 11,
+            )
             if index < 11:
                 assert actual == []
             else:
                 assert len(actual) == 1
                 assert actual[0].source_pts == expected[0].pts
                 np.testing.assert_array_equal(
-                    np.asarray(actual[0].image), expected[0].to_ndarray(format='rgb24'))
+                    np.asarray(actual[0].image), expected[0].to_ndarray(format="rgb24")
+                )
 
 
-@pytest.mark.parametrize('queued_age,expected_indices', [(0, [9, 10, 11]), (120, [11])])
+@pytest.mark.parametrize("queued_age,expected_indices", [(0, [9, 10, 11]), (120, [11])])
 def test_bursty_camera_preserves_only_a_fresh_bounded_tail(
-    tmp_path, monkeypatch, queued_age, expected_indices,
+    tmp_path,
+    monkeypatch,
+    queued_age,
+    expected_indices,
 ):
-    video = tmp_path / 'burst.ts'
+    video = tmp_path / "burst.ts"
     write_h264_camera(video)
-    monkeypatch.setattr('ai_runtime.app.stream.shared.time.time_ns', lambda: 2_000_000_000)
+    monkeypatch.setattr("ai_runtime.app.stream.shared.time.time_ns", lambda: 2_000_000_000)
 
     async def scenario():
-        source = CameraSource(4, SecretStr(str(video)), RuntimeSettings(
-            api_key='a-secure-runtime-test-key', task_capture_fps=25,
-        ))
+        source = CameraSource(
+            4,
+            SecretStr(str(video)),
+            RuntimeSettings(
+                api_key="a-secure-runtime-test-key",
+                task_capture_fps=25,
+            ),
+        )
         captured = []
         completed = asyncio.Event()
         with av.open(str(video)) as input_file:
-            packets = [packet for packet in input_file.demux(video=0)
-                       if packet.pts is not None][:12]
-            decoder = av.CodecContext.create('h264', 'r')
+            packets = [packet for packet in input_file.demux(video=0) if packet.pts is not None][
+                :12
+            ]
+            decoder = av.CodecContext.create("h264", "r")
             decoder.thread_count = 1
             expected = [frame for packet in packets for frame in decoder.decode(packet)]
 
@@ -214,8 +452,7 @@ def test_bursty_camera_preserves_only_a_fresh_bounded_tail(
 
             source.capture_callbacks.add(received)
             for index, packet in enumerate(packets):
-                source._offer_decode(packet, packet.pts,
-                                     2000 if index == 11 else 2000 - queued_age)
+                source._offer_decode(packet, packet.pts, 2000 if index == 11 else 2000 - queued_age)
             source._decode_worker = asyncio.create_task(source._decode_loop())
             try:
                 await asyncio.wait_for(completed.wait(), 2)
@@ -224,7 +461,8 @@ def test_bursty_camera_preserves_only_a_fresh_bounded_tail(
                 ]
                 for actual, index in zip(captured, expected_indices, strict=True):
                     np.testing.assert_array_equal(
-                        np.asarray(actual.image), expected[index].to_ndarray(format='rgb24'),
+                        np.asarray(actual.image),
+                        expected[index].to_ndarray(format="rgb24"),
                     )
             finally:
                 await source.close()
@@ -234,22 +472,28 @@ def test_bursty_camera_preserves_only_a_fresh_bounded_tail(
 
 def test_unavailable_rtsp_source_retries_and_stops_cleanly(monkeypatch):
     def unavailable(*args, **kwargs):
-        raise av.error.HTTPNotFoundError(875574520, 'Test RTSP source ended')
+        raise av.error.HTTPNotFoundError(875574520, "Test RTSP source ended")
 
-    monkeypatch.setattr('ai_runtime.app.stream.shared.MediaPlayer', unavailable)
+    monkeypatch.setattr("ai_runtime.app.stream.shared.PacketReader", unavailable)
 
     async def scenario():
-        source = CameraSource(1, SecretStr('rtsp://192.0.2.1/test'), RuntimeSettings(
-            api_key='a-secure-runtime-test-key', task_startup_seconds=2,
-        ))
+        source = CameraSource(
+            1,
+            SecretStr("rtsp://192.0.2.1/test"),
+            RuntimeSettings(
+                api_key="a-secure-runtime-test-key",
+                task_startup_seconds=2,
+            ),
+        )
         try:
-            with pytest.raises(RuntimeError, match='shared media source unavailable'):
+            with pytest.raises(RuntimeError, match="shared media source unavailable"):
                 await source.start()
             assert source.reconnects == 1
             assert not source._runner.done()
         finally:
             await source.close()
         assert source._decode_worker.done()
+
     asyncio.run(scenario())
 
 
@@ -264,12 +508,16 @@ def test_cancel_during_failed_source_open_preserves_clean_shutdown(monkeypatch):
         def delayed_failure(*args, **kwargs):
             loop.call_soon_threadsafe(opening.set)
             assert release.wait(3)
-            raise av.error.HTTPNotFoundError(875574520, 'Test source ended during shutdown')
+            raise av.error.HTTPNotFoundError(875574520, "Test source ended during shutdown")
 
-        monkeypatch.setattr('ai_runtime.app.stream.shared.MediaPlayer', delayed_failure)
-        source = CameraSource(1, SecretStr('rtsp://192.0.2.1/test'), RuntimeSettings(
-            api_key='a-secure-runtime-test-key',
-        ))
+        monkeypatch.setattr("ai_runtime.app.stream.shared.PacketReader", delayed_failure)
+        source = CameraSource(
+            1,
+            SecretStr("rtsp://192.0.2.1/test"),
+            RuntimeSettings(
+                api_key="a-secure-runtime-test-key",
+            ),
+        )
         source._runner = asyncio.create_task(source._run())
         await asyncio.wait_for(opening.wait(), 2)
         closing = asyncio.create_task(source.close())
@@ -277,4 +525,5 @@ def test_cancel_during_failed_source_open_preserves_clean_shutdown(monkeypatch):
         release.set()
         await asyncio.wait_for(closing, 2)
         assert source._runner.cancelled()
+
     asyncio.run(scenario())

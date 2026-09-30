@@ -56,9 +56,7 @@ class LprNetAdapter:
         text, confidence = decode_lprnet_output(np.asarray(outputs[0]))
         objects = []
         if text:
-            objects.append(
-                _to_license_plate_object(text, confidence)
-            )
+            objects.append(_to_license_plate_object(text, confidence))
         return ModelTestResult(
             sourceWidth=source_width,
             sourceHeight=source_height,
@@ -100,9 +98,7 @@ class LicensePlateYuNetAdapter:
             tensor = np.transpose(bgr, (2, 0, 1))[None, ...]
         preprocess_ms = _elapsed_ms(started)
         started = perf_counter()
-        loc, conf, iou = self._session.run(
-            ["loc", "conf", "iou"], {self._input_name: tensor}
-        )
+        loc, conf, iou = self._session.run(["loc", "conf", "iou"], {self._input_name: tensor})
         inference_ms = _elapsed_ms(started)
         started = perf_counter()
         objects = decode_license_plate_yunet(
@@ -169,9 +165,7 @@ def decode_license_plate_yunet(
     corners = priors[:, None, :2] + corners * 0.1 * priors[:, None, 2:4]
     corners = np.clip(corners, 0, 1)
     candidate_indices = np.flatnonzero(scores >= confidence_threshold)
-    candidate_indices = candidate_indices[
-        np.argsort(scores[candidate_indices])[::-1]
-    ][:5000]
+    candidate_indices = candidate_indices[np.argsort(scores[candidate_indices])[::-1]][:5000]
     boxes = np.column_stack(
         (
             corners[:, :, 0].min(axis=1),
@@ -226,9 +220,7 @@ def _box_nms(indices, boxes, scores, threshold: float) -> list[int]:
             0, boxes[remaining, 3] - boxes[remaining, 1]
         )
         union = current_area + other_area - intersection
-        overlap = np.divide(
-            intersection, union, out=np.zeros_like(intersection), where=union > 0
-        )
+        overlap = np.divide(intersection, union, out=np.zeros_like(intersection), where=union > 0)
         remaining = [
             value
             for value, iou_value in zip(remaining, overlap, strict=True)
@@ -256,9 +248,7 @@ def decode_lprnet_output(output: np.ndarray) -> tuple[str, float]:
             selected_probabilities.append(float(probabilities[index, timestep]))
         previous = index
     confidence = (
-        sum(selected_probabilities) / len(selected_probabilities)
-        if selected_probabilities
-        else 0.0
+        sum(selected_probabilities) / len(selected_probabilities) if selected_probabilities else 0.0
     )
     return "".join(decoded), round(confidence, 6)
 
@@ -341,8 +331,7 @@ class UltralyticsCheckpointAdapter:
             ultralytics = importlib.import_module("ultralytics")
         except ModuleNotFoundError as error:
             raise ValueError(
-                "Ultralytics checkpoint support is not installed; "
-                "install linsight-runtime[pytorch]"
+                "Ultralytics checkpoint support is not installed; install linsight-runtime[pytorch]"
             ) from error
         try:
             self._model = ultralytics.YOLO(str(path))

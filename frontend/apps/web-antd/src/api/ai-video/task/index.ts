@@ -2,6 +2,10 @@ import type { PageParam } from '@vben/request';
 
 import { requestClient } from '#/api/request';
 
+export function updateTask(data: AiVideoTaskApi.TaskSave & { id: number }) {
+  return requestClient.put('/ai-video/task/update', data);
+}
+
 export namespace AiVideoTaskApi {
   export interface Task {
     gatewayRevision?: number;
@@ -55,7 +59,10 @@ export namespace AiVideoTaskApi {
     taskId: number;
   }
 
-  export type TaskConfiguration = Omit<TaskSave, 'cameraId' | 'code' | 'id' | 'name'>;
+  export type TaskConfiguration = Omit<
+    TaskSave,
+    'cameraId' | 'code' | 'id' | 'name'
+  >;
 
   export interface BatchCreate extends TaskConfiguration {
     cameraIds: number[];
@@ -100,10 +107,17 @@ export function createTask(data: AiVideoTaskApi.TaskSave) {
 }
 
 export function getTask(id: number) {
-  return requestClient.get<AiVideoTaskApi.Task>('/ai-video/task/get', { params: { id } });
+  return requestClient.get<AiVideoTaskApi.Task>('/ai-video/task/get', {
+    params: { id },
+  });
 }
 
-export function updateTaskRule(data: { id: number; ruleId: number; ruleVersionId: number; expectedConfigVersion: number }) {
+export function updateTaskRule(data: {
+  expectedConfigVersion: number;
+  id: number;
+  ruleId: number;
+  ruleVersionId: number;
+}) {
   return requestClient.put<boolean>('/ai-video/task/update-rule', data);
 }
 
@@ -126,5 +140,9 @@ export function getTaskRuns(taskId: number) {
 }
 
 export function batchCreateTasks(data: AiVideoTaskApi.BatchCreate) {
-  return requestClient.post<AiVideoTaskApi.BatchResult[]>('/ai-video/task/batch-create', data, { timeout: 120_000 });
+  return requestClient.post<AiVideoTaskApi.BatchResult[]>(
+    '/ai-video/task/batch-create',
+    data,
+    { timeout: 120_000 },
+  );
 }

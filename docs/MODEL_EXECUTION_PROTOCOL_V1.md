@@ -40,9 +40,25 @@ Runtime 使用 `(modelVersionId, device)` 作为 `ModelPool` 键。相同 SHA256
   组合/流水线适配器接管，禁止任意选择第一个成员。
 - `runtimeManifest` 声明 `taskType`、输入宽高、RGB/BGR、NCHW/NHWC、dtype、scale、mean/std、
   解码协议和标签/字符表。控制面不再维护业务 model code 到 Adapter 的硬编码映射。
-- 通用协议包括 `AUTO_DETECTION`、`CLASSIFICATION`、`CTC_GREEDY`；车牌四点检测和中文
-  LPRNet 分别使用 `LPD_YUNET`、`LPRNET` 协议解码器。新增算法仅组合模型、跟踪与规则，
-  不增加 Runtime Adapter。
+- `modelEnvironment` 从 Runtime 观测快照透传心跳，保留 `schemaVersion: 1.0`、`formats`、
+  `rknnTargets`，并增加 `providers`。每个 provider 明确上报 `code`、`deviceType`、`vendor`、
+  `targets`、`formats`、`runtime` 和 `runtimeVersion`。当前实现可上报 `onnxruntime`、
+  `python-cpu`、`rknpu2`；未来盒子使用同一结构增加执行后端，不需要按盒子型号增加平台分支。
+- 设备专用模型可在 `runtimeManifest.execution` 声明 `provider`、`target`、`runtime` 和
+  `minRuntimeVersion`。控制面要求格式、执行后端、目标和最低运行库版本全部匹配后才允许下发。
+  `targetPlatform` 继续作为历史目标字段，若与 `execution.target` 同时出现，两者必须一致。
+  RKNN 与旧 `FACE_PAIR_SFACE_RKNN` 自动映射到 `rknpu2`，但芯片仍须由清单明确声明。
+- 未声明执行后端或目标的历史设备专用模型只自动复用目标节点上已经 READY 的版本；不从名称、
+  CPU 架构或 NPU 使用率推断芯片，不原地修改已发布版本。旧节点未上报执行环境时保留 ONNX
+  及本机已就绪版本的兼容路径。能力匹配只判断部署前提，真正就绪仍须下载、校验和加载成功回执。
+- 通用协议包括 `AUTO_DETECTION`、`CLASSIFICATION`、`CTC_GREEDY`；旧车牌模型继续使用
+  `LPD_YUNET`、`LPRNET`。中文车牌专用模型新增 `YOLO_PLATE`（640×640 RGB letterbox，
+  `[1,N,15]` 框、四角及单双层分数）与 `CHINESE_PLATE_CTC`（168×48 BGR，
+  `[1,T,78]` 字符 logits 及 `[1,5]` 颜色 logits）。新解码器复用 ONNX Runtime CPU 后端；
+  字符表和预处理与固定权重绑定，旧 decoder 与算法保持兼容。新增业务算法仍组合能力、跟踪和规则。
+- `LETTERBOX` 当前仅用于 `YOLO_PLATE` 专用协议；其他模型继续使用原有 `STRETCH` 契约。
+  车牌四角映射到原图后做几何检查和透视矫正；异常角点退回检测框，双层牌分行拼接。
+  OCR 输入采用原图裁剪的 PNG，避免中间 JPEG 编码损失。
 - `AUTO_DETECTION` 原始输出可为 `[N,6]`、`[1,N,6]`、常见 YOLO 扁平输出或 RKNN DFL
   多尺度头，统一转换为 `[x,y,width,height,score,classId]` 归一化坐标。
 - 仅包含 `state_dict` 的 DAMO-YOLO checkpoint 仍需对应网络定义或先导出 ONNX；OCR、仪表、
@@ -119,12 +135,12 @@ Runtime API 只接受位于 `runtimeDataRoot` 内的绝对文件路径，并要�
 ZIP 单模型路由、PT 信任边界、格式透传、SHA256、模型池复用、阈值、NMS 和 V1 结果格式。
 真实 YOLO11、行为分类、YuNet 也已完成加载冒烟；这些测试明确不验证模型检测精度。
 
-V1 尚未包含 GPU provider、TensorRT、显存/OOM 降级、大模型分片上传、测试图片生命周期任务、DAMO-YOLO 网络重建以及多阶段专项流水线；这些项目完成前不得宣称相应模型业务能力已生产验收。
+V1 已定义可扩展 provider 匹配结构，但尚未实现 GPU/TensorRT Runtime 后端、显存/OOM 降级、大模型分片上传、测试图片生命周期任务、DAMO-YOLO 网络重建以及多阶段专项流水线；这些项目完成前不得宣称相应模型业务能力已生产验收。
 
 ## 7. RKNN 制品来源与回退（ADR-0007）
 
 转换在 `deploy/rknn-conversion/Dockerfile` 的固定 Toolkit 2.3.2 环境执行，使用
-`scripts/convert-rknn-model.py` 记录源 ONNX/Manifest SHA256、目标芯片、精度、校准样本哈希和输出 SHA256。
+`scripts/convert-rknn-model.py` 要求显式传入 `--target-platform`（如 `rk3566` 或 `rk3588`），记录源 ONNX/Manifest SHA256、目标芯片、精度、校准样本哈希和输出 SHA256，并把 `rknpu2` 执行要求写入输出 Manifest。
 转换成功不自动表示精度通过：必须先比较同图输出，再走平台发布、部署与模型测试流程。
 现场安全帽模型因合并输出中的坐标与置信度量级不同，直接 INT8 量化破坏置信度，已拒绝该制品；改用 FP16。
 当前 CPU 目录版本保持可用，现场 RKNN 制品采用独立模型资产并记录父版本，回退由原任务配置启动新 Run。

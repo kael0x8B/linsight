@@ -24,6 +24,8 @@ class DeployedModel(BaseModel):
     )
 
     model_version_id: int = Field(gt=0)
+    display_name: str | None = Field(default=None, min_length=1, max_length=100)
+    version: str | None = Field(default=None, min_length=1, max_length=64)
     artifact_relative_path: str = Field(min_length=1)
     artifact_format: Literal["ONNX", "TORCHSCRIPT", "PYTORCH", "ARCHIVE", "RKNN"]
     trusted_artifact: bool

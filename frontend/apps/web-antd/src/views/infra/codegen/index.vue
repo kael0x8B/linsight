@@ -194,8 +194,7 @@ initDataSourceConfig();
 </script>
 <template>
   <Page auto-content-height>
-    <template #doc>
-    </template>
+    <template #doc> </template>
 
     <ImportModal @success="handleRefresh" />
     <PreviewModal />

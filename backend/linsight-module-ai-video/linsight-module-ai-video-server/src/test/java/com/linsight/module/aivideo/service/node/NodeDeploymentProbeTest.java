@@ -13,6 +13,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class NodeDeploymentProbeTest {
     @TempDir Path root;
 
+    @Test void fullProbeScriptRemainsValidPython() throws Exception {
+        Process process = new ProcessBuilder("python3", "-c", "import ast,sys; ast.parse(sys.stdin.read())")
+                .redirectErrorStream(true).start();
+        try (var input = process.getOutputStream()) {
+            input.write(NodeDeploymentProbe.SCRIPT.getBytes(StandardCharsets.UTF_8));
+        }
+        assertTrue(process.waitFor(5, TimeUnit.SECONDS));
+        assertEquals(0, process.exitValue(), new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8));
+    }
+
     @Test void discoversRknpuThroughDrmButNotARegularDisplayDevice() throws Exception {
         Path dev = Files.createDirectories(root.resolve("dev/dri"));
         Path drm = Files.createDirectories(root.resolve("sys/class/drm"));

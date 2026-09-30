@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "1.0",
+  "revision": 1,
+  "models": [
+    {
+      "code": "chinese-plate-yolo",
+      "name": "中文车牌检测 · 四角定位",
+      "sourceType": "PRESET",
+      "description": "中文车牌专用轻量 YOLO 四角定位，区分单双层；配合原图透视裁剪。现场准确率待验收。",
+      "sourceRepository": "https://github.com/we0091234/Chinese_license_plate_detection_recognition",
+      "sourceRevision": "670b765c09fff11850a7b1c542787ad66c24ae50",
+      "licenseSpdx": "GPL-3.0",
+      "version": "specialist-670b765-rk3566-fp16-v1",
+      "fileName": "plate_detect_fp16.rknn",
+      "sha256": "ba1f907fb20e61bc97c24d54944f27c1cafbd6d4edd76e1f5cac86925337a8b2",
+      "size": 3333626,
+      "runtimeManifest": {
+        "schemaVersion": "1.0",
+        "taskType": "OBJECT_DETECTION",
+        "preprocess": {
+          "inputWidth": 640,
+          "inputHeight": 640,
+          "color": "RGB",
+          "layout": "NHWC",
+          "dtype": "UINT8",
+          "scale": 1.0,
+          "mean": [
+            0,
+            0,
+            0
+          ],
+          "std": [
+            1,
+            1,
+            1
+          ],
+          "resize": "LETTERBOX"
+        },
+        "decoder": {
+          "type": "YOLO_PLATE"
+        }
+      },
+      "originalWeightsSha256": "585d1c6067d0fbe6a7116f39c53b3b338faf50129c58016aa531e925d25f4ec0"
+    }
+  ],
+  "conversion": {
+    "schemaVersion": "1.0",
+    "sourceOnnxSha256": "71c1c7102625cfcacb9aedbe1f083b51f6f69647e1c520e65f61c46414b23c46",
+    "sourceManifestSha256": "963993682f6f9400c5e023ebeacc2326e8448a3ccb8acc32ebc8872a0e5e6d23",
+    "artifactSha256": "ba1f907fb20e61bc97c24d54944f27c1cafbd6d4edd76e1f5cac86925337a8b2",
+    "targetPlatform": "rk3566",
+    "precision": "fp16",
+    "toolkitVersion": "2.3.2",
+    "calibrationImages": [
+      {
+        "name": "0000.jpg",
+        "sha256": "9abe7ba6a1b1db71236c92eca741b2f445a38259fd4a0eed8155aeec47c08344",
+        "resizedSha256": "25a3bf12e6683df0bc351331b864d784a3cc620c244e0bb60e937844944f4bfe"
+      },
+      {
+        "name": "0025.jpg",
+        "sha256": "cd762c93981426cf2f0d25efe3a8681bd3ce061889eede61798163487f09edd3",
+        "resizedSha256": "c7ea38fb24b9b2da2253df457e2b7c0fc61f3279461d638962d3d8ddbc038cfc"
+      },
+      {
+        "name": "0050.jpg",
+        "sha256": "8612a3b3345619cc5fa11eec3a5a8557fbb4c1d65bbfc844f08bb20717f8660e",
+        "resizedSha256": "f22ecb4935bf23bf8d2a8f4f8c285f8f28be77b30aeec63abbf18914350b7337"
+      }
+    ],
+    "embeddedNormalization": {
+      "meanValues": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "stdValues": [
+        255.0,
+        255.0,
+        255.0
+      ]
+    },
+    "validationStatus": "PENDING_REAL_NODE_COMPARISON"
+  }
+}

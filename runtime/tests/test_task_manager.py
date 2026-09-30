@@ -4,6 +4,7 @@ import io
 import shutil
 import subprocess
 from datetime import UTC, datetime
+from types import SimpleNamespace
 
 import pytest
 from PIL import Image
@@ -108,6 +109,27 @@ class FakeModelPool:
     async def release(self, lease):
         pass
 
+    async def capacity_preflight(self, current_model_ids, projected_model_ids, registry=None, **_):
+        current = tuple(sorted(set(current_model_ids)))
+        projected = tuple(sorted(set(projected_model_ids)))
+        budgets = {value: 64 * 1024 * 1024 for value in set(current) | set(projected)}
+        return SimpleNamespace(
+            allowed=True,
+            slot_allowed=True,
+            memory_allowed=True,
+            slot_limit=4,
+            current_model_ids=current,
+            projected_model_ids=projected,
+            artifact_bytes={value: 1 for value in budgets},
+            memory_budget_bytes=budgets,
+            current_memory_budget_bytes=sum(budgets[value] for value in current),
+            projected_memory_budget_bytes=sum(budgets[value] for value in projected),
+            memory_total_bytes=8 * 1024**3,
+            memory_available_bytes=4 * 1024**3,
+            memory_available_after_bytes=4 * 1024**3,
+            memory_safety_reserve_bytes=512 * 1024**2,
+        )
+
 
 def test_delayed_inference_overlay_keeps_exact_input_image_and_capture_timestamp(
     tmp_path, monkeypatch
@@ -188,7 +210,7 @@ class FakeVehiclePlateModelPool(FakeModelPool):
         super().__init__()
         self.ocr_crop_size: tuple[int, int] | None = None
 
-    async def test(self, request):
+    async def test(self, request, image=None):
         common = {
             "sourceWidth": 200,
             "sourceHeight": 100,
@@ -226,9 +248,13 @@ class FakeVehiclePlateModelPool(FakeModelPool):
                 }
             ]
         else:
-            with Image.open(request.image_path) as crop:
-                self.ocr_crop_size = crop.size
-                common["sourceWidth"], common["sourceHeight"] = crop.size
+            if image is not None:
+                self.ocr_crop_size = image.size
+                common["sourceWidth"], common["sourceHeight"] = image.size
+            else:
+                with Image.open(request.image_path) as crop:
+                    self.ocr_crop_size = crop.size
+                    common["sourceWidth"], common["sourceHeight"] = crop.size
             objects = [
                 {
                     "class": "license_plate",
@@ -553,6 +579,19 @@ def test_validation_mode_rejects_string_coercion() -> None:
         TaskInferenceParameters.model_validate({"schemaVersion": "1.0", "validationOnly": "true"})
 
 
+def test_stream_type_survives_runtime_validation_and_defaults_to_sub() -> None:
+    legacy = TaskInferenceParameters.model_validate({"schemaVersion": "1.0"})
+    assert legacy.model_dump(by_alias=True)["streamType"] == "SUB"
+    selected = TaskInferenceParameters.model_validate(
+        {"schemaVersion": "1.0", "streamType": "MAIN"}
+    )
+    assert selected.model_dump(by_alias=True)["streamType"] == "MAIN"
+    with pytest.raises(ValidationError):
+        TaskInferenceParameters.model_validate(
+            {"schemaVersion": "1.0", "streamType": "main"}
+        )
+
+
 def test_story_eleven_pipeline_requires_complete_controlled_chain() -> None:
     incomplete = {
         "schemaVersion": "1.0",
@@ -572,7 +611,7 @@ def test_story_eleven_pipeline_requires_complete_controlled_chain() -> None:
         raise AssertionError("incomplete PPE chain was accepted")
 
 
-def test_behavior_pipeline_rejects_single_frame_confirmation() -> None:
+def test_behavior_pipeline_accepts_legacy_single_frame_values_for_rule_owned_confirmation() -> None:
     behavior = {
         "schemaVersion": "1.0",
         "nodes": [
@@ -594,19 +633,15 @@ def test_behavior_pipeline_rejects_single_frame_confirmation() -> None:
         }
     )
 
-    try:
-        _validate_pipeline(behavior, parameters=values)
-    except ValueError as error:
-        assert "single-frame" in str(error)
-    else:
-        raise AssertionError("single-frame behavior confirmation was accepted")
+    _validate_pipeline(behavior, has_rule=True, parameters=values)
+    _validate_pipeline(behavior, has_rule=False, parameters=values)
 
 
 def test_independent_npu_models_overlap_with_same_frame_and_order(tmp_path):
     async def scenario():
         second_entered = asyncio.Event()
         completed = []
-        source = Image.new('RGB', (200, 100), 'red')
+        source = Image.new("RGB", (200, 100), "red")
 
         class NpuPool(FakeModelPool):
             async def test(self, value, image=None):
@@ -616,100 +651,172 @@ def test_independent_npu_models_overlap_with_same_frame_and_order(tmp_path):
                 else:
                     second_entered.set()
                 completed.append(value.model_version_id)
-                return ModelTestResult(sourceWidth=200, sourceHeight=100, objects=[],
-                    backend=str(value.model_version_id), device='RKNPU',
-                    preprocessMillis=0, inferenceMillis=1, postprocessMillis=0)
+                return ModelTestResult(
+                    sourceWidth=200,
+                    sourceHeight=100,
+                    objects=[],
+                    backend=str(value.model_version_id),
+                    device="RKNPU",
+                    preprocessMillis=0,
+                    inferenceMillis=1,
+                    postprocessMillis=0,
+                )
 
         settings = RuntimeSettings(
-            api_key='a-secure-runtime-key-for-tests', runtime_data_root=tmp_path
+            api_key="a-secure-runtime-key-for-tests", runtime_data_root=tmp_path
         )
-        value = request(1, '11111111-1111-1111-1111-111111111111')
-        value.model_bindings = {'first': 40, 'second': 41, 'alias': 41}
-        store = OfflineEventStore(tmp_path / 'events.sqlite3')
+        value = request(1, "11111111-1111-1111-1111-111111111111")
+        value.model_bindings = {"first": 40, "second": 41, "alias": 41}
+        store = OfflineEventStore(tmp_path / "events.sqlite3")
         runner = TaskRunner(
-            value, asyncio.Queue(), FakeSharedStream(value.camera_id, value.source_url, settings),
-            NpuPool(), settings, store
+            value,
+            asyncio.Queue(),
+            FakeSharedStream(value.camera_id, value.source_url, settings),
+            NpuPool(),
+            settings,
+            store,
         )
         try:
             results, objects = await runner._infer_frame(source)
             assert completed == [41, 40]  # Completion order does not reorder output bindings.
-            assert [item.backend for item in results] == ['40', '41']
+            assert [item.backend for item in results] == ["40", "41"]
             assert objects == []
         finally:
             await runner.stop()
             store.close()
+
     asyncio.run(scenario())
 
 
 def test_timeline_jpegs_are_sampled_without_reusing_another_frames_picture(tmp_path):
-    settings = RuntimeSettings(api_key='a-secure-runtime-key-for-tests', runtime_data_root=tmp_path)
-    value = request(1, '11111111-1111-1111-1111-111111111111')
-    store = OfflineEventStore(tmp_path / 'events.sqlite3')
+    settings = RuntimeSettings(api_key="a-secure-runtime-key-for-tests", runtime_data_root=tmp_path)
+    value = request(1, "11111111-1111-1111-1111-111111111111")
+    store = OfflineEventStore(tmp_path / "events.sqlite3")
     runner = TaskRunner(
-        value, asyncio.Queue(), FakeSharedStream(value.camera_id, value.source_url, settings),
-        FakeModelPool(), settings, store
+        value,
+        asyncio.Queue(),
+        FakeSharedStream(value.camera_id, value.source_url, settings),
+        FakeModelPool(),
+        settings,
+        store,
     )
     try:
-        first = CapturedFrame(b'first', 1, 'epoch-a', 90_000)
-        assert base64.b64decode(runner._overlay_image(first)) == b'first'
-        assert runner._overlay_image(CapturedFrame(b'next', 2, 'epoch-a', 108_000)) is None
-        assert base64.b64decode(runner._overlay_image(
-            CapturedFrame(b'after-two-seconds', 3, 'epoch-a', 270_000))) == b'after-two-seconds'
-        assert base64.b64decode(runner._overlay_image(
-            CapturedFrame(b'reconnected', 4, 'epoch-b', 0))) == b'reconnected'
-        assert base64.b64decode(runner._overlay_image(CapturedFrame(b'legacy', 5))) == b'legacy'
-        assert runner._overlay_image(CapturedFrame(b'x' * 262_145, 6)) is None
+        first = CapturedFrame(b"first", 1, "epoch-a", 90_000)
+        assert base64.b64decode(runner._overlay_image(first)) == b"first"
+        assert runner._overlay_image(CapturedFrame(b"next", 2, "epoch-a", 108_000)) is None
+        assert (
+            base64.b64decode(
+                runner._overlay_image(CapturedFrame(b"after-two-seconds", 3, "epoch-a", 270_000))
+            )
+            == b"after-two-seconds"
+        )
+        assert (
+            base64.b64decode(runner._overlay_image(CapturedFrame(b"reconnected", 4, "epoch-b", 0)))
+            == b"reconnected"
+        )
+        assert base64.b64decode(runner._overlay_image(CapturedFrame(b"legacy", 5))) == b"legacy"
+        assert runner._overlay_image(CapturedFrame(b"x" * 262_145, 6)) is None
     finally:
         store.close()
 
 
-@pytest.mark.parametrize('behavior,positive', [('behavior.phone-call', 'phone_call'),
-                                               ('behavior.phone-call', 'calling')])
+@pytest.mark.parametrize(
+    "behavior,positive", [("behavior.phone-call", "phone_call"), ("behavior.phone-call", "calling")]
+)
 def test_person_behavior_uses_individual_crops_and_ignores_texting(tmp_path, behavior, positive):
     from ai_runtime.app.model.contracts import DetectionObject
 
     async def scenario():
         sizes = []
+        batch_calls = 0
 
         class Pool:
             async def test(self, value, *, image=None):
                 if value.model_version_id == 40:
-                    objects = [DetectionObject.model_validate({
-                        'class': 'person', 'confidence': 0.95,
-                        'bbox': {'x': x, 'y': 0, 'width': 0.4, 'height': 1},
-                    }) for x in [0, 0.6]]
-                else:
-                    sizes.append(image.size)
-                    objects = [DetectionObject.model_validate({
-                        'class': positive if len(sizes) == 1 else 'texting', 'confidence': 0.9,
-                        'bbox': {'x': 0, 'y': 0, 'width': 1, 'height': 1},
-                    })]
-                return ModelTestResult(sourceWidth=image.width, sourceHeight=image.height,
-                    objects=objects, backend='test', device='CPU', preprocessMillis=0,
-                    inferenceMillis=1, postprocessMillis=0)
+                    objects = [
+                        DetectionObject.model_validate(
+                            {
+                                "class": "person",
+                                "confidence": 0.95,
+                                "bbox": {"x": x, "y": 0, "width": 0.4, "height": 1},
+                            }
+                        )
+                        for x in [0, 0.6]
+                    ]
+                return ModelTestResult(
+                    sourceWidth=image.width,
+                    sourceHeight=image.height,
+                    objects=objects,
+                    backend="test",
+                    device="CPU",
+                    preprocessMillis=0,
+                    inferenceMillis=1,
+                    postprocessMillis=0,
+                )
+
+            async def test_batch(self, value, images):
+                nonlocal batch_calls
+                batch_calls += 1
+                sizes.extend(image.size for image in images)
+                return [
+                    ModelTestResult(
+                        sourceWidth=image.width,
+                        sourceHeight=image.height,
+                        objects=[
+                            DetectionObject.model_validate(
+                                {
+                                    "class": positive if index == 0 else "texting",
+                                    "confidence": 0.9,
+                                    "bbox": {"x": 0, "y": 0, "width": 1, "height": 1},
+                                }
+                            )
+                        ],
+                        backend="test",
+                        device="CPU",
+                        preprocessMillis=0,
+                        inferenceMillis=1,
+                        postprocessMillis=0,
+                    )
+                    for index, image in enumerate(images)
+                ]
 
         settings = RuntimeSettings(
-            api_key='a-secure-runtime-key-for-tests', runtime_data_root=tmp_path)
+            api_key="a-secure-runtime-key-for-tests", runtime_data_root=tmp_path
+        )
 
-        value = request(1, '11111111-1111-1111-1111-111111111111')
-        value.pipeline = {'schemaVersion': '1.0', 'nodes': [
-            {'id': 'person', 'type': 'DETECTOR', 'capabilityKey': 'detector.person'},
-            {'id': 'behavior', 'type': 'CLASSIFIER', 'capabilityKey': behavior,
-             'inputMode': 'PERSON_CROPS'},
-        ]}
-        value.model_bindings = {'person': 40, 'behavior': 41}
-        store = OfflineEventStore(tmp_path / 'events.sqlite3')
-        runner = TaskRunner(value, asyncio.Queue(),
-            FakeSharedStream(value.camera_id, value.source_url, settings), Pool(), settings, store)
+        value = request(1, "11111111-1111-1111-1111-111111111111")
+        value.pipeline = {
+            "schemaVersion": "1.0",
+            "nodes": [
+                {"id": "person", "type": "DETECTOR", "capabilityKey": "detector.person"},
+                {
+                    "id": "behavior",
+                    "type": "CLASSIFIER",
+                    "capabilityKey": behavior,
+                    "inputMode": "PERSON_CROPS",
+                },
+            ],
+        }
+        value.model_bindings = {"person": 40, "behavior": 41}
+        store = OfflineEventStore(tmp_path / "events.sqlite3")
+        runner = TaskRunner(
+            value,
+            asyncio.Queue(),
+            FakeSharedStream(value.camera_id, value.source_url, settings),
+            Pool(),
+            settings,
+            store,
+        )
         try:
-            with Image.new('RGB', (200, 100)) as source:
+            with Image.new("RGB", (200, 100)) as source:
                 results, objects = await runner._infer_frame(source)
+            assert batch_calls == 1
             assert sizes == [(80, 100), (80, 100)]
             assert len(results) == 3
             assert len(objects) == 1
-            assert objects[0].class_name == 'phone_call'
+            assert objects[0].class_name == "phone_call"
             assert objects[0].bbox.width == 0.4
-            assert objects[0].attributes['behaviorPersonAssociated'] is True
+            assert objects[0].attributes["behaviorPersonAssociated"] is True
         finally:
             await runner.stop()
             store.close()

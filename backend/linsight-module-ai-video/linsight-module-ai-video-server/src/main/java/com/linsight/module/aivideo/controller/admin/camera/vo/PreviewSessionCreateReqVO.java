@@ -18,7 +18,7 @@ public class PreviewSessionCreateReqVO {
     @Positive(message = "边缘节点编号必须大于 0")
     private Long nodeId;
 
-    @Schema(description = "兼容字段；预览固定使用子码流", example = "SUB")
+    @Schema(description = "无运行识别任务时使用的码流；有任务时跟随识别码流", example = "SUB")
     @Pattern(regexp = "MAIN|SUB", message = "码流类型必须是 MAIN 或 SUB")
     private String streamType = "SUB";
 

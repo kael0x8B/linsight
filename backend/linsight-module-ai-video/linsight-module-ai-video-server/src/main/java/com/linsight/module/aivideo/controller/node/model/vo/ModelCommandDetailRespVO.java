@@ -9,6 +9,8 @@ public class ModelCommandDetailRespVO {
     private String commandType;
     private Integer configVersion;
     private Long modelVersionId;
+    private String modelName;
+    private String modelVersion;
     private String artifactUrl;
     private String artifactName;
     private String artifactFormat;

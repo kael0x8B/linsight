@@ -175,7 +175,7 @@ def test_non_ppe_event_candidates_preserve_normal_rule_inputs() -> None:
     assert processor.event_candidates(objects) is objects
 
 
-def test_behavior_requires_temporal_confirmation() -> None:
+def test_behavior_emits_first_frame_candidate_and_leaves_confirmation_to_rule() -> None:
     processor = CapabilityPostprocessor(
         pipeline("behavior.smoking"),
         parameters(temporalN=2, temporalM=3, durationSeconds=1),
@@ -186,11 +186,26 @@ def test_behavior_requires_temporal_confirmation() -> None:
         track_id="track-1",
     )
 
-    assert processor.after_tracking([behavior], 0) == []
-    assert processor.after_tracking([behavior], 500) == []
-    confirmed = processor.after_tracking([behavior], 1_000)
-    assert confirmed[0].attributes["temporalConfirmed"] is True
-    assert confirmed[0].attributes["temporalFrames"] == 3
+    first = processor.after_tracking([behavior], 0)
+
+    assert len(first) == 1
+    assert first[0].attributes["eventCandidate"] is True
+    assert first[0].attributes["temporalConfirmationOwner"] == "RULE"
+    assert "temporalConfirmed" not in first[0].attributes
+
+
+def test_behavior_legacy_temporal_parameters_do_not_add_a_second_gate() -> None:
+    processor = CapabilityPostprocessor(
+        pipeline("behavior.phone-call"),
+        parameters(temporalN=30, temporalM=60, durationSeconds=300),
+    )
+    calling = detected(
+        "phone_call",
+        BoundingBox(x=0.1, y=0.1, width=0.2, height=0.4),
+        track_id="track-1",
+    )
+
+    assert len(processor.after_tracking([calling], 0)) == 1
 
 
 def test_license_plate_requires_multi_frame_vote() -> None:
@@ -205,10 +220,15 @@ def test_license_plate_requires_multi_frame_vote() -> None:
         attributes={"plateText": "皖A12345", "ocrConfidence": 0.92},
     )
 
-    assert processor.after_tracking([plate], 0)[0].attributes["ocrStatus"] == "PENDING"
+    first = processor.after_tracking([plate], 0)[0]
+    assert first.attributes["ocrStatus"] == "PENDING"
+    assert first.attributes["displayLabel"] == "皖A12345（待确认）"
+    assert first.attributes["visibleByDefault"] is True
+    assert processor.event_candidates([first]) == []
     assert processor.after_tracking([plate], 100)[0].attributes["ocrStatus"] == "PENDING"
     confirmed = processor.after_tracking([plate], 200)[0]
     assert confirmed.attributes["ocrStatus"] == "CONFIRMED"
+    assert confirmed.attributes["displayLabel"] == "皖A12345"
     assert confirmed.attributes["plateNumber"] == "皖A12345"
     assert confirmed.attributes["plateConfidence"] == 0.92
     assert confirmed.attributes["ocrVoteAgreement"] == 1.0
@@ -236,6 +256,7 @@ def test_license_plate_rejects_english_only_or_missing_confidence() -> None:
 
     assert result[0].attributes["ocrStatus"] == "UNSUPPORTED_FORMAT"
     assert result[1].attributes["ocrStatus"] == "MISSING_CONFIDENCE"
+    assert all(value.attributes["displayLabel"] == "车牌待确认" for value in result)
     assert all("plateNumber" not in value.attributes for value in result)
 
 
@@ -280,43 +301,128 @@ def test_license_plate_cannot_enable_single_frame_final_result() -> None:
         raise AssertionError("single-frame plate finalization was accepted")
 
 
-@pytest.mark.parametrize('capability,label', [('behavior.fall','fall'),
-    ('behavior.smoking','smoking'), ('behavior.phone-call','phone_call')])
-def test_behavior_requires_elapsed_duration_and_isolates_tracks(capability, label):
-    processor = CapabilityPostprocessor(pipeline(capability),
-        parameters(temporalN=3, temporalM=30, durationSeconds=2))
-    first = detected(label, BoundingBox(x=0, y=0, width=0.3, height=0.8), track_id='a')
-    other = detected(label, BoundingBox(x=0.6, y=0, width=0.3, height=0.8), track_id='b')
-    for time in range(0, 2000, 200):
-        assert processor.after_tracking([first], time) == []
-    result = processor.after_tracking([first, other], 2000)
-    assert [obj.track_id for obj in result] == ['a']
-    for time in range(2200, 9000, 200):
-        assert processor.after_tracking([], time) == []
-    assert processor._behavior_history == {}
-    assert processor.after_tracking([first], 9000) == []
+def test_plate_vote_needs_recent_distinct_confident_frames_and_drops_stale_number():
+    processor = CapabilityPostprocessor(pipeline("ocr.license-plate"), parameters(ocrMinVotes=2))
+    plate = detected(
+        "license_plate",
+        BoundingBox(x=0.3, y=0.4, width=0.2, height=0.1),
+        track_id="plate-1",
+        attributes={"plateText": "皖A12345", "ocrConfidence": 0.9},
+    )
+    first = processor.after_tracking([plate], 0)
+    assert not processor.event_candidates(first)
+    assert not processor.event_candidates(processor.after_tracking([plate], 0))
+    assert processor.event_candidates(processor.after_tracking([plate], 100))
+    assert not processor.event_candidates(processor.after_tracking([plate], 11000))
+    poor = plate.model_copy(
+        update={
+            "attributes": {
+                "plateText": "皖A12345",
+                "ocrConfidence": 0.2,
+                "plateNumber": "皖A12345",
+                "ocrStatus": "CONFIRMED",
+            }
+        }
+    )
+    result = processor.after_tracking([poor], 11100)
+    assert result[0].attributes["ocrStatus"] == "LOW_CONFIDENCE"
+    assert "plateNumber" not in result[0].attributes
+    assert not processor.event_candidates(result)
+
+
+def test_plate_track_changes_do_not_repeat_visit_but_departure_allows_new_event():
+    from test_rule_engine import rule_ast
+
+    from ai_runtime.app.rule.engine import RuleEngine
+
+    ast = rule_ast().model_copy(
+        update={
+            "event_type": "VEHICLE_PLATE_RECOGNIZED",
+            "condition": {
+                "type": "AND",
+                "children": [
+                    {"type": "ROI_ENTER", "regionId": "main", "objectClasses": ["license_plate"]},
+                    {"type": "N_OF_M", "n": 1, "m": 1},
+                    {"type": "DURATION", "seconds": 0},
+                ],
+            },
+            "cooldown_seconds": 0,
+            "recovery_seconds": 1,
+        }
+    )
+    engine = RuleEngine(task_id=1, camera_id=2, ast=ast)
+    processor = CapabilityPostprocessor(pipeline("ocr.license-plate"), parameters(ocrMinVotes=2))
+    plate = detected(
+        "license_plate",
+        BoundingBox(x=0.3, y=0.4, width=0.2, height=0.1),
+        track_id="plate-1",
+        attributes={"plateText": "皖A12345", "ocrConfidence": 0.9},
+    )
+    alarms = []
+    for timestamp, track in [(0, "a"), (100, "a"), (200, "b"), (300, "b"), (400, "b")]:
+        objects = processor.after_tracking(
+            [plate.model_copy(update={"track_id": track})], timestamp
+        )
+        alarms.extend(
+            t
+            for t in engine.evaluate(processor.event_candidates(objects), timestamp)
+            if t.state == "ALARM"
+        )
+    assert len(alarms) == 1
+    engine.evaluate([], 2000)
+    for timestamp in (3000, 3100):
+        objects = processor.after_tracking([plate.model_copy(update={"track_id": "c"})], timestamp)
+        alarms.extend(
+            t
+            for t in engine.evaluate(processor.event_candidates(objects), timestamp)
+            if t.state == "ALARM"
+        )
+    assert len(alarms) == 2
+    assert alarms[0].source_event_id != alarms[1].source_event_id
+
+
+@pytest.mark.parametrize(
+    "capability,label",
+    [
+        ("behavior.fall", "fall"),
+        ("behavior.smoking", "smoking"),
+        ("behavior.phone-call", "phone_call"),
+    ],
+)
+def test_behavior_filters_candidate_class_without_owning_temporal_state(capability, label):
+    processor = CapabilityPostprocessor(
+        pipeline(capability), parameters(temporalN=3, temporalM=30, durationSeconds=2)
+    )
+    first = detected(label, BoundingBox(x=0, y=0, width=0.3, height=0.8), track_id="a")
+    other = detected(label, BoundingBox(x=0.6, y=0, width=0.3, height=0.8), track_id="b")
+    unrelated = detected("person", BoundingBox(x=0.3, y=0, width=0.2, height=0.8), track_id="c")
+
+    result = processor.after_tracking([first, unrelated, other], 0)
+
+    assert [obj.track_id for obj in result] == ["a", "b"]
+    assert all(obj.attributes["temporalConfirmationOwner"] == "RULE" for obj in result)
 
 
 def test_smoking_requires_person_upper_body_association_before_temporal_confirmation():
-    processor = CapabilityPostprocessor(pipeline('behavior.smoking'), parameters())
-    person = detected('person', BoundingBox(x=0.1, y=0.1, width=0.4, height=0.8))
-    near_head = detected('smoking', BoundingBox(x=0.2, y=0.2, width=0.03, height=0.03))
-    held_low = detected('smoking', BoundingBox(x=0.2, y=0.7, width=0.03, height=0.03))
-    outside = detected('smoking', BoundingBox(x=0.8, y=0.2, width=0.03, height=0.03))
+    processor = CapabilityPostprocessor(pipeline("behavior.smoking"), parameters())
+    person = detected("person", BoundingBox(x=0.1, y=0.1, width=0.4, height=0.8))
+    near_head = detected("smoking", BoundingBox(x=0.2, y=0.2, width=0.03, height=0.03))
+    held_low = detected("smoking", BoundingBox(x=0.2, y=0.7, width=0.03, height=0.03))
+    outside = detected("smoking", BoundingBox(x=0.8, y=0.2, width=0.03, height=0.03))
     assert processor.before_tracking([near_head]) == []
     assert processor.before_tracking([person, held_low, outside]) == []
     result = processor.before_tracking([person, near_head])
     assert len(result) == 1
-    assert result[0].class_name == 'smoking'
+    assert result[0].class_name == "smoking"
     assert result[0].bbox == person.bbox
-    assert result[0].attributes['behaviorPersonAssociated'] is True
+    assert result[0].attributes["behaviorPersonAssociated"] is True
 
 
 def test_one_cigarette_cannot_confirm_two_overlapping_people():
-    processor = CapabilityPostprocessor(pipeline('behavior.smoking'), parameters())
-    large = detected('person', BoundingBox(x=0, y=0, width=0.8, height=1))
-    small = detected('person', BoundingBox(x=0.1, y=0.1, width=0.3, height=0.7))
-    cigarette = detected('smoking', BoundingBox(x=0.2, y=0.2, width=0.03, height=0.03))
+    processor = CapabilityPostprocessor(pipeline("behavior.smoking"), parameters())
+    large = detected("person", BoundingBox(x=0, y=0, width=0.8, height=1))
+    small = detected("person", BoundingBox(x=0.1, y=0.1, width=0.3, height=0.7))
+    cigarette = detected("smoking", BoundingBox(x=0.2, y=0.2, width=0.03, height=0.03))
     result = processor.before_tracking([large, small, cigarette])
     assert len(result) == 1
     assert result[0].bbox == small.bbox

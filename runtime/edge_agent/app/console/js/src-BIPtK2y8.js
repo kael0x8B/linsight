@@ -1,1 +1,0 @@
-import{$t as e,Kn as t,Ot as n}from"./unmount-global-loading-LeYQHS8i.js";import{t as r}from"./_plugin-vue_export-helper-BDNMzG2s.js";var i={};function a(t,r){return e(),n(`div`)}var o=r(i,[[`render`,a]]),s=t({IFrameView:()=>o});export{s as t};

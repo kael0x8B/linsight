@@ -11,6 +11,7 @@ import com.linsight.module.aivideo.dal.dataobject.node.NodeBootstrapTokenDO;
 import com.linsight.module.aivideo.dal.mysql.node.EdgeNodeMapper;
 import com.linsight.module.aivideo.dal.mysql.node.NodeBootstrapTokenMapper;
 import com.linsight.module.aivideo.enums.node.NodeOnlineStatusEnum;
+import com.linsight.module.aivideo.integration.runtime.NodePreviewTunnelHandler;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -22,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,6 +32,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class NodeServiceImplTest {
     @Mock private NodeUpgradeActivationService activationService;
+    @Mock private NodePreviewTunnelHandler gatewayTunnel;
 
     @Mock
     private NodeBootstrapTokenMapper nodeBootstrapTokenMapper;
@@ -37,6 +40,31 @@ class NodeServiceImplTest {
     private EdgeNodeMapper edgeNodeMapper;
     @InjectMocks
     private NodeServiceImpl nodeService;
+
+    @Test
+    void taskCapacityPreflightIsNodeScopedReadOnlyAndKeepsConflictDetails() {
+        EdgeNodeDO node = new EdgeNodeDO();
+        node.setStatus(0);
+        node.setOnlineStatus(NodeOnlineStatusEnum.ONLINE.getStatus());
+        when(edgeNodeMapper.selectById(100L)).thenReturn(node);
+        Map<String, Object> report = Map.of(
+                "allowed", false,
+                "code", "MODEL_CAPACITY_EXCEEDED",
+                "message", "需要 5/4 个槽位；任务 8 使用模型 122");
+        when(gatewayTunnel.request(eq(100L), nullable(Long.class), eq("gateway.rpc"), anyMap()))
+                .thenReturn(new NodePreviewTunnelHandler.TunnelResult(
+                        Map.of("ok", true, "data", report), null, null));
+
+        var result = nodeService.preflightTaskCapacity(100L, 9L, java.util.List.of(122L, 123L, 122L));
+
+        assertFalse(result.allowed());
+        assertEquals("MODEL_CAPACITY_EXCEEDED", result.code());
+        assertTrue(result.message().contains("任务 8"));
+        verify(gatewayTunnel).request(eq(100L), nullable(Long.class), eq("gateway.rpc"),
+                eq(Map.of("action", "task.capacity.preflight", "payload",
+                        Map.of("taskId", 9L, "modelVersionIds", java.util.List.of(122L, 123L)))));
+        verify(edgeNodeMapper, never()).updateById(any(EdgeNodeDO.class));
+    }
 
     @Test
     void createBootstrapTokenMustPersistOnlyDigest() {
@@ -131,6 +159,9 @@ class NodeServiceImplTest {
         assertEquals(4L, result.getAcceptedSequence());
         assertEquals(1, captor.getValue().getOnlineStatus());
         assertTrue(captor.getValue().getResourceSnapshot().contains("\"cpuUsage\":25.5"));
+        assertTrue(captor.getValue().getResourceSnapshot().contains("\"npuUsage\":37.5"));
+        assertTrue(captor.getValue().getResourceSnapshot().contains("\"diskCleanupStatus\":\"RECLAIMED\""));
+        assertTrue(captor.getValue().getResourceSnapshot().contains("\"diskCleanupFreedBytes\":1024"));
         assertFalse(captor.getValue().getResourceSnapshot().contains("credential"));
     }
 
@@ -180,6 +211,13 @@ class NodeServiceImplTest {
         reqVO.setMemoryTotalBytes(4096L);
         reqVO.setDiskUsedBytes(2048L);
         reqVO.setDiskTotalBytes(8192L);
+        reqVO.setNpuUsage(37.5);
+        reqVO.setDiskCleanupStatus("RECLAIMED");
+        reqVO.setDiskCleanupLastRunEpochSeconds(1_789_084_800L);
+        reqVO.setDiskCleanupBeforePercent(86);
+        reqVO.setDiskCleanupAfterPercent(72);
+        reqVO.setDiskCleanupFreedBytes(1024L);
+        reqVO.setDiskCleanupActions("pip_cache,old_snapshot,journal");
         return reqVO;
     }
 

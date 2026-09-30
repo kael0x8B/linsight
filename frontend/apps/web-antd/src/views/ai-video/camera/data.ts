@@ -244,9 +244,22 @@ export function useCameraGridFormSchema(): VbenFormSchema[] {
 
 export function useCameraGridColumns(): VxeTableGridOptions<AiVideoCameraApi.Camera>['columns'] {
   return [
-    { field: 'name', title: '摄像头名称', minWidth: 200, fixed: 'left', align: 'left' },
+    {
+      field: 'name',
+      title: '摄像头名称',
+      minWidth: 200,
+      fixed: 'left',
+      align: 'left',
+    },
     { field: 'code', title: '编码', minWidth: 160, align: 'left' },
-    { field: 'recognitionCapabilities', title: '识别能力', minWidth: 280, align: 'left', showOverflow: false, slots: { default: 'recognitionCapabilities' } },
+    {
+      field: 'recognitionCapabilities',
+      title: '识别能力',
+      minWidth: 280,
+      align: 'left',
+      showOverflow: false,
+      slots: { default: 'recognitionCapabilities' },
+    },
     {
       field: 'groupId',
       title: '分组',

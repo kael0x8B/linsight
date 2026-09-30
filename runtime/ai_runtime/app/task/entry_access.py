@@ -120,8 +120,12 @@ class EntryAccessRuntime:
                                     request.model_version_id, image
                                 )
                         except FaceQualityError as error:
-                            result.update(status="REFERENCE_INVALID", reason=str(error),
-                                          backend=error.backend, device=error.device)
+                            result.update(
+                                status="REFERENCE_INVALID",
+                                reason=str(error),
+                                backend=error.backend,
+                                device=error.device,
+                            )
                             return result
                         cached = (feature, backend, device)
                         self._features[key] = cached

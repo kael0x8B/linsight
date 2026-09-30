@@ -41,11 +41,16 @@ export namespace AiVideoSettingsApi {
 }
 
 export function getGlobalSettings() {
-  return requestClient.get<AiVideoSettingsApi.Current>('/ai-video/settings/get');
+  return requestClient.get<AiVideoSettingsApi.Current>(
+    '/ai-video/settings/get',
+  );
 }
 
 export function saveGlobalSettings(data: AiVideoSettingsApi.SaveRequest) {
-  return requestClient.post<AiVideoSettingsApi.Version>('/ai-video/settings/save', data);
+  return requestClient.post<AiVideoSettingsApi.Version>(
+    '/ai-video/settings/save',
+    data,
+  );
 }
 
 export function getGlobalSettingsVersions() {

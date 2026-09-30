@@ -8,6 +8,7 @@ import secrets
 import time
 from collections import OrderedDict
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -17,10 +18,20 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from ai_runtime.app.core.config import RuntimeSettings
+from ai_runtime.app.gateway.platform_connection import (
+    normalize_platform_url,
+    read_platform_connection,
+    write_platform_connection,
+)
+from ai_runtime.app.gateway.session import SESSION_TTL, GatewaySessions
 
 
 class LoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=256)
+
+
+class PlatformConnectionRequest(BaseModel):
+    platform_url: str = Field(alias="platformUrl", min_length=1, max_length=512)
 
 
 def initialize_password(root: Path) -> Path:
@@ -39,7 +50,7 @@ def initialize_password(root: Path) -> Path:
 
 
 def console_static_root() -> Path:
-    return Path(__file__).resolve().parents[3] / "edge_agent" / "app" / "console"
+    return Path(__file__).resolve().parents[3] / "gateway-console" / "current"
 
 
 def create_app(
@@ -47,12 +58,13 @@ def create_app(
     transport=None,
     static_root: Path | None = None,
     runtime_owned: bool = False,
+    event_stream=None,
 ):
     settings = settings or RuntimeSettings()
     root = settings.runtime_data_root / "gateway"
     password_path = initialize_password(root)
     static = static_root or console_static_root()
-    sessions: dict[str, tuple[float, bytes]] = {}
+    sessions = GatewaySessions(root)
     attempts: OrderedDict[str, tuple[int, float]] = OrderedDict()
     client = httpx.AsyncClient(
         base_url=settings.gateway_runtime_url,
@@ -75,8 +87,20 @@ def create_app(
         lifespan=lifespan,
     )
 
+    def session_cookie(response, request, token):
+        response.set_cookie(
+            "linsight_gateway",
+            token,
+            httponly=True,
+            samesite="strict",
+            secure=request.url.scheme == "https",
+            max_age=SESSION_TTL,
+        )
+
     @app.middleware("http")
     async def protect(request: Request, call_next):
+        renew = False
+        token = ""
         if request.method not in {"GET", "HEAD"}:
             origin = request.headers.get("origin")
             if origin and urlsplit(origin).netloc != request.headers.get("host"):
@@ -91,11 +115,13 @@ def create_app(
             and request.url.path != "/gateway-api/login"
         ):
             token = request.cookies.get("linsight_gateway", "")
-            expiry, digest = sessions.get(token, (0, b""))
             current_digest = hashlib.sha256(password_path.read_bytes().strip()).digest()
-            if expiry < time.time() or not hmac.compare_digest(digest, current_digest):
+            valid, renew = sessions.validate(token, current_digest)
+            if not valid:
                 return JSONResponse({"detail": "请先登录网关"}, status_code=401)
         response = await call_next(request)
+        if renew and request.url.path != "/gateway-api/logout":
+            session_cookie(response, request, token)
         response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "same-origin"
@@ -105,6 +131,17 @@ def create_app(
     @app.get("/gateway-health")
     async def gateway_health():
         return {"status": "UP", "owner": "runtime" if runtime_owned else "standalone"}
+
+    @app.get("/event-images/{event_id}")
+    async def event_image(event_id: str, expires: int, signature: str):
+        # URL 的签名由 TCP 订阅密钥生成；无需管理端登录 Cookie。
+        if event_stream is None:
+            raise HTTPException(404, "Image service unavailable")
+        try:
+            path = event_stream.authorized_image_path(event_id, expires, signature)
+        except (KeyError, OSError, ValueError) as error:
+            raise HTTPException(404, "Image unavailable or link expired") from error
+        return FileResponse(path, media_type="image/jpeg")
 
     @app.post("/gateway-api/login")
     async def login(value: LoginRequest, request: Request):
@@ -123,41 +160,105 @@ def create_app(
         ):
             raise HTTPException(401, "网关管理密码不正确")
         attempts.pop(address, None)
-        for token, (expiry, _digest) in list(sessions.items()):
-            if expiry < time.time():
-                sessions.pop(token, None)
-        if len(sessions) >= 64:
-            raise HTTPException(429, "登录会话已满")
-        token = secrets.token_urlsafe(32)
-        sessions[token] = (
-            time.time() + 8 * 3600,
-            hashlib.sha256(password_path.read_bytes().strip()).digest(),
-        )
+        try:
+            token = sessions.create(
+                hashlib.sha256(password_path.read_bytes().strip()).digest(),
+                request.cookies.get("linsight_gateway", ""),
+            )
+        except ValueError as error:
+            raise HTTPException(429, str(error)) from error
         response = JSONResponse({"ok": True})
-        response.set_cookie(
-            "linsight_gateway",
-            token,
-            httponly=True,
-            samesite="strict",
-            secure=request.url.scheme == "https",
-            max_age=8 * 3600,
-        )
+        session_cookie(response, request, token)
         return response
+
+    @app.get("/gateway-api/session")
+    async def session_status():
+        return {"ok": True}
 
     @app.post("/gateway-api/logout")
     async def logout(request: Request):
-        sessions.pop(request.cookies.get("linsight_gateway", ""), None)
+        sessions.revoke(request.cookies.get("linsight_gateway", ""))
         response = JSONResponse({"ok": True})
         response.delete_cookie("linsight_gateway")
         return response
 
+    async def probe_platform(value: str) -> dict:
+        try:
+            platform_url = normalize_platform_url(value)
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
+        started = time.monotonic()
+        status = None
+        try:
+            async with httpx.AsyncClient(
+                timeout=3, trust_env=False, follow_redirects=False
+            ) as probe:
+                response = await probe.get(f"{platform_url}/node-api/ai-video/node/ping")
+                status = response.status_code
+                payload = response.json()
+            reachable = response.is_success and payload.get("data") == "linsight-control-plane"
+            message = (
+                "LInsight 平台连接正常" if reachable else "地址可访问，但不是可用的 LInsight 平台"
+            )
+        except (httpx.HTTPError, OSError, ValueError):
+            reachable = False
+            message = "无法连接平台；地址仍可保存，Agent 将持续重试"
+        return {
+            "platformUrl": platform_url,
+            "reachable": reachable,
+            "httpStatus": status,
+            "latencyMs": round((time.monotonic() - started) * 1000),
+            "checkedAt": datetime.now(UTC).isoformat(),
+            "message": message,
+        }
+
+    @app.get("/gateway-api/platform-connection")
+    async def platform_connection():
+        try:
+            return read_platform_connection(settings.runtime_data_root, settings.platform_url)
+        except (KeyError, OSError, ValueError, json.JSONDecodeError) as error:
+            raise HTTPException(500, "平台连接配置已损坏，请检查设备数据文件") from error
+
+    @app.post("/gateway-api/platform-connection/test")
+    async def test_platform_connection(value: PlatformConnectionRequest):
+        return await probe_platform(value.platform_url)
+
+    @app.put("/gateway-api/platform-connection")
+    async def save_platform_connection(value: PlatformConnectionRequest):
+        try:
+            saved = write_platform_connection(settings.runtime_data_root, value.platform_url)
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
+        return {**saved, "probe": await probe_platform(saved["platformUrl"])}
+
     @app.post("/gateway-api/rpc")
     async def rpc(request: Request):
-        body = await request.body()
-        if len(body) > 512 * 1024:
-            raise HTTPException(413, "请求过大")
+        body = bytearray()
+        async for chunk in request.stream():
+            body.extend(chunk)
+            if len(body) > 12 * 1024 * 1024:
+                raise HTTPException(413, "请求过大")
         try:
-            response = await client.post("/v1/gateway/rpc", json=json.loads(body))
+            message = json.loads(body)
+            if (
+                isinstance(message, dict)
+                and message.get("action") == "task.save"
+                and isinstance(message.get("payload"), dict)
+            ):
+                # Older shared editors also sent platform routing hints locally.
+                # Ownership comes from the stored task, never from these hints.
+                payload = message["payload"]
+                if payload.pop("streamTypeChanged", False):
+                    return JSONResponse(
+                        {
+                            "ok": False,
+                            "code": 422,
+                            "message": "请在平台切换主/子码流，或在高级设置中填写目标 RTSP 地址",
+                        },
+                        status_code=422,
+                    )
+                payload.pop("platformManaged", None)
+            response = await client.post("/v1/gateway/rpc", json=message)
             return JSONResponse(response.json(), status_code=response.status_code)
         except (httpx.HTTPError, ValueError) as error:
             raise HTTPException(503, "网关推理服务暂不可用，请稍后重试") from error

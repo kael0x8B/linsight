@@ -8,7 +8,6 @@ import { useVbenDrawer } from '@vben/common-ui';
 import { IconifyIcon } from '@vben/icons';
 
 import {
-  Alert,
   Button,
   Descriptions,
   DescriptionsItem,
@@ -234,6 +233,11 @@ const [Drawer, drawerApi] = useVbenDrawer({
     }
     model.value = drawerApi.getData<AiVideoModelApi.Model>();
     await loadVersions();
+    const initial = drawerApi.getData<
+      AiVideoModelApi.Model & { initialVersionId?: number }
+    >().initialVersionId;
+    const version = versions.value.find((item) => item.id === initial);
+    if (version) await selectVersion(version, 'metadata');
   },
 });
 </script>
@@ -247,43 +251,51 @@ const [Drawer, drawerApi] = useVbenDrawer({
     <div class="model-version-content">
       <div class="model-version-summary">
         <div class="model-summary-item model-summary-item--wide">
-          <span class="model-summary-item__icon"><IconifyIcon icon="lucide:fingerprint" /></span>
+          <span class="model-summary-item__icon"
+            ><IconifyIcon icon="lucide:fingerprint"
+          /></span>
           <div>
-            <span>稳定编码</span><strong class="model-summary-code" :title="model?.code">{{
+            <span>稳定编码</span
+            ><strong class="model-summary-code" :title="model?.code">{{
               model?.code
             }}</strong>
           </div>
         </div>
         <div class="model-summary-item">
-          <span class="model-summary-item__icon"><IconifyIcon icon="lucide:package-open" /></span>
+          <span class="model-summary-item__icon"
+            ><IconifyIcon icon="lucide:package-open"
+          /></span>
           <div>
-            <span>模型来源</span><strong>{{
+            <span>模型来源</span
+            ><strong>{{
               model?.sourceType === 'PRESET' ? '预置资产' : '自定义'
             }}</strong>
           </div>
         </div>
         <div class="model-summary-item">
-          <span class="model-summary-item__icon"><IconifyIcon icon="lucide:git-commit-horizontal" /></span>
+          <span class="model-summary-item__icon"
+            ><IconifyIcon icon="lucide:git-commit-horizontal"
+          /></span>
           <div>
-            <span>目录默认版本</span><strong>{{
+            <span>目录默认版本</span
+            ><strong>{{
               model?.currentVersionId ? `#${model.currentVersionId}` : '未发布'
             }}</strong>
           </div>
         </div>
         <div class="model-summary-item">
-          <span class="model-summary-item__icon"><IconifyIcon icon="lucide:server-cog" /></span>
+          <span class="model-summary-item__icon"
+            ><IconifyIcon icon="lucide:server-cog"
+          /></span>
           <div>
-            <span>节点就绪</span><strong>{{ model?.readyNodeCount ?? 0 }} /
-              {{ model?.deployedNodeCount ?? 0 }}</strong>
+            <span>节点就绪</span
+            ><strong
+              >{{ model?.readyNodeCount ?? 0 }} /
+              {{ model?.deployedNodeCount ?? 0 }}</strong
+            >
           </div>
         </div>
       </div>
-
-      <Alert
-        message="模型版本不可原地覆盖；发布只切换资产目录默认版本，不代表节点已部署或生产可用。"
-        show-icon
-        type="info"
-      />
 
       <Tabs v-model:active-key="activeTab" class="model-version-tabs">
         <Tabs.TabPane key="versions" tab="版本">
@@ -344,7 +356,9 @@ const [Drawer, drawerApi] = useVbenDrawer({
 
         <Tabs.TabPane key="deployments" tab="节点部署">
           <div class="mb-3 flex items-center justify-between">
-            <span class="text-muted-foreground text-sm">按版本查看节点部署结果</span>
+            <span class="text-muted-foreground text-sm"
+              >按版本查看节点部署结果</span
+            >
             <Select
               v-model:value="selectedVersionId"
               class="w-64"
@@ -436,10 +450,8 @@ const [Drawer, drawerApi] = useVbenDrawer({
               <TestGrid>
                 <template #testStatus="{ row }">
                   <Tag :color="testStatusColor(row.status)">
-{{
-                    row.status
-                  }}
-</Tag>
+                    {{ row.status }}
+                  </Tag>
                 </template>
               </TestGrid>
             </div>
@@ -497,15 +509,15 @@ const [Drawer, drawerApi] = useVbenDrawer({
 
 .model-version-summary {
   display: grid;
-  gap: 10px;
   grid-template-columns: minmax(260px, 1.45fr) repeat(3, minmax(150px, 1fr));
+  gap: 10px;
 }
 
 .model-summary-item {
   display: flex;
-  min-width: 0;
-  align-items: center;
   gap: 10px;
+  align-items: center;
+  min-width: 0;
   padding: 11px 12px;
   background: hsl(var(--muted) / 28%);
   border: 1px solid hsl(var(--border) / 68%);
@@ -514,11 +526,11 @@ const [Drawer, drawerApi] = useVbenDrawer({
 
 .model-summary-item__icon {
   display: inline-flex;
-  width: 30px;
-  height: 30px;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
+  width: 30px;
+  height: 30px;
   color: #3b82f6;
   background: rgb(37 99 235 / 11%);
   border-radius: 7px;
@@ -526,20 +538,20 @@ const [Drawer, drawerApi] = useVbenDrawer({
 
 .model-summary-item > div {
   display: grid;
-  min-width: 0;
   gap: 2px;
+  min-width: 0;
 }
 
 .model-summary-item span:not(.model-summary-item__icon) {
-  color: hsl(var(--muted-foreground));
   font-size: 10px;
+  color: hsl(var(--muted-foreground));
 }
 
 .model-summary-item strong {
   overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 12px;
   font-weight: 600;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -550,10 +562,10 @@ const [Drawer, drawerApi] = useVbenDrawer({
 
 .model-relation-empty {
   display: flex;
-  height: 260px;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
+  height: 260px;
   background: hsl(var(--muted) / 16%);
   border: 1px dashed hsl(var(--border) / 72%);
   border-radius: 8px;
@@ -565,8 +577,8 @@ const [Drawer, drawerApi] = useVbenDrawer({
 
 .model-relation-empty p {
   margin: 0;
-  color: hsl(var(--muted-foreground));
   font-size: 11px;
+  color: hsl(var(--muted-foreground));
 }
 
 .model-version-tabs {
@@ -580,9 +592,9 @@ const [Drawer, drawerApi] = useVbenDrawer({
 .model-version-sha {
   display: block;
   overflow: hidden;
-  color: hsl(var(--muted-foreground));
-  font-size: 10px;
   text-overflow: ellipsis;
+  font-size: 10px;
+  color: hsl(var(--muted-foreground));
   white-space: nowrap;
 }
 

@@ -1,7 +1,6 @@
 import asyncio
 import base64
 import contextlib
-import math
 import re
 import time
 from collections import deque
@@ -14,12 +13,13 @@ from uuid import uuid4
 from PIL import Image
 from pydantic import SecretStr
 
+from ai_runtime.app.capability.package_runner import PackageRunner
 from ai_runtime.app.capability.postprocess import CapabilityPostprocessor
 from ai_runtime.app.capability.tracker import IoUTracker
 from ai_runtime.app.core.config import RuntimeSettings
 from ai_runtime.app.event.evidence import EvidenceBuffer
 from ai_runtime.app.event.store import OfflineEventStore, PendingDeliveryBatch
-from ai_runtime.app.model.contracts import DetectionObject, ModelTestParameters, ModelTestRequest
+from ai_runtime.app.model.contracts import DetectionObject
 from ai_runtime.app.model.deployed import DeployedModelRegistry
 from ai_runtime.app.model.pool import ModelLease, ModelPool
 from ai_runtime.app.rule.contracts import RuleTransition
@@ -32,6 +32,7 @@ from ai_runtime.app.task.contracts import (
     TaskStartRequest,
     TaskStatus,
 )
+from ai_runtime.app.task.inference import TaskFrameInference
 
 
 class StreamProcess(Protocol):
@@ -60,6 +61,8 @@ class SharedCameraStream:
     reconnects: int = 0
     started_monotonic: float = field(default_factory=time.monotonic)
     _process_starts: int = 0
+    decode_backend: str = "SOFTWARE_FFMPEG"
+    hardware_decode_failures: int = 0
 
     async def start(self) -> None:
         if self._runner is None:
@@ -204,10 +207,35 @@ class TaskRunner:
         self._total_samples: deque[int] = deque(maxlen=512)
         self._capture_to_result_samples: deque[int] = deque(maxlen=512)
         self._decode_samples: deque[int] = deque(maxlen=512)
-        self._tracker = IoUTracker()
+        plate_tracking = any(
+            node.get("capabilityKey") == "ocr.license-plate"
+            for node in request.pipeline.get("nodes", [])
+        )
+        self._tracker = IoUTracker(
+            motion_classes=frozenset({"license_plate"}) if plate_tracking else frozenset(),
+            stationary_reacquire_millis=4000 if plate_tracking else 1500,
+        )
         self._postprocessor = CapabilityPostprocessor(request.pipeline, request.parameters)
+        descriptor = request.pipeline.get("algorithmPackage")
+        self._package = (
+            PackageRunner(
+                settings.runtime_data_root,
+                descriptor,
+                request.parameters.algorithm,
+                request.model_bindings,
+                model_pool,
+            )
+            if descriptor
+            else None
+        )
         self._rule_engine = (
-            RuleEngine(request.task_id, request.camera_id, request.rule)
+            RuleEngine(
+                request.task_id, request.camera_id, request.rule,
+                identity_deduplication=any(
+                    node.get("capabilityKey") == "ocr.license-plate"
+                    for node in request.pipeline.get("nodes", [])
+                ),
+            )
             if request.rule is not None
             else None
         )
@@ -247,6 +275,8 @@ class TaskRunner:
 
     async def _run(self) -> None:
         try:
+            if self._package:
+                await self._package.start()
             self.frame_path.parent.mkdir(parents=True, exist_ok=True)
             while True:
                 interval = 1.0 / self.request.parameters.sample_fps
@@ -254,13 +284,28 @@ class TaskRunner:
                 frame = captured.data
                 now = time.monotonic()
                 timestamp_millis = captured.timestamp_millis
+                if (captured.stream_id and self._inference_stream_id
+                        and captured.stream_id != self._inference_stream_id):
+                    self._tracker.reset()
+                if self._rule_engine is not None:
+                    self._rule_engine.max_observation_gap_millis = round(
+                        max(5, interval * 3) * 1000
+                    )
+                    if (
+                        captured.stream_id
+                        and self._inference_stream_id
+                        and captured.stream_id != self._inference_stream_id
+                    ):
+                        self._rule_engine.interrupt_observation()
                 await self._evidence.observe_frame(frame, timestamp_millis)
                 if captured.source_pts is not None and captured.stream_id:
                     if self._inference_stream_id != captured.stream_id:
                         self._inference_stream_id = captured.stream_id
                         self._next_inference_pts = None
-                    if (self._next_inference_pts is not None
-                            and captured.source_pts < self._next_inference_pts):
+                    if (
+                        self._next_inference_pts is not None
+                        and captured.source_pts < self._next_inference_pts
+                    ):
                         continue
                     self._next_inference_pts = max(
                         (self._next_inference_pts or captured.source_pts) + interval * 90_000,
@@ -274,16 +319,31 @@ class TaskRunner:
                 results, merged_objects = await self._infer_frame(captured.image)
                 self._execution_devices = sorted({result.device for result in results})
                 self._model_timings = [
-                    {"backend": result.backend, "device": result.device,
-                     "preprocessMillis": result.preprocess_millis,
-                     "inferenceMillis": result.inference_millis,
-                     "postprocessMillis": result.postprocess_millis}
+                    {
+                        "backend": result.backend,
+                        "device": result.device,
+                        "preprocessMillis": result.preprocess_millis,
+                        "inferenceMillis": result.inference_millis,
+                        "postprocessMillis": result.postprocess_millis,
+                    }
                     for result in results
                 ]
-                normalized_objects = self._postprocessor.before_tracking(merged_objects)
-                tracked_objects = self._tracker.update(normalized_objects)
-                processed_objects = self._postprocessor.after_tracking(
-                    tracked_objects, timestamp_millis
+                if self._package:
+                    with Image.open(self.frame_path) as package_image:
+                        normalized_objects = await self._package.run(
+                            merged_objects,
+                            package_image.convert("RGB"),
+                            timestamp_millis,
+                            self.request.parameters,
+                            self.request.algorithm_resources,
+                        )
+                else:
+                    normalized_objects = self._postprocessor.before_tracking(merged_objects)
+                tracked_objects = self._tracker.update(normalized_objects, timestamp_millis)
+                processed_objects = (
+                    tracked_objects
+                    if self._package
+                    else self._postprocessor.after_tracking(tracked_objects, timestamp_millis)
                 )
                 self._latest_overlay = TaskOverlayFrame(
                     taskId=self.request.task_id,
@@ -302,15 +362,29 @@ class TaskRunner:
                     # and every legacy image when no video timestamp is available.
                     imageBase64=self._overlay_image(captured),
                 )
-                self._capture_to_result_samples.append(max(
-                    0, time.time_ns() // 1_000_000 - timestamp_millis
-                ))
+                self._capture_to_result_samples.append(
+                    max(0, time.time_ns() // 1_000_000 - timestamp_millis)
+                )
                 if captured.decode_millis is not None:
                     self._decode_samples.append(round(captured.decode_millis))
                 if self._rule_engine is not None:
-                    transitions = self._rule_engine.evaluate(
-                        self._postprocessor.event_candidates(processed_objects), timestamp_millis
-                    )
+                    if self._package and not self._package.observation_valid:
+                        self._rule_engine.interrupt_observation()
+                        self._last_rule_state = "OBSERVATION_UNKNOWN"
+                        transitions = []
+                    else:
+                        candidates = (
+                            [
+                                obj
+                                for obj in processed_objects
+                                if obj.attributes.get("eventCandidate") is True
+                            ]
+                            if self._package
+                            else self._postprocessor.rule_observations(
+                                processed_objects, timestamp_millis
+                            )
+                        )
+                        transitions = self._rule_engine.evaluate(candidates, timestamp_millis)
                     for transition in transitions:
                         self._last_rule_state = transition.state
                         if transition.state == "ALARM":
@@ -335,11 +409,19 @@ class TaskRunner:
                 self._total_samples.append(self._total_millis)
         except asyncio.CancelledError:
             raise
-        except (OSError, ValueError, KeyError) as error:
+        except (OSError, ValueError, KeyError, TimeoutError) as error:
             self.status = "FAILED"
             self.error_code = "TASK_INFERENCE_FAILED"
-            self.error_message = type(error).__name__
+            self.error_message = (
+                "算法包处理超时"
+                if isinstance(error, TimeoutError)
+                else str(error)[:200]
+                if self._package
+                else type(error).__name__
+            )
         finally:
+            if self._package:
+                await self._package.close()
             await self.release_models()
 
     def _overlay_image(self, captured: CapturedFrame) -> str | None:
@@ -347,186 +429,17 @@ class TaskRunner:
             return None
         if captured.stream_id and captured.source_pts is not None:
             previous = self._last_overlay_image_stamp
-            if (previous is not None and previous[0] == captured.stream_id
-                    and 0 <= captured.source_pts - previous[1] < 180_000):
+            if (
+                previous is not None
+                and previous[0] == captured.stream_id
+                and 0 <= captured.source_pts - previous[1] < 180_000
+            ):
                 return None
             self._last_overlay_image_stamp = (captured.stream_id, captured.source_pts)
         return base64.b64encode(captured.data).decode("ascii")
 
     async def _infer_frame(self, image: Image.Image | None = None):
-        parameters = ModelTestParameters(
-            schemaVersion="1.0",
-            confidence=self.request.parameters.confidence,
-            nmsThreshold=self.request.parameters.nms_threshold,
-            inputWidth=self.request.parameters.input_width,
-            inputHeight=self.request.parameters.input_height,
-            outputCoordinates="NORMALIZED_XYWH",
-        )
-        capabilities = {
-            node["id"]: node["capabilityKey"]
-            for node in self.request.pipeline.get("nodes", [])
-            if isinstance(node, dict) and "id" in node and "capabilityKey" in node
-        }
-        crop_nodes = [node for node in self.request.pipeline.get("nodes", [])
-                      if node.get("inputMode") == "PERSON_CROPS"]
-        if crop_nodes:
-            return await self._infer_person_behavior(crop_nodes, capabilities, parameters, image)
-        ocr_nodes = {
-            node_id
-            for node_id, capability in capabilities.items()
-            if capability == "ocr.license-plate"
-        }
-        if not ocr_nodes:
-            requests = [
-                ModelTestRequest(
-                    modelVersionId=model_version_id,
-                    imagePath=self.frame_path,
-                    parameters=parameters,
-                )
-                for model_version_id in dict.fromkeys(self.request.model_bindings.values())
-            ]
-            image_argument = {"image": image} if image is not None else {}
-            if len(requests) > 1 and all(
-                self.model_pool.is_loaded(value.model_version_id, "RKNPU") for value in requests
-            ):
-                # Independent full-frame NPU models can overlap CPU preparation /
-                # output decoding with the other model's device execution. Keep
-                # at most two in flight and merge only completed same-frame results.
-                results = []
-                for offset in range(0, len(requests), 2):
-                    batch = await asyncio.gather(*(
-                        self.model_pool.test(value, **image_argument)
-                        for value in requests[offset:offset + 2]
-                    ), return_exceptions=True)
-                    for value in batch:
-                        if isinstance(value, BaseException):
-                            raise value
-                        results.append(value)
-            else:
-                results = [
-                    await self.model_pool.test(value, **image_argument) for value in requests
-                ]
-            return results, [item for result in results for item in result.objects]
-
-        if len(ocr_nodes) != 1:
-            raise ValueError("license plate pipeline must contain exactly one OCR node")
-        ocr_node = next(iter(ocr_nodes))
-        ocr_model_id = self.request.model_bindings.get(ocr_node)
-        if ocr_model_id is None:
-            raise ValueError("license plate OCR node has no model binding")
-        detector_nodes = {
-            node_id
-            for node_id, capability in capabilities.items()
-            if capability in {"detector.license-plate", "detector.vehicle"}
-        }
-        if not any(capabilities[node_id] == "detector.license-plate" for node_id in detector_nodes):
-            raise ValueError("license plate OCR requires a plate detector binding")
-        full_frame_results = {}
-        for node_id in detector_nodes:
-            model_version_id = self.request.model_bindings.get(node_id)
-            if model_version_id is None:
-                raise ValueError(f"pipeline node has no model binding: {node_id}")
-            full_frame_results[node_id] = await self.model_pool.test(
-                ModelTestRequest(
-                    modelVersionId=model_version_id,
-                    imagePath=self.frame_path,
-                    parameters=parameters,
-                ),
-                **({"image": image} if image is not None else {}),
-            )
-        plate_detections = [
-            detected
-            for node_id, result in full_frame_results.items()
-            if capabilities[node_id] == "detector.license-plate"
-            for detected in result.objects
-            if detected.class_name == "license_plate"
-        ]
-        ocr_results = []
-        enriched_plates = []
-        for index, plate in enumerate(plate_detections):
-            crop_path = self.frame_path.parent / f"plate-crop-{index}.jpg"
-            try:
-                await asyncio.to_thread(_write_detection_crop, self.frame_path, crop_path, plate)
-                ocr_result = await self.model_pool.test(
-                    ModelTestRequest(
-                        modelVersionId=ocr_model_id,
-                        imagePath=crop_path,
-                        parameters=parameters,
-                    )
-                )
-                ocr_results.append(ocr_result)
-                best = max(ocr_result.objects, key=lambda value: value.confidence, default=None)
-                attributes = dict(plate.attributes)
-                if best is not None:
-                    attributes.update(best.attributes)
-                enriched_plates.append(plate.model_copy(update={"attributes": attributes}))
-            finally:
-                crop_path.unlink(missing_ok=True)
-        non_plate_objects = [
-            detected
-            for result in full_frame_results.values()
-            for detected in result.objects
-            if detected.class_name != "license_plate"
-        ]
-        results = [*full_frame_results.values(), *ocr_results]
-        return results, [*non_plate_objects, *enriched_plates]
-
-    async def _infer_person_behavior(self, crop_nodes, capabilities, parameters, image):
-        """Classify each detected person, never a whole multi-person camera frame."""
-        if len(crop_nodes) != 1:
-            raise ValueError("behavior pipeline requires exactly one person-crop model")
-        behavior_node = crop_nodes[0]
-        target_class = {"behavior.phone-call": "phone_call"}.get(
-            behavior_node.get("capabilityKey")
-        )
-        detectors = [node_id for node_id, capability in capabilities.items()
-                     if capability == "detector.person"]
-        if target_class is None or len(detectors) != 1:
-            raise ValueError("person-crop behavior requires a behavior and person detector")
-        detector_id = self.request.model_bindings[detectors[0]]
-        behavior_id = self.request.model_bindings[behavior_node["id"]]
-        owned_image = image is None
-        source = image if image is not None else Image.open(self.frame_path).convert("RGB")
-        try:
-            detection = await self.model_pool.test(ModelTestRequest(
-                modelVersionId=detector_id, imagePath=self.frame_path, parameters=parameters,
-            ), image=source)
-            results = [detection]
-            objects = []
-            # Bounded CPU work on the 2 GB gateway; smaller people remain unclassified.
-            people = sorted((obj for obj in detection.objects if obj.class_name == "person"
-                             and obj.confidence >= self.request.parameters.person_confidence),
-                            key=lambda obj: obj.bbox.width * obj.bbox.height, reverse=True)[:10]
-            for person in people:
-                box = person.bbox
-                left = max(0, int(box.x * source.width))
-                top = max(0, int(box.y * source.height))
-                right = min(source.width, int((box.x + box.width) * source.width))
-                bottom = min(source.height, int((box.y + box.height) * source.height))
-                if right - left < 32 or bottom - top < 64:
-                    continue
-                with source.crop((left, top, right, bottom)) as crop:
-                    result = await self.model_pool.test(ModelTestRequest(
-                        modelVersionId=behavior_id, imagePath=self.frame_path,
-                        parameters=parameters,
-                    ), image=crop)
-                results.append(result)
-                accepted_labels = {target_class}
-                if target_class == "phone_call":
-                    accepted_labels.add("calling")  # Upstream action model's canonical class.
-                candidates = (obj for obj in result.objects if obj.class_name in accepted_labels)
-                candidate = max(candidates,
-                                key=lambda obj: obj.confidence, default=None)
-                if candidate is not None:
-                    objects.append(candidate.model_copy(update={
-                        "class_name": target_class,
-                        "bbox": person.bbox,
-                        "attributes": {**candidate.attributes, "behaviorPersonAssociated": True},
-                    }))
-            return results, objects
-        finally:
-            if owned_image:
-                source.close()
+        return await TaskFrameInference(self.request, self.model_pool, self.frame_path).infer(image)
 
     def apply_global_settings(self, settings: TaskGlobalSettings) -> None:
         self.request.parameters.confidence = settings.default_confidence
@@ -569,6 +482,8 @@ class TaskRunner:
             "captureToResultP95Millis": _percentile(self._capture_to_result_samples, 0.95),
             "decodeP50Millis": _percentile(self._decode_samples, 0.50),
             "decodeP95Millis": _percentile(self._decode_samples, 0.95),
+            "captureBackend": getattr(self.stream, "decode_backend", "UNKNOWN"),
+            "hardwareDecodeFailures": getattr(self.stream, "hardware_decode_failures", 0),
             "ruleState": self._last_rule_state,
             "confirmedEvents": self._confirmed_events,
         }
@@ -723,6 +638,14 @@ class TaskManager:
     def statuses(self) -> list[TaskStatus]:
         return [runner.snapshot() for runner in self._tasks.values()]
 
+    def running_requests(self) -> list[TaskStartRequest]:
+        """Read-only task contract snapshots used by node-local admission checks."""
+        return [
+            runner.request.model_copy(deep=True)
+            for runner in self._tasks.values()
+            if runner.status == "RUNNING"
+        ]
+
     def drain_rule_transitions(self) -> list[RuleTransition]:
         return [
             transition
@@ -847,57 +770,15 @@ def _percentile(values, percentile: float) -> float:
 def _write_detection_crop(
     source_path, destination_path, detected: DetectionObject, padding_ratio: float = 0.05
 ) -> None:
+    from ai_runtime.app.model.plate import rectify_plate
+
+    del padding_ratio  # Rectification owns the validated geometry and bounded fallback border.
     with Image.open(source_path) as source:
-        source = source.convert("RGB")
-        width, height = source.size
-        corner_keys = [(f"corner{index}X", f"corner{index}Y") for index in range(1, 5)]
-        has_all_corners = all(
-            x_key in detected.attributes and y_key in detected.attributes
-            for x_key, y_key in corner_keys
-        )
-        if has_all_corners:
-            corners = [
-                (
-                    float(detected.attributes[x_key]) * width,
-                    float(detected.attributes[y_key]) * height,
-                )
-                for x_key, y_key in corner_keys
-            ]
-            if all(math.isfinite(coordinate) for point in corners for coordinate in point):
-                top_left, top_right, bottom_right, bottom_left = corners
-                target_width = max(
-                    math.dist(top_left, top_right),
-                    math.dist(bottom_left, bottom_right),
-                )
-                target_height = max(
-                    math.dist(top_left, bottom_left),
-                    math.dist(top_right, bottom_right),
-                )
-                if target_width >= 2 and target_height >= 2:
-                    # PIL QUAD consumes source coordinates as UL, LL, LR, UR.
-                    quadrilateral = (
-                        *top_left,
-                        *bottom_left,
-                        *bottom_right,
-                        *top_right,
-                    )
-                    source.transform(
-                        (round(target_width), round(target_height)),
-                        Image.Transform.QUAD,
-                        quadrilateral,
-                        resample=Image.Resampling.BICUBIC,
-                    ).save(destination_path, format="JPEG", quality=95)
-                    return
-        box = detected.bbox
-        pad_x = box.width * padding_ratio
-        pad_y = box.height * padding_ratio
-        left = max(0, int((box.x - pad_x) * width))
-        top = max(0, int((box.y - pad_y) * height))
-        right = min(width, int((box.x + box.width + pad_x) * width + 0.999))
-        bottom = min(height, int((box.y + box.height + pad_y) * height + 0.999))
-        if right <= left or bottom <= top:
-            raise ValueError("license plate detector returned an empty crop")
-        source.crop((left, top, right, bottom)).save(destination_path, format="JPEG", quality=95)
+        crop, _ = rectify_plate(source.convert("RGB"), detected)
+        if destination_path.suffix.lower() == ".png":
+            crop.save(destination_path, format="PNG")
+        else:
+            crop.save(destination_path, format="JPEG", quality=95)
 
 
 def _validate_pipeline(
@@ -1018,11 +899,6 @@ def _validate_pipeline(
     for capability, required in required_chains.items():
         if capability in capabilities.values() and not required.issubset(pairs):
             raise ValueError(f"{capability} pipeline is missing its controlled chain")
-    behavior_capabilities = {
-        "behavior.fall",
-        "behavior.phone-call",
-        "behavior.smoking",
-    }
-    if behavior_capabilities.intersection(capabilities.values()) and parameters is not None:
-        if parameters.temporal_n <= 1 and parameters.duration_seconds <= 0:
-            raise ValueError("behavior pipeline cannot enable single-frame confirmation")
+    # Behavior nodes emit per-frame candidates.  Alarm confirmation belongs to
+    # the bound RuleEngine; legacy task temporal parameters are compatibility
+    # fields and therefore must not gate whether the pipeline can start.

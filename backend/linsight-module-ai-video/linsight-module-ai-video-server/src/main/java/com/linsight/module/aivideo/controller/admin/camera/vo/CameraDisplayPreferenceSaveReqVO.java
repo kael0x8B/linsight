@@ -5,5 +5,5 @@ import java.util.List;
 @Data
 public class CameraDisplayPreferenceSaveReqVO {
  @NotNull @Positive private Long cameraId;
- @NotNull @Size(max=128) private List<@Pattern(regexp="(task|entry)-[0-9]+") String> hiddenLayers;
+ @NotNull @Size(max=128) private List<@Pattern(regexp="(roi-)?(task|entry)-[0-9]+|recognition-regions") String> hiddenLayers;
 }

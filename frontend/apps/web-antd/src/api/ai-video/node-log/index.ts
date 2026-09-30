@@ -44,7 +44,10 @@ export namespace AiVideoNodeLogApi {
   }
 }
 
-export function getNodeLogPage(params: AiVideoNodeLogApi.LogPageParams, silent = false) {
+export function getNodeLogPage(
+  params: AiVideoNodeLogApi.LogPageParams,
+  silent = false,
+) {
   return requestClient.get<PageResult<AiVideoNodeLogApi.Log>>(
     '/ai-video/node-log/page',
     { params, headers: { 'x-silent-error': silent ? 'true' : 'false' } },
@@ -52,7 +55,9 @@ export function getNodeLogPage(params: AiVideoNodeLogApi.LogPageParams, silent =
 }
 
 export function getNodeLogSnapshot(nodeId: number) {
-  return requestClient.get<number>('/ai-video/node-log/snapshot', { params: { nodeId } });
+  return requestClient.get<number>('/ai-video/node-log/snapshot', {
+    params: { nodeId },
+  });
 }
 
 export function getNodeLogContext(id: number) {
@@ -68,7 +73,10 @@ export function createNodeDiagnostic(data: {
   rangeStart: string;
   taskId?: number;
 }) {
-  return requestClient.post<number>('/ai-video/node-log/diagnostic/create', data);
+  return requestClient.post<number>(
+    '/ai-video/node-log/diagnostic/create',
+    data,
+  );
 }
 
 export function getNodeDiagnostic(id: number) {

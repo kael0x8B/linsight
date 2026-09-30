@@ -82,22 +82,20 @@ function statusLabel(status: string) {
       <header>
         <strong>{{ capability.algorithmName || capability.taskName }}</strong>
         <Tag :color="statusColor(capability.effectiveStatus)">
-{{
-          capability.stationState === 'NO_REFERENCE'
-            ? $t('camera-face.needsReferences')
-            : statusLabel(capability.effectiveStatus)
-        }}
-</Tag>
+          {{
+            capability.stationState === 'NO_REFERENCE'
+              ? $t('camera-face.needsReferences')
+              : statusLabel(capability.effectiveStatus)
+          }}
+        </Tag>
       </header>
       <div class="capability__detail">
         {{ capability.taskName }} ·
         {{ capability.nodeName || `#${capability.nodeId}` }}
       </div>
       <Tag v-if="capability.validationOnly" color="orange">
-{{
-        $t('page.aiVideo.recognition.validationOnly')
-      }}
-</Tag>
+        {{ $t('page.aiVideo.recognition.validationOnly') }}
+      </Tag>
       <div
         v-if="
           !capability.entryAccessId && capability.effectiveStatus === 'RUNNING'
@@ -107,8 +105,8 @@ function statusLabel(status: string) {
         <Tag
           v-if="capability.executionBackend"
           :color="capability.executionBackend === 'RKNPU' ? 'blue' : 'default'"
-          >
-{{
+        >
+          {{
             capability.executionBackend === 'RKNPU'
               ? 'NPU 加速'
               : capability.executionBackend === 'CPU'
@@ -117,16 +115,20 @@ function statusLabel(status: string) {
                   ? 'CPU + NPU'
                   : '等待分析'
           }}
-</Tag>
-        <span>{{ $t('page.aiVideo.recognition.analysisRate') }}
-          {{ capability.analysisFps?.toFixed(2) ?? '—' }} FPS</span>
-        <span>{{ $t('page.aiVideo.recognition.latency') }}
+        </Tag>
+        <span
+          >{{ $t('page.aiVideo.recognition.analysisRate') }}
+          {{ capability.analysisFps?.toFixed(2) ?? '—' }} FPS</span
+        >
+        <span
+          >{{ $t('page.aiVideo.recognition.latency') }}
           {{
             capability.totalLatencyMillis == null
               ? '—'
               : (capability.totalLatencyMillis / 1000).toFixed(2)
           }}
-          s</span>
+          s</span
+        >
       </div>
       <p
         v-if="
@@ -161,58 +163,70 @@ function statusLabel(status: string) {
   display: grid;
   gap: 12px;
 }
+
 .capability {
   padding: 12px;
+  background: hsl(var(--card));
   border: 1px solid hsl(var(--border));
   border-radius: 8px;
-  background: hsl(var(--card));
 }
+
 .capability--selectable {
   cursor: pointer;
   transition:
     border-color 150ms,
     background 150ms;
 }
+
 .capability--selectable:hover {
-  border-color: hsl(var(--primary) / 45%);
   background: hsl(var(--muted) / 40%);
+  border-color: hsl(var(--primary) / 45%);
 }
+
 .capability--selectable:focus-visible {
   outline: 2px solid hsl(var(--primary));
   outline-offset: 2px;
 }
+
 .capability--selected {
-  border-color: hsl(var(--primary));
   background: hsl(var(--primary) / 5%);
+  border-color: hsl(var(--primary));
   box-shadow: inset 3px 0 hsl(var(--primary));
 }
+
 .capability--selectable .capability__detail {
   line-height: 1.6;
 }
+
 .capability--selectable :deep(.ant-tag) {
-  margin-inline-end: 0;
   flex-shrink: 0;
+  margin-inline-end: 0;
 }
+
 .capability__error {
-  color: #dc2626;
   margin-top: 8px;
   font-size: 12px;
+  color: #dc2626;
 }
+
 .capability header {
   display: flex;
   gap: 6px;
   align-items: flex-start;
   justify-content: space-between;
 }
+
 .capability header strong {
   font-size: 13px;
 }
+
 .capability__detail,
 .capabilities__empty {
   margin: 7px 0;
   font-size: 12px;
   color: hsl(var(--muted-foreground));
 }
+
 .capability__metrics {
   display: flex;
   flex-wrap: wrap;

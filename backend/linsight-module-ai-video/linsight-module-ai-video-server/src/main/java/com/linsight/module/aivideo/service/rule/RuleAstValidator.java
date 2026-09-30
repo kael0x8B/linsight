@@ -8,13 +8,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-final class RuleAstValidator {
+public final class RuleAstValidator {
+    public static final double EVENT_VISIBILITY_TARGET_SECONDS = 2.0;
     private static final Set<String> SEVERITIES = Set.of("INFO", "MINOR", "MAJOR", "CRITICAL");
     private static final Set<String> POINT_MODES = Set.of("CENTROID", "FOOT", "OVERLAP");
 
     private RuleAstValidator() {}
 
-    static List<String> validate(Map<String, Object> ast, String expectedEventType) {
+    public static List<String> validate(Map<String, Object> ast, String expectedEventType) {
         List<String> errors = new ArrayList<>();
         if (ast == null || !"1.0".equals(ast.get("schemaVersion"))) {
             return List.of("schemaVersion 必须为 1.0");
@@ -38,6 +39,31 @@ final class RuleAstValidator {
             validateSeconds(dedup.get("windowSeconds"), "dedup.windowSeconds", 1, 86400, errors);
         }
         return errors;
+    }
+
+    /**
+     * Returns the configured theoretical lower bound. The Nth positive sample
+     * establishes stability, then duration can complete only on a sample boundary.
+     * Inference, upload and UI delivery make observed latency higher.
+     */
+    public static ConfirmationLatency estimateConfirmationLatency(Map<String, Object> ast,
+                                                                    double sampleFps) {
+        if (!Double.isFinite(sampleFps) || sampleFps <= 0) {
+            throw new IllegalArgumentException("sampleFps must be greater than zero");
+        }
+        RuleThresholds thresholds = RuleThresholds.from(ast);
+        long durationIntervals = (long) Math.ceil(
+                Math.max(0, thresholds.durationSeconds() * sampleFps) - 1e-12);
+        double minimumSeconds = (thresholds.n() - 1 + durationIntervals) / sampleFps;
+        return new ConfirmationLatency(thresholds.n(), thresholds.m(),
+                thresholds.durationSeconds(), minimumSeconds);
+    }
+
+    public record ConfirmationLatency(int n, int m, double durationSeconds,
+                                      double minimumSeconds) {
+        public boolean conflictsWithEventVisibilityTarget() {
+            return minimumSeconds > EVENT_VISIBILITY_TARGET_SECONDS + 1e-9;
+        }
     }
 
     static String summarize(Map<String, Object> ast) {

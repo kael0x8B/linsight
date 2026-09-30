@@ -69,6 +69,22 @@ class FaceReferenceServiceTest {
           new FaceReferenceService.ExistingPhoto(8L,"stored-photo","hash"),131L,LocalDateTime.now().plusDays(1),UUID.randomUUID().toString()));
         verify(mapper,never()).insert(any(com.linsight.module.aivideo.dal.dataobject.algorithm.FaceReferenceDO.class));
     }
+    @Test void reExtractionAppendsReferenceAndPreservesPreviousIdentityForAudit() {
+        var e=existing();when(entryMapper.selectOne(any())).thenReturn(e);
+        var previous=new com.linsight.module.aivideo.dal.dataobject.algorithm.FaceReferenceDO();
+        previous.setId(12L);previous.setEntryId(8L);previous.setModelVersionId(130L);
+        previous.setObjectRef("old-photo");previous.setValidationCommandId("old-command");previous.setValidationStatus("READY");
+        when(mapper.selectList(any())).thenReturn(java.util.List.of(previous));
+        when(mapper.selectCount(any())).thenReturn(0L);
+        service.registerExisting(new FaceReferenceService.ExistingPhoto(8L,"stored-photo","hash"),131L,
+                LocalDateTime.now().plusDays(1),"new-command");
+        assertEquals(12L,previous.getId());assertEquals(130L,previous.getModelVersionId());
+        assertEquals("old-photo",previous.getObjectRef());assertEquals("old-command",previous.getValidationCommandId());
+        assertEquals("REVOKED",previous.getValidationStatus());
+        verify(mapper).insert(argThat((com.linsight.module.aivideo.dal.dataobject.algorithm.FaceReferenceDO r)->
+                r.getId()==null && r.getEntryId()==8L && r.getModelVersionId()==131L
+                        && "new-command".equals(r.getValidationCommandId()) && "PENDING".equals(r.getValidationStatus())));
+    }
     @Test void photoChangedWhilePreparingRejectsOldBytes() {
         var e=existing();e.setMediaRef("new-photo");when(entryMapper.selectOne(any())).thenReturn(e);
         assertThrows(com.linsight.framework.common.exception.ServiceException.class,()->service.registerExisting(

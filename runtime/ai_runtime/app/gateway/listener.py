@@ -61,8 +61,10 @@ class GatewayListener:
         sock = self._bind()
         try:
             app = create_app(
-                self.settings, transport=httpx.ASGITransport(app=self.runtime), runtime_owned=True
+                self.settings, transport=httpx.ASGITransport(app=self.runtime), runtime_owned=True,
+                event_stream=self.runtime.state.gateway.event_stream,
             )
+            self.runtime.state.gateway.event_stream.image_http_port = self.port
             await self._resources.enter_async_context(app.router.lifespan_context(app))
             self.worker = asyncio.create_task(self._serve(app, sock), name="gateway-console")
             async with asyncio.timeout(10):

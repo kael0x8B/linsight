@@ -158,9 +158,10 @@ def _decode_flat_yolo(
         scores = values[:, 4:]
         class_ids = np.argmax(scores, axis=1)
         confidence = scores[np.arange(scores.shape[0]), class_ids]
-        if float(np.nanmax(confidence, initial=0.0)) > 1.0 or float(
-            np.nanmin(confidence, initial=0.0)
-        ) < 0.0:
+        if (
+            float(np.nanmax(confidence, initial=0.0)) > 1.0
+            or float(np.nanmin(confidence, initial=0.0)) < 0.0
+        ):
             confidence = _sigmoid(confidence)
         x_center, y_center, width, height = coordinates.T
         rows = np.column_stack(
@@ -209,9 +210,10 @@ def _decode_rknn_yolo_heads(
         recognized = True
         classes = min(class_candidates, key=lambda value: value.shape[1])
         class_scores = classes[0]
-        if float(np.nanmax(class_scores, initial=0.0)) > 1.0 or float(
-            np.nanmin(class_scores, initial=0.0)
-        ) < 0.0:
+        if (
+            float(np.nanmax(class_scores, initial=0.0)) > 1.0
+            or float(np.nanmin(class_scores, initial=0.0)) < 0.0
+        ):
             class_scores = _sigmoid(class_scores)
         best_scores = class_scores.max(axis=0)
         row_indices, column_indices = np.where(best_scores >= min_confidence)
@@ -227,9 +229,7 @@ def _decode_rknn_yolo_heads(
         distribution -= distribution.max(axis=1, keepdims=True)
         probability = np.exp(distribution)
         probability /= probability.sum(axis=1, keepdims=True)
-        distance = (probability * np.arange(reg_max, dtype=np.float32)[None, :, None]).sum(
-            axis=1
-        )
+        distance = (probability * np.arange(reg_max, dtype=np.float32)[None, :, None]).sum(axis=1)
         stride_x, stride_y = input_width / width, input_height / height
         for index, (row_index, column_index) in enumerate(
             zip(row_indices, column_indices, strict=True)

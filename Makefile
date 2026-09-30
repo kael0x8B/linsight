@@ -1,4 +1,4 @@
-.PHONY: init infra migrate model-assets-download model-assets-sync backend runtime frontend status dependency-audit runtime-source-fingerprint field-preflight-verify production-evidence-verify model-inventory algorithm-benchmark edge-capacity-benchmark offline-chaos-test security-release-report release-manifest rollback-test-report production-readiness-refresh production-readiness-report release-check stop
+.PHONY: init infra migrate model-assets-download model-assets-sync backend runtime frontend gateway-console status dependency-audit runtime-source-fingerprint field-preflight-verify production-evidence-verify model-inventory algorithm-benchmark edge-capacity-benchmark offline-chaos-test security-release-report release-manifest rollback-test-report production-readiness-refresh production-readiness-report release-check stop
 
 VERSION ?= 1.0.0-candidate
 
@@ -25,6 +25,9 @@ runtime:
 
 frontend:
 	./scripts/start-frontend.sh
+
+gateway-console:
+	bash ./scripts/build-gateway-console.sh
 
 status:
 	./scripts/status.sh

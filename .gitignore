@@ -14,5 +14,21 @@ runtime/__pycache__/
 var/model-assets/
 frontend/apps/web-antd/dist.zip
 runtime/deployment-wheels/
+runtime/deployment-python/
+runtime/gateway-console/
+runtime/edge_agent/app/console/
 .codex-tmp/edge-backups/
 .codex-tmp/edge-ssh.sock
+
+# Local operator state, downloaded models, evidence and generated dependencies.
+.codex-tmp/
+node_modules/
+runtime/var/
+var/
+artifacts/
+evidence/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.coverage
+output/
+examples/gateway-event-netty-client.zip

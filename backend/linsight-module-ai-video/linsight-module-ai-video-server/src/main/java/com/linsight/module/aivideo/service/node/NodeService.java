@@ -11,6 +11,14 @@ import java.util.List;
 import java.time.LocalDateTime;
 
 public interface NodeService {
+    NodeModelEnvironmentDTO getModelEnvironment(Long nodeId);
+
+    boolean supportsAlgorithmPackages(Long nodeId);
+
+    NodeTaskCapacityPreflightDTO preflightTaskCapacity(Long nodeId, Long taskId,
+                                                       java.util.Collection<Long> modelVersionIds);
+
+    void removeGatewayTask(Long nodeId, Long taskId, long expectedRevision);
     boolean supportsModelUninstall(Long nodeId);
     List<NodeRuntimeSummaryDTO> getRuntimeSummaries(java.util.Collection<Long> ids);
 

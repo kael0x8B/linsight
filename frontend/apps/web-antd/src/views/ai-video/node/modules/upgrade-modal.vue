@@ -8,7 +8,7 @@ import { ref } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
 
-import { Alert, message, Upload } from 'ant-design-vue';
+import { message, Upload } from 'ant-design-vue';
 
 import { useVbenForm, z } from '#/adapter/form';
 import { upgradeNode } from '#/api/ai-video/node';
@@ -26,16 +26,29 @@ const [Form, formApi] = useVbenForm({
       componentProps: { maxlength: 64, placeholder: '例如 1.1.0' },
       fieldName: 'targetVersion',
       label: '目标版本',
-      rules: z.string().trim().min(1).max(64).regex(/^[A-Za-z0-9._-]+$/, '版本格式不正确'),
+      rules: z
+        .string()
+        .trim()
+        .min(1)
+        .max(64)
+        .regex(/^[A-Za-z0-9._-]+$/, '版本格式不正确'),
     },
     {
       component: 'Input',
-      componentProps: { maxlength: 64, placeholder: '64 位小写十六进制 HMAC-SHA256' },
+      componentProps: {
+        maxlength: 64,
+        placeholder: '64 位小写十六进制 HMAC-SHA256',
+      },
       fieldName: 'signature',
       label: '发布签名',
       rules: z.string().regex(/^[0-9a-f]{64}$/, '请输入 64 位小写十六进制签名'),
     },
-    { component: 'Upload', fieldName: 'file', label: '升级包', rules: 'required' },
+    {
+      component: 'Upload',
+      fieldName: 'file',
+      label: '升级包',
+      rules: 'required',
+    },
   ],
   showDefaultActions: false,
 });
@@ -70,7 +83,9 @@ const [Modal, modalApi] = useVbenModal({
         signature: String(values.signature),
         targetVersion: String(values.targetVersion),
       });
-      message.success('升级命令已下发；安装完成后请在节点菜单执行重启以启用新版本');
+      message.success(
+        '升级命令已下发；安装完成后请在节点菜单执行重启以启用新版本',
+      );
       await modalApi.close();
       emit('success');
     } finally {
@@ -92,11 +107,6 @@ const [Modal, modalApi] = useVbenModal({
 <template>
   <Modal :title="`升级 Edge Agent · ${node?.name ?? ''}`">
     <div class="space-y-4">
-      <Alert
-        message="节点需预先配置发布签名密钥。升级会验证 SHA256 与签名，再切换版本目录；安装完成后请执行“重启节点”启用新版本。"
-        show-icon
-        type="warning"
-      />
       <Form>
         <template #file>
           <Upload.Dragger
@@ -106,10 +116,15 @@ const [Modal, modalApi] = useVbenModal({
             :max-count="1"
           >
             <p class="font-medium">点击或拖拽已签名的 Edge Agent 升级包</p>
-            <p class="text-muted-foreground mt-1 text-xs">仅支持 tar.gz/tgz，最大 64 MB</p>
+            <p class="text-muted-foreground mt-1 text-xs">
+              仅支持 tar.gz/tgz，最大 64 MB。节点需配置发布签名密钥。
+            </p>
           </Upload.Dragger>
         </template>
       </Form>
+      <p class="text-xs text-muted-foreground">
+        安装完成后，需重启节点启用新版本。
+      </p>
     </div>
   </Modal>
 </template>

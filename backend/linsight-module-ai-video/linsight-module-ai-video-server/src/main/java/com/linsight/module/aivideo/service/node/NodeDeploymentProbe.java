@@ -34,13 +34,29 @@ final class NodeDeploymentProbe {
             emit("ARCH", os.uname().machine)
             emit("OS", release.get("PRETTY_NAME","").strip('"'))
             emit("OS_SUPPORTED", int(release.get("ID","").strip('"') in ("ubuntu","debian") and shutil.which("apt-get") is not None and pathlib.Path("/run/systemd/system").exists()))
-            emit("PYTHON", ".".join(map(str,sys.version_info[:3])))
+            candidates=["/opt/linsight/python/3.12.14/bin/python3", "/usr/local/bin/python3.12", "/usr/bin/python3.12", shutil.which("python3.12"), sys.executable]
+            selected=sys.executable
+            version=".".join(map(str,sys.version_info[:3]))
+            for candidate in candidates:
+                if not candidate or not pathlib.Path(candidate).is_file():
+                    continue
+                try:
+                    found=subprocess.run([candidate,"-c","import sys, ssl; print('.'.join(map(str,sys.version_info[:3])))"], capture_output=True, text=True, timeout=5, check=True).stdout.strip()
+                    if found.startswith("3.12.") or found.startswith("3.13."):
+                        selected=candidate
+                        version=found
+                        break
+                except (OSError, subprocess.SubprocessError):
+                    continue
+            emit("PYTHON", version)
+            emit("SYSTEM_PYTHON", ".".join(map(str,sys.version_info[:3])))
+            emit("PYTHON_PATH", selected)
             with tempfile.TemporaryDirectory(prefix="linsight-preflight-") as temporary:
                 try:
                     # Installing bundled pip on eMMC can take >20s. Preflight only
                     # tests isolation and bundled-pip availability; the installer
                     # performs the full venv/pip test before any service switch.
-                    check=subprocess.run([sys.executable,"-m","venv","--without-pip",temporary], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+                    check=subprocess.run([selected,"-m","venv","--without-pip",temporary], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
                     emit("VENV", int(check.returncode == 0 and subprocess.run([temporary+"/bin/python","-c","import sys, ensurepip; assert sys.prefix != sys.base_prefix; ensurepip.version()"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5).returncode == 0))
                 except subprocess.TimeoutExpired:
                     emit("VENV", 0)

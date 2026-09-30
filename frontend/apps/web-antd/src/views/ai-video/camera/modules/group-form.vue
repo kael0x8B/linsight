@@ -64,7 +64,11 @@ const [Modal, modalApi] = useVbenModal({
     const data = modalApi.getData<Partial<AiVideoCameraApi.CameraGroup>>();
     if (!data?.id) {
       formData.value = undefined;
-      await formApi.setValues({ parentId: data?.parentId ?? 0, sort: 0, status: 0 });
+      await formApi.setValues({
+        parentId: data?.parentId ?? 0,
+        sort: 0,
+        status: 0,
+      });
       return;
     }
 

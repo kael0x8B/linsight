@@ -64,8 +64,11 @@ class DependencyManager:
                 require_rknn_sdk()
             except ValueError as error:
                 return DependencyStatus(
-                    profile="rknn-base-2.3.2", status="FAILED", stage="CHECKING_ENV",
-                    errorCode="RKNN_SDK_UNAVAILABLE", errorMessage=str(error),
+                    profile="rknn-base-2.3.2",
+                    status="FAILED",
+                    stage="CHECKING_ENV",
+                    errorCode="RKNN_SDK_UNAVAILABLE",
+                    errorMessage=str(error),
                 )
             return DependencyStatus(profile="rknn-base-2.3.2", status="READY", stage="ENV_READY")
         if request.artifact_format == "ONNX":

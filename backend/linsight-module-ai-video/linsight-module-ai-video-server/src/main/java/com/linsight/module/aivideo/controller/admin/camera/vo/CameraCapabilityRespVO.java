@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
+import com.linsight.module.aivideo.service.rule.RuleRegionGeometryDTO;
 
 @Data
 @Builder
@@ -31,4 +33,6 @@ public class CameraCapabilityRespVO {
     private String executionBackend;
     private Double analysisFps;
     private Double totalLatencyMillis;
+    @Schema(description = "网关已应用的识别区域，仅含归一化顶点；未知或尚未应用时为空")
+    private List<RuleRegionGeometryDTO> regions;
 }

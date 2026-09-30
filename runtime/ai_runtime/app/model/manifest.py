@@ -14,7 +14,7 @@ class PreprocessManifest(BaseModel):
     scale: float = Field(default=1.0 / 255.0, gt=0, le=1)
     mean: tuple[float, float, float] = (0.0, 0.0, 0.0)
     std: tuple[float, float, float] = (1.0, 1.0, 1.0)
-    resize: Literal["STRETCH"] = "STRETCH"
+    resize: Literal["STRETCH", "LETTERBOX", "OCR_RIGHT_PAD"] = "STRETCH"
 
     @model_validator(mode="after")
     def validate_numeric_contract(self):
@@ -38,6 +38,10 @@ class DecoderManifest(BaseModel):
         "FACE_PAIR_SFACE",
         "FACE_PAIR_SFACE_RKNN",
         "LPRNET",
+        "YOLO_PLATE",
+        "YOLO26_PLATE_POSE",
+        "CHINESE_PLATE_CTC",
+        "PLATE_OCR_ROUTED",
     ]
     labels: tuple[str, ...] = ()
     charset: tuple[str, ...] = ()
@@ -69,13 +73,48 @@ class RuntimeManifest(BaseModel):
     @model_validator(mode="after")
     def validate_task_decoder_pair(self):
         valid = {
-            "OBJECT_DETECTION": {"AUTO_DETECTION", "LPD_YUNET"},
+            "OBJECT_DETECTION": {"AUTO_DETECTION", "LPD_YUNET", "YOLO_PLATE", "YOLO26_PLATE_POSE"},
             "CLASSIFICATION": {"CLASSIFICATION"},
-            "OCR": {"CTC_GREEDY", "LPRNET"},
+            "OCR": {"CTC_GREEDY", "LPRNET", "CHINESE_PLATE_CTC", "PLATE_OCR_ROUTED"},
             "FACE_VERIFICATION": {"FACE_PAIR_SFACE", "FACE_PAIR_SFACE_RKNN"},
         }
         if self.decoder.type not in valid[self.task_type]:
             raise ValueError(
                 f"decoder {self.decoder.type} is incompatible with task {self.task_type}"
             )
+        if (
+            self.preprocess.resize == "LETTERBOX"
+            and self.decoder.type not in {"YOLO_PLATE", "YOLO26_PLATE_POSE"}
+        ):
+            raise ValueError("LETTERBOX is currently implemented for plate pose detectors only")
+        if self.preprocess.resize == "OCR_RIGHT_PAD" and self.decoder.type != "PLATE_OCR_ROUTED":
+            raise ValueError("OCR_RIGHT_PAD requires PLATE_OCR_ROUTED")
+        if self.decoder.type == "PLATE_OCR_ROUTED":
+            expected = PreprocessManifest(
+                inputWidth=320, inputHeight=48, color="BGR", resize="OCR_RIGHT_PAD",
+                mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5),
+            )
+            if self.preprocess != expected:
+                raise ValueError("routed OCR preprocessing must match its fixed two-model contract")
+        if self.decoder.type in {"YOLO_PLATE", "YOLO26_PLATE_POSE", "CHINESE_PLATE_CTC"}:
+            detector = self.decoder.type in {"YOLO_PLATE", "YOLO26_PLATE_POSE"}
+            expected = PreprocessManifest(
+                inputWidth=640 if detector else 168,
+                inputHeight=640 if detector else 48,
+                color="RGB" if detector else "BGR",
+                resize="LETTERBOX" if detector else "STRETCH",
+                mean=(0, 0, 0) if detector else (0.588, 0.588, 0.588),
+                std=(1, 1, 1) if detector else (0.193, 0.193, 0.193),
+            )
+            embedded = expected.model_copy(
+                update={
+                    "layout": "NHWC",
+                    "dtype": "UINT8",
+                    "scale": 1.0,
+                    "mean": (0, 0, 0),
+                    "std": (1, 1, 1),
+                }
+            )
+            if self.preprocess not in (expected, embedded):
+                raise ValueError("plate model preprocessing must match its fixed export contract")
         return self

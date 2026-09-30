@@ -6,6 +6,7 @@ import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { AiVideoCameraApi } from '#/api/ai-video/camera';
 
 import { computed, onMounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 
 import { confirm, Page, useVbenModal } from '@vben/common-ui';
 import { IconifyIcon } from '@vben/icons';
@@ -37,11 +38,12 @@ import {
 } from '#/api/ai-video/camera';
 import { AiPageHeader, AiStatusIndicator } from '#/components/ai-video';
 import { $t } from '#/locales';
-import { router } from '#/router';
 
 import { useCameraGridColumns, useCameraGridFormSchema } from './data';
 import CameraForm from './modules/camera-form.vue';
 import GroupForm from './modules/group-form.vue';
+
+const router = useRouter();
 
 const groups = ref<AiVideoCameraApi.CameraGroup[]>([]);
 const groupLoading = ref(false);
@@ -223,7 +225,11 @@ async function loadCardCameras() {
       pageNo: cardQuery.value.pageNo,
       pageSize: cardQuery.value.pageSize,
     });
-    if (!result.list.length && result.total > 0 && cardQuery.value.pageNo > 1) {
+    if (
+      result.list.length === 0 &&
+      result.total > 0 &&
+      cardQuery.value.pageNo > 1
+    ) {
       cardQuery.value.pageNo = Math.max(
         1,
         Math.ceil(result.total / cardQuery.value.pageSize),
@@ -303,7 +309,7 @@ onMounted(async () => {
     <div class="ai-page ai-page-stack h-full">
       <AiPageHeader
         title="摄像头"
-        description="统一管理视频源、接入状态与实时预览；状态异常时优先检查网络、鉴权与关键帧。"
+        description="管理摄像头、分组和视频接入。"
         icon="lucide:cctv"
       >
         <template #extra>
@@ -316,8 +322,8 @@ onMounted(async () => {
               ]"
             />
             <Button type="primary" @click="handleCreateCamera">
-<IconifyIcon icon="lucide:plus" />新增摄像头
-</Button>
+              <IconifyIcon icon="lucide:plus" />新增摄像头
+            </Button>
           </Space>
         </template>
       </AiPageHeader>
@@ -382,11 +388,6 @@ onMounted(async () => {
 
         <div class="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
           <Alert
-            message="在线状态来自最近一次连通检测；“未知”不代表离线。可通过行内“预览”进入单路实时画面。"
-            show-icon
-            type="warning"
-          />
-          <Alert
             v-if="cameraError"
             :message="cameraError"
             show-icon
@@ -442,7 +443,9 @@ onMounted(async () => {
                       }}
                     </Tag>
                   </template>
-                  <span v-else class="text-muted-foreground">暂未配置识别能力</span>
+                  <span v-else class="text-muted-foreground"
+                    >暂未配置识别能力</span
+                  >
                 </div>
               </template>
               <template #actions="{ row }">
@@ -497,8 +500,8 @@ onMounted(async () => {
                 @change="loadCardCameras"
               />
               <Button @click="loadCardCameras">
-<IconifyIcon icon="lucide:search" />搜索
-</Button>
+                <IconifyIcon icon="lucide:search" />搜索
+              </Button>
             </div>
             <Spin :spinning="cardLoading">
               <div v-if="cardCameras.length" class="camera-card-grid">
@@ -530,13 +533,14 @@ onMounted(async () => {
                   <div class="camera-card__body">
                     <div class="camera-card__title">
                       <div>
-                        <strong>{{ camera.name }}</strong><span>{{ camera.code }}</span>
+                        <strong>{{ camera.name }}</strong
+                        ><span>{{ camera.code }}</span>
                       </div>
                       <Tooltip
                         :title="camera.maskedStreamEndpoint || '未配置码流'"
-                        >
-<IconifyIcon icon="lucide:shield-check" />
-</Tooltip>
+                      >
+                        <IconifyIcon icon="lucide:shield-check" />
+                      </Tooltip>
                     </div>
                     <dl>
                       <div>
@@ -561,44 +565,48 @@ onMounted(async () => {
                       </div>
                     </dl>
                     <div class="camera-card__actions">
-                      <span class="text-xs text-muted-foreground">{{
+                      <span class="text-xs text-muted-foreground"
+                        >{{
                           camera.recognitionCapabilities?.length ?? 0
                         }}
-                        项识别能力</span>
+                        项识别能力</span
+                      >
                       <Button
                         type="primary"
                         size="small"
                         @click="handlePreviewCamera(camera)"
-                        >
-<IconifyIcon icon="lucide:play" />预览
-</Button>
+                      >
+                        <IconifyIcon icon="lucide:play" />预览
+                      </Button>
                       <Button size="small" @click="handleEditCamera(camera)">
-<IconifyIcon icon="lucide:settings-2" />编辑
-</Button>
+                        <IconifyIcon icon="lucide:settings-2" />编辑
+                      </Button>
                       <Dropdown>
                         <Button size="small" aria-label="更多操作">
-<IconifyIcon icon="lucide:ellipsis" />
-</Button>
+                          <IconifyIcon icon="lucide:ellipsis" />
+                        </Button>
                         <template #overlay>
-<div class="camera-more-menu">
+                          <div class="camera-more-menu">
                             <Button
                               danger
                               type="text"
                               @click="confirmDeleteCamera(camera)"
-                              >
-删除摄像头
-</Button>
+                            >
+                              删除摄像头
+                            </Button>
                           </div>
-</template>
+                        </template>
                       </Dropdown>
                     </div>
                   </div>
                 </article>
               </div>
               <div v-else-if="!cardLoading" class="camera-empty ai-surface">
-                <IconifyIcon icon="lucide:cctv" /><strong>暂无摄像头</strong><span>调整筛选条件，或先接入一路 RTSP / ONVIF 视频源。</span><Button type="primary" @click="handleCreateCamera">
-新增摄像头
-</Button>
+                <IconifyIcon icon="lucide:cctv" /><strong>暂无摄像头</strong
+                ><span>调整筛选条件，或先接入一路 RTSP / ONVIF 视频源。</span
+                ><Button type="primary" @click="handleCreateCamera">
+                  新增摄像头
+                </Button>
               </div>
             </Spin>
             <Pagination
@@ -620,10 +628,10 @@ onMounted(async () => {
 <style scoped>
 .camera-capabilities {
   display: flex;
-  width: 100%;
   flex-wrap: wrap;
-  align-items: flex-start;
   gap: 6px;
+  align-items: flex-start;
+  width: 100%;
   padding: 6px 0;
   color: hsl(var(--muted-foreground));
   text-align: left;
@@ -634,8 +642,8 @@ onMounted(async () => {
   max-width: 100%;
   padding: 2px 8px;
   line-height: 20px;
-  white-space: normal;
   overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .group-panel {
@@ -650,42 +658,49 @@ onMounted(async () => {
 .camera-card-view {
   padding: 1px;
 }
+
 .camera-card-filters {
   display: flex;
-  align-items: center;
   gap: 10px;
-  margin-bottom: 14px;
+  align-items: center;
   padding: 12px;
+  margin-bottom: 14px;
 }
+
 .camera-card-filters :deep(.ant-input-affix-wrapper) {
   width: min(320px, 38vw);
 }
+
 .camera-card-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(260px, 1fr));
   gap: 14px;
 }
+
 .camera-card {
   overflow: hidden;
   transition:
     transform 150ms ease,
     box-shadow 150ms ease;
 }
+
 .camera-card:hover {
   box-shadow: var(--ai-shadow-md);
   transform: translateY(-1px);
 }
+
 .camera-thumb {
   position: relative;
   display: flex;
-  width: 100%;
-  aspect-ratio: 16 / 8.8;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  aspect-ratio: 16 / 8.8;
   overflow: hidden;
   color: #94a3b8;
   background: #090f19;
 }
+
 .camera-thumb__grid {
   position: absolute;
   inset: 0;
@@ -695,89 +710,105 @@ onMounted(async () => {
   background-size: 28px 28px;
   mask-image: linear-gradient(to bottom, black, transparent);
 }
+
 .camera-thumb__icon {
   z-index: 1;
   font-size: 26px;
 }
+
 .camera-thumb__label {
   position: absolute;
-  z-index: 1;
   bottom: 14px;
+  z-index: 1;
   font-size: 11px;
   opacity: 0;
   transition: opacity 150ms ease;
 }
+
 .camera-thumb:hover .camera-thumb__label {
   opacity: 1;
 }
+
 .camera-thumb__status {
   position: absolute;
-  z-index: 2;
   top: 12px;
   left: 12px;
+  z-index: 2;
   padding: 4px 8px;
   color: #e2e8f0;
   background: rgb(2 6 23 / 72%);
   border-radius: 999px;
   backdrop-filter: blur(8px);
 }
+
 .camera-card__body {
   padding: 14px;
 }
+
 .camera-card__title {
   display: flex;
+  gap: 8px;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
 }
+
 .camera-card__title div {
   display: grid;
   min-width: 0;
 }
+
 .camera-card__title strong {
   overflow: hidden;
-  font-size: 14px;
   text-overflow: ellipsis;
+  font-size: 14px;
   white-space: nowrap;
 }
+
 .camera-card__title span {
   margin-top: 2px;
-  color: hsl(var(--muted-foreground));
   font-family: ui-monospace, monospace;
   font-size: 10px;
+  color: hsl(var(--muted-foreground));
 }
+
 .camera-card__title > svg {
-  color: var(--ai-success);
   font-size: 16px;
+  color: var(--ai-success);
 }
+
 .camera-card dl {
   display: grid;
   gap: 7px;
   margin: 14px 0;
 }
+
 .camera-card dl div {
   display: flex;
+  gap: 12px;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
   font-size: 11px;
 }
+
 .camera-card dt {
   color: hsl(var(--muted-foreground));
 }
+
 .camera-card dd {
-  overflow: hidden;
   margin: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .camera-card__actions {
   display: flex;
-  align-items: center;
   gap: 7px;
+  align-items: center;
   padding-top: 12px;
   border-top: 1px solid hsl(var(--border) / 52%);
 }
+
 .camera-more-menu {
   padding: 5px;
   background: hsl(var(--popover));
@@ -785,54 +816,65 @@ onMounted(async () => {
   border-radius: 8px;
   box-shadow: var(--ai-shadow-md);
 }
+
 .camera-empty {
   display: flex;
-  min-height: 300px;
+  flex-direction: column;
+  gap: 9px;
   align-items: center;
   justify-content: center;
-  gap: 9px;
+  min-height: 300px;
   color: hsl(var(--muted-foreground));
-  flex-direction: column;
 }
+
 .camera-empty > svg {
   margin-bottom: 6px;
   font-size: 32px;
 }
+
 .camera-empty strong {
   color: hsl(var(--foreground));
 }
+
 .camera-empty span {
   font-size: 12px;
 }
+
 .camera-pagination {
   display: flex;
   justify-content: flex-end;
   padding: 16px 2px 2px;
 }
+
 @media (width <= 1500px) {
   .camera-card-grid {
     grid-template-columns: repeat(2, minmax(250px, 1fr));
   }
 }
+
 @media (width <= 1100px) {
   .camera-card-grid {
     grid-template-columns: 1fr;
   }
+
   .group-panel {
     width: 210px;
   }
 }
+
 @media (width <= 900px) {
   .camera-page {
     flex-direction: column;
     overflow: auto;
   }
+
   .group-panel {
     width: 100%;
     height: auto;
     max-height: 190px;
     overflow: auto;
   }
+
   .camera-card-filters {
     flex-wrap: wrap;
   }

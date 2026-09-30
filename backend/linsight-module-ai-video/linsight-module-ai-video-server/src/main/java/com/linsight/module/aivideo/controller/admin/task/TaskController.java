@@ -97,7 +97,7 @@ public class TaskController {
     }
 
     @PostMapping("/stop")
-    @Operation(summary = "幂等下发任务停止命令")
+    @Operation(summary = "停止任务；网关已停止时同步平台期望状态")
     @PreAuthorize("@ss.hasPermission('ai-video:task:stop')")
     public CommonResult<String> stop(@RequestParam Long id) {
         return success(taskService.stopTask(id));

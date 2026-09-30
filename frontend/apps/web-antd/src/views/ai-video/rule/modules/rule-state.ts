@@ -1,22 +1,22 @@
-import type { AiVideoRuleApi } from "#/api/ai-video/rule";
+import type { AiVideoRuleApi } from '#/api/ai-video/rule';
 export function createRuleAst(eventType: string): AiVideoRuleApi.RuleAst {
   return {
-    schemaVersion: "1.0",
+    schemaVersion: '1.0',
     eventType,
-    severity: "MAJOR",
+    severity: 'MAJOR',
     cooldownSeconds: 30,
     recoverySeconds: 5,
-    dedup: { scope: "TRACK", windowSeconds: 30 },
+    dedup: { scope: 'TRACK', windowSeconds: 30 },
     schedule: {
-      timezone: "Asia/Shanghai",
-      weekly: [{ days: [1, 2, 3, 4, 5, 6, 7], start: "00:00", end: "23:59" }],
+      timezone: 'Asia/Shanghai',
+      weekly: [{ days: [1, 2, 3, 4, 5, 6, 7], start: '00:00', end: '23:59' }],
     },
     regions: [
       {
-        id: "main",
-        name: "主区域",
-        type: "POLYGON",
-        pointMode: "FOOT",
+        id: 'main',
+        name: '主区域',
+        type: 'POLYGON',
+        pointMode: 'FOOT',
         overlapThreshold: 0.2,
         sourceWidth: 1920,
         sourceHeight: 1080,
@@ -29,15 +29,17 @@ export function createRuleAst(eventType: string): AiVideoRuleApi.RuleAst {
       },
     ],
     condition: {
-      type: "AND",
+      type: 'AND',
       children: [
-        { type: "ROI_ENTER", regionId: "main", objectClasses: ["person"] },
-        { type: "N_OF_M", n: 3, m: 5 },
-        { type: "DURATION", seconds: 2 },
+        { type: 'ROI_ENTER', regionId: 'main', objectClasses: ['person'] },
+        { type: 'N_OF_M', n: 3, m: 5 },
+        { type: 'DURATION', seconds: 2 },
       ],
     },
   };
 }
-export function cloneRuleAst(ast: AiVideoRuleApi.RuleAst): AiVideoRuleApi.RuleAst {
+export function cloneRuleAst(
+  ast: AiVideoRuleApi.RuleAst,
+): AiVideoRuleApi.RuleAst {
   return JSON.parse(JSON.stringify(ast));
 }

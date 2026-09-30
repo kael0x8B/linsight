@@ -64,15 +64,11 @@ def test_capture_summary_preserves_outage_and_recovery_signals() -> None:
     samples = [
         {
             "controlPlaneReachable": False,
-            "snapshot": snapshot(
-                running=2, analysis_fps=15, active_streams=2, pending_events=5
-            ),
+            "snapshot": snapshot(running=2, analysis_fps=15, active_streams=2, pending_events=5),
         },
         {
             "controlPlaneReachable": True,
-            "snapshot": snapshot(
-                running=2, analysis_fps=14, active_streams=2, pending_events=0
-            ),
+            "snapshot": snapshot(running=2, analysis_fps=14, active_streams=2, pending_events=0),
         },
     ]
 

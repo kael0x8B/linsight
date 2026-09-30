@@ -5,7 +5,7 @@ import { h } from 'vue';
 
 import { useVbenDrawer } from '@vben/common-ui';
 
-import { Alert, message, Modal as AntModal } from 'ant-design-vue';
+import { Modal as AntModal, message } from 'ant-design-vue';
 
 import { useVbenForm, z } from '#/adapter/form';
 import { createWebhook, updateWebhook } from '#/api/ai-video/webhook';
@@ -27,14 +27,22 @@ const [Form, formApi] = useVbenForm({
       componentProps: { placeholder: 'https://events.example.com/linsight' },
       fieldName: 'url',
       label: 'HTTPS 地址',
-      rules: z.string().url('请输入合法 URL').startsWith('https://', '必须使用 HTTPS'),
+      rules: z
+        .string()
+        .url('请输入合法 URL')
+        .startsWith('https://', '必须使用 HTTPS'),
     },
     {
       component: 'InputPassword',
       componentProps: { placeholder: '创建时留空自动生成；修改时留空不更换' },
       fieldName: 'secret',
       label: '签名密钥',
-      rules: z.string().min(24, '至少 24 个字符').max(256).optional().or(z.literal('')),
+      rules: z
+        .string()
+        .min(24, '至少 24 个字符')
+        .max(256)
+        .optional()
+        .or(z.literal('')),
     },
     {
       component: 'Select',
@@ -97,7 +105,8 @@ const [Drawer, drawerApi] = useVbenDrawer({
   async onConfirm() {
     const { valid } = await formApi.validate();
     if (!valid) return;
-    const values = (await formApi.getValues()) as AiVideoWebhookApi.SaveEndpoint;
+    const values =
+      (await formApi.getValues()) as AiVideoWebhookApi.SaveEndpoint;
     drawerApi.lock();
     try {
       if (values.id) {
@@ -108,7 +117,11 @@ const [Drawer, drawerApi] = useVbenDrawer({
         AntModal.success({
           content: h('div', { class: 'space-y-2' }, [
             h('p', '签名密钥仅显示这一次，请立即保存到接收方的密钥管理系统。'),
-            h('code', { style: 'word-break:break-all;user-select:all' }, result.secret),
+            h(
+              'code',
+              { style: 'word-break:break-all;user-select:all' },
+              result.secret,
+            ),
           ]),
           title: 'Webhook 创建成功',
           width: 560,
@@ -129,20 +142,24 @@ const [Drawer, drawerApi] = useVbenDrawer({
     await formApi.setValues(
       data
         ? { ...data, secret: '' }
-        : { eventTypes: [], maxAttempts: 5, severities: [], status: 0, timeoutMs: 5000 },
+        : {
+            eventTypes: [],
+            maxAttempts: 5,
+            severities: [],
+            status: 0,
+            timeoutMs: 5000,
+          },
     );
   },
 });
 </script>
 
 <template>
-  <Drawer class="w-[640px] max-w-[calc(100vw-32px)]" :title="drawerApi.getData()?.id ? '编辑 Webhook' : '新增 Webhook'">
+  <Drawer
+    class="w-[640px] max-w-[calc(100vw-32px)]"
+    :title="drawerApi.getData()?.id ? '编辑 Webhook' : '新增 Webhook'"
+  >
     <div class="space-y-4">
-      <Alert
-        message="服务端会校验公网 HTTPS 地址。请求使用 timestamp、nonce 和 HMAC-SHA256 签名；密钥加密保存且不会再次返回。"
-        show-icon
-        type="info"
-      />
       <Form />
     </div>
   </Drawer>

@@ -21,6 +21,7 @@ class NodeDeploymentRunnerTest {
         java.nio.file.Files.writeString(bootstrap, "offline bootstrap asset");
         var module = source.resolve("edge_agent/main.py");
         java.nio.file.Files.writeString(module, "VERSION = 1\n");
+        writeGatewayConsoleBundle(source);
         var properties = new com.linsight.module.aivideo.integration.ssh.NodeDeploymentProperties();
         properties.setRuntimeSourceDir(source.toString());
         var runner = new NodeDeploymentRunner();
@@ -41,13 +42,29 @@ class NodeDeploymentRunnerTest {
         assertFalse(NodeDeploymentRunner.sha256(first).equals(NodeDeploymentRunner.sha256(changed)));
     }
 
+    private static void writeGatewayConsoleBundle(java.nio.file.Path source) throws Exception {
+        var directory = source.resolve("gateway-console");
+        java.nio.file.Files.createDirectories(directory);
+        byte[] artifact = "gateway console artifact".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        String digest = NodeDeploymentRunner.sha256(artifact);
+        String fileName = "gateway-console-" + digest.substring(0, 12) + ".tar.gz";
+        java.nio.file.Files.write(directory.resolve(fileName), artifact);
+        java.nio.file.Files.writeString(directory.resolve("manifest.json"), """
+                {"schemaVersion":"1.0","artifactType":"linsightGatewayConsole",
+                 "artifact":{"fileName":"%s","sha256":"%s"}}
+                """.formatted(fileName, digest));
+    }
+
     @Test
-    void installScriptMustUseDetectedPythonWithoutOverridingVendorHolds() throws Exception {
+    void installScriptMustUseSelectedPythonWithoutOverridingVendorHolds() throws Exception {
         String script = NodeDeploymentRunner.installScript(
                 "linaro", "/tmp/linsight-deploy-1", true,
                 "a".repeat(64));
 
         String dependencies = new String(NodeDeploymentRunner.dependencyScript(), java.nio.charset.StandardCharsets.UTF_8);
+        String python = new String(NodeDeploymentRunner.pythonScript(), java.nio.charset.StandardCharsets.UTF_8);
+        String diskCleanup = new String(NodeDeploymentRunner.diskPressureCleanupScript(),
+                java.nio.charset.StandardCharsets.UTF_8);
         assertFalse(dependencies.contains("--allow-change-held-packages"));
         assertFalse(dependencies.contains("python3-venv"));
         assertFalse(dependencies.contains("-qq"));
@@ -69,7 +86,19 @@ class NodeDeploymentRunnerTest {
         assertTrue(script.contains("dependencies.sh install /opt/linsight/runtime.new/ai_runtime/app/core/environment.py"));
         assertTrue(script.indexOf("sha256sum -c -") < script.indexOf("dependencies.sh install"));
         assertTrue(script.indexOf("extractall(") < script.indexOf("dependencies.sh install"));
-        assertTrue(dependencies.contains("python3 -I \"$bootstrap\" --probe"));
+        assertTrue(script.contains("console_artifact.py install"));
+        assertTrue(script.contains("gateway-console/current/gateway.html"));
+        assertTrue(dependencies.contains("\"$python_bin\" -I \"$bootstrap\" --probe"));
+        assertTrue(dependencies.contains("python_bin=\"${LINSIGHT_PYTHON:-python3}\""));
+        assertTrue(script.contains("source /tmp/linsight-deploy-1/python.sh install"));
+        assertTrue(script.contains("\"$LINSIGHT_PYTHON\" -I /opt/linsight/runtime.new/ai_runtime/app/core/environment.py"));
+        assertTrue(NodeDeploymentRunner.installScript("linaro", "/tmp/linsight-deploy-1", false, "a".repeat(64))
+                .contains("source /tmp/linsight-deploy-1/python.sh check"));
+        assertTrue(python.contains("/opt/linsight/python/3.12.14/bin/python3"));
+        assertTrue(python.contains("c0574c9c9fec561eb192ad510e4e79aaad039929b3531b3bb873e2f630fb14a9"));
+        assertTrue(python.contains("sha256sum -c -"));
+        assertFalse(python.contains("update-alternatives"));
+        assertFalse(python.contains("/usr/bin/python3 -"));
         assertTrue(script.contains("for attempt in 1 2 3; do"));
         assertTrue(script.contains("--retries 10 --timeout 120"));
         assertTrue(script.contains("--cache-dir /var/cache/linsight/pip"));
@@ -99,12 +128,44 @@ class NodeDeploymentRunnerTest {
         assertTrue(script.indexOf("recovery.sh prepare") < script.indexOf("systemctl stop linsight-edge-agent"));
         assertTrue(script.contains("PathExists=/run/linsight/node-power-request"));
         assertTrue(script.contains("linsight-node-power.path"));
+        assertTrue(script.contains("linsight-accelerator-metrics-permissions.service"));
+        assertTrue(script.contains("chgrp linaro /sys/kernel/debug /sys/kernel/debug/rknpu \"$load\""));
+        assertTrue(script.contains("chmod g+r \"$load\""));
+        assertFalse(script.contains("AmbientCapabilities=CAP_DAC_READ_SEARCH"));
+        assertTrue(script.contains("disk-pressure-cleanup.sh --force"));
+        assertTrue(script.contains("linsight-disk-pressure-cleanup.timer"));
+        assertTrue(script.contains("OnUnitActiveSec=15min"));
+        assertTrue(script.contains("LINSIGHT_DISK_CLEANUP_TRIGGER_PERCENT=80"));
+        assertTrue(script.contains("LINSIGHT_DISK_CLEANUP_CRITICAL_PERCENT=90"));
+        assertTrue(script.contains("可用空间仍不足 1.5 GiB"));
+        assertTrue(diskCleanup.contains("delivery.sqlite3 are never touched"));
+        assertTrue(diskCleanup.contains("source-previous"));
+        assertTrue(diskCleanup.contains("journalctl --vacuum-time=7d --vacuum-size=256M"));
+        assertFalse(diskCleanup.contains("runtime-data/events"));
         assertTrue(script.contains("case \"$action\" in"));
         assertTrue(script.contains("restart) target=reboot"));
         assertTrue(script.contains("shutdown) target=poweroff"));
         assertTrue(script.contains("NoNewPrivileges=true"));
         assertFalse(script.contains(
                 "apt-get install -y -qq python3-venv ffmpeg ca-certificates curl"));
+    }
+
+    @Test
+    void unsupportedSystemPythonUsesManagedPythonForWheelhouse() {
+        org.junit.jupiter.api.Assertions.assertEquals("3.12.14", NodeDeploymentRunner.deploymentPythonVersion("3.10.12"));
+        org.junit.jupiter.api.Assertions.assertEquals("3.12.4", NodeDeploymentRunner.deploymentPythonVersion("3.12.4"));
+    }
+
+    @Test
+    void generatedInstallScriptHasValidBashSyntax() throws Exception {
+        Process process = new ProcessBuilder("bash", "-n").redirectErrorStream(true).start();
+        try (var input = process.getOutputStream()) {
+            input.write(NodeDeploymentRunner.installScript("linaro", "/tmp/linsight-deploy-1", true,
+                    "a".repeat(64)).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        }
+        assertTrue(process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS));
+        org.junit.jupiter.api.Assertions.assertEquals(0, process.exitValue(),
+                new String(process.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
     }
 
     @Test
@@ -156,5 +217,13 @@ class NodeDeploymentRunnerTest {
         node.setOnlineStatus(2);
         assertFalse(NodeDeploymentRunner.hasFreshHeartbeat(node, deploymentStartedAt, "source-expected"));
         assertFalse(NodeDeploymentRunner.hasFreshHeartbeat(null, deploymentStartedAt, "source-expected"));
+    }
+
+    @Test
+    void runtimeEnvironmentReceivesTheDeployedPlatformUrl() {
+        String environment = org.springframework.test.util.ReflectionTestUtils.invokeMethod(
+                new NodeDeploymentRunner(), "runtimeEnv", "runtime-key", "http://192.168.2.11:48888/");
+        assertTrue(environment.contains(
+                "LINSIGHT_RUNTIME_PLATFORM_URL=http://192.168.2.11:48888\n"));
     }
 }

@@ -63,11 +63,18 @@ export function getRunnableAlgorithms() {
   );
 }
 
-export function createAlgorithm(data: Omit<AiVideoAlgorithmApi.Algorithm, 'currentPipelineVersionId' | 'id' | 'pipelineAcceptanceStatus'>) {
+export function createAlgorithm(
+  data: Omit<
+    AiVideoAlgorithmApi.Algorithm,
+    'currentPipelineVersionId' | 'id' | 'pipelineAcceptanceStatus'
+  >,
+) {
   return requestClient.post<number>('/ai-video/algorithm/create', data);
 }
 
-export function updateAlgorithm(data: Omit<AiVideoAlgorithmApi.Algorithm, 'pipelineAcceptanceStatus'>) {
+export function updateAlgorithm(
+  data: Omit<AiVideoAlgorithmApi.Algorithm, 'pipelineAcceptanceStatus'>,
+) {
   return requestClient.put('/ai-video/algorithm/update', data);
 }
 
@@ -95,5 +102,8 @@ export function publishPipeline(id: number) {
 }
 
 export function getAlgorithm(id: number) {
-  return requestClient.get<AiVideoAlgorithmApi.Algorithm>('/ai-video/algorithm/get', {params:{id}});
+  return requestClient.get<AiVideoAlgorithmApi.Algorithm>(
+    '/ai-video/algorithm/get',
+    { params: { id } },
+  );
 }

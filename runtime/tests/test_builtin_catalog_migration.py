@@ -3,8 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 MIGRATION = ROOT / (
-    "backend/sql/mysql/migrations/ai-video/"
-    "V202609022330__add_universal_model_algorithm_catalog.sql"
+    "backend/sql/mysql/migrations/ai-video/V202609022330__add_universal_model_algorithm_catalog.sql"
 )
 
 

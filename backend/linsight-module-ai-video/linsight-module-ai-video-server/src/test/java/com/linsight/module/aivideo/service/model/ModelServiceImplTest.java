@@ -1,6 +1,7 @@
 package com.linsight.module.aivideo.service.model;
 
 import com.linsight.framework.common.exception.ServiceException;
+import com.linsight.framework.common.util.json.JsonUtils;
 import com.linsight.module.aivideo.controller.admin.model.vo.ModelVersionUploadReqVO;
 import com.linsight.module.aivideo.dal.dataobject.model.ModelDO;
 import com.linsight.module.aivideo.dal.dataobject.model.ModelVersionDO;
@@ -14,6 +15,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
+
+import java.io.ByteArrayOutputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -40,6 +45,75 @@ class ModelServiceImplTest {
     void rejectResizeModesNotSupportedByRuntimeBeforeDeployment() {
         String manifest = version("MIT").getRuntimeManifest().replace("\"preprocess\":{", "\"preprocess\":{\"resize\":\"LETTERBOX\",");
         assertThrows(ServiceException.class, () -> ModelServiceImpl.validateRuntimeManifest(manifest));
+    }
+
+    @Test
+    void plateDecodersMustMatchTheirTaskAndLetterboxContract() {
+        String detector = runtimeManifest().replace("AUTO_DETECTION", "YOLO_PLATE")
+                .replace("\"preprocess\":{", "\"preprocess\":{\"resize\":\"LETTERBOX\",");
+        ModelServiceImpl.validateRuntimeManifest(detector);
+        assertThrows(ServiceException.class, () -> ModelServiceImpl.validateRuntimeManifest(
+                detector.replace("OBJECT_DETECTION", "OCR")));
+        String ocr = runtimeManifest().replace("AUTO_DETECTION", "CHINESE_PLATE_CTC")
+                .replace("OBJECT_DETECTION", "OCR");
+        ModelServiceImpl.validateRuntimeManifest(ocr);
+        assertThrows(ServiceException.class, () -> ModelServiceImpl.validateRuntimeManifest(
+                ocr.replace("OCR", "CLASSIFICATION")));
+    }
+
+    @Test
+    void routedOcrRightPaddingRequiresItsDecoderAndOcrTask() {
+        String manifest = routedOcrManifest();
+
+        ModelServiceImpl.validateRuntimeManifest(manifest);
+
+        assertThrows(ServiceException.class, () -> ModelServiceImpl.validateRuntimeManifest(
+                manifest.replace("PLATE_OCR_ROUTED", "CHINESE_PLATE_CTC")));
+        assertThrows(ServiceException.class, () -> ModelServiceImpl.validateRuntimeManifest(
+                manifest.replace("\"taskType\": \"OCR\"", "\"taskType\": \"OBJECT_DETECTION\"")));
+    }
+
+    @Test
+    void routedOcrArchiveUploadPreservesItsExecutionManifest() throws Exception {
+        when(modelMapper.selectById(1L)).thenReturn(model());
+        when(fileApi.createFile(any(byte[].class), anyString(), anyString(), anyString()))
+                .thenReturn("model/routed-ocr");
+        ByteArrayOutputStream content = new ByteArrayOutputStream();
+        try (ZipOutputStream archive = new ZipOutputStream(content)) {
+            for (String member : new String[]{"specialist.onnx", "site.onnx"}) {
+                archive.putNextEntry(new ZipEntry(member));
+                archive.write(new byte[]{0x08, 0x08, 0x3a, 0x00});
+                archive.closeEntry();
+            }
+        }
+        ModelVersionUploadReqVO request = uploadRequest("plate-ocr-routed.zip", "GPL-3.0; Apache-2.0",
+                content.toByteArray());
+        request.setRuntimeManifest(routedOcrManifest());
+
+        modelService.uploadVersion(request);
+
+        ArgumentCaptor<ModelVersionDO> captor = ArgumentCaptor.forClass(ModelVersionDO.class);
+        verify(modelVersionMapper).insert(captor.capture());
+        assertEquals("ARCHIVE", captor.getValue().getArtifactFormat());
+        assertEquals(JsonUtils.parseMap(routedOcrManifest()),
+                JsonUtils.parseMap(captor.getValue().getRuntimeManifest()));
+        assertEquals("DRAFT", captor.getValue().getPublishStatus());
+    }
+
+    @Test
+    void runtimeManifestSupportsGenericProviderTargetAndMinimumVersion() {
+        String manifest = runtimeManifest().replace("\"preprocess\":{",
+                "\"targetPlatform\":\"sm_87\",\"execution\":{" +
+                "\"provider\":\"nvidia-tensorrt\",\"target\":\"sm_87\"," +
+                "\"runtime\":\"tensorrt\",\"minRuntimeVersion\":\"10.2.0\"},\"preprocess\":{");
+
+        ModelServiceImpl.validateRuntimeManifest(manifest);
+        assertThrows(ServiceException.class, () -> ModelServiceImpl.validateRuntimeManifest(
+                manifest.replace("\"target\":\"sm_87\"", "\"target\":\"sm_89\"")));
+        assertThrows(ServiceException.class, () -> ModelServiceImpl.validateRuntimeManifest(
+                runtimeManifest().replace("\"preprocess\":{",
+                        "\"execution\":{\"provider\":\"nvidia-tensorrt\"," +
+                        "\"minRuntimeVersion\":\"10.2.0\"},\"preprocess\":{")));
     }
 
     @Test
@@ -184,5 +258,29 @@ class ModelServiceImplTest {
         return "{\"schemaVersion\":\"1.0\",\"taskType\":\"OBJECT_DETECTION\"," +
                 "\"preprocess\":{\"color\":\"RGB\",\"layout\":\"NCHW\",\"dtype\":\"FLOAT32\"}," +
                 "\"decoder\":{\"type\":\"AUTO_DETECTION\",\"labels\":[\"person\"]}}";
+    }
+
+    private static String routedOcrManifest() {
+        // The shipped two-model archive uses this complete preprocessing contract.
+        return """
+                {
+                  "schemaVersion": "1.0",
+                  "taskType": "OCR",
+                  "preprocess": {
+                    "inputWidth": 320,
+                    "inputHeight": 48,
+                    "color": "BGR",
+                    "layout": "NCHW",
+                    "dtype": "FLOAT32",
+                    "scale": 0.00392156862745098,
+                    "mean": [0.5, 0.5, 0.5],
+                    "std": [0.5, 0.5, 0.5],
+                    "resize": "OCR_RIGHT_PAD"
+                  },
+                  "decoder": {
+                    "type": "PLATE_OCR_ROUTED"
+                  }
+                }
+                """;
     }
 }

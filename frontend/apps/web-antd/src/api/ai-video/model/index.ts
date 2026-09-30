@@ -2,6 +2,29 @@ import type { PageParam } from '@vben/request';
 
 import { requestClient } from '#/api/request';
 
+export interface ExecutableModelOption {
+  id: number;
+  modelId: number;
+  name: string;
+  version: string;
+  format: string;
+  manifest?: {
+    decoder?: { labels?: string[]; type?: string };
+    execution?: {
+      minRuntimeVersion?: string;
+      provider: string;
+      runtime?: string;
+      target?: string;
+    };
+    targetPlatform?: string;
+    taskType?: string;
+  };
+}
+export const getExecutableModelOptions = () =>
+  requestClient.get<ExecutableModelOption[]>(
+    '/ai-video/model/executable-options',
+  );
+
 export namespace AiVideoModelApi {
   export interface ModelCapability {
     acceptanceStatus: string;
@@ -197,8 +220,14 @@ export function getModelTests(modelVersionId: number) {
 }
 
 export function getNodeModelDeployments(nodeId: number) {
-  return requestClient.get<AiVideoModelApi.ModelDeployment[]>('/ai-video/model/deployment/node-list', { params: { nodeId } });
+  return requestClient.get<AiVideoModelApi.ModelDeployment[]>(
+    '/ai-video/model/deployment/node-list',
+    { params: { nodeId } },
+  );
 }
 export function uninstallModelVersion(modelVersionId: number, nodeId: number) {
-  return requestClient.post<number>('/ai-video/model/deployment/uninstall', { modelVersionId, nodeId });
+  return requestClient.post<number>('/ai-video/model/deployment/uninstall', {
+    modelVersionId,
+    nodeId,
+  });
 }

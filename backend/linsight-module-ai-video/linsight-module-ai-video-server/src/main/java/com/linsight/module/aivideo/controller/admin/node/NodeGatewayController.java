@@ -38,7 +38,8 @@ public class NodeGatewayController {
     @PreAuthorize("@ss.hasPermission('ai-video:node:query')")
     @ApiAccessLog(requestEnable = false, responseEnable = false)
     public CommonResult<Map<String, Object>> query(@Valid @RequestBody RequestVO request) {
-        if (!Set.of("snapshot", "overlay", "events", "event.snapshot", "event.video").contains(request.getAction())) {
+        if (!Set.of("snapshot", "overlay", "events", "event.snapshot", "event.video",
+                "task.capacity.preflight", "event-stream.status").contains(request.getAction())) {
             return success(Map.of("ok", false, "code", 403, "message", "只读入口不允许修改配置"));
         }
         return success(service.invoke(request.getNodeId(), request.getAction(), request.getPayload()));
@@ -51,6 +52,38 @@ public class NodeGatewayController {
     public CommonResult<Map<String, Object>> updateLocalModel(@Valid @RequestBody RequestVO request) {
         if (!"model.uninstall".equals(request.getAction())) {
             return success(Map.of("ok", false, "code", 400, "message", "不支持的模型操作"));
+        }
+        return success(service.invoke(request.getNodeId(), request.getAction(), request.getPayload()));
+    }
+
+    @PostMapping("/image-test")
+    @Operation(summary = "使用网关任务配置识别单张图片，不生成事件")
+    @PreAuthorize("@ss.hasPermission('ai-video:node:query') and @ss.hasPermission('ai-video:model:test')")
+    @ApiAccessLog(requestEnable = false, responseEnable = false)
+    public CommonResult<Map<String, Object>> recognizeImage(@Valid @RequestBody RequestVO request) {
+        if (!"task.recognize-image".equals(request.getAction())
+                || !request.getPayload().keySet().equals(Set.of("taskId", "imageBase64"))
+                || !(request.getPayload().get("taskId") instanceof Number taskId)
+                || taskId.longValue() <= 0
+                || !(request.getPayload().get("imageBase64") instanceof String image)
+                || image.isBlank() || image.length() > 5_592_408) {
+            return success(Map.of("ok", false, "code", 422, "message", "请选择任务和不超过 4 MB 的图片"));
+        }
+        return success(service.invoke(request.getNodeId(), request.getAction(), request.getPayload()));
+    }
+
+    @PostMapping("/image-validation")
+    @Operation(summary = "管理网关图片验证集并执行可追溯的版本验证")
+    @PreAuthorize("@ss.hasPermission('ai-video:node:query') and @ss.hasPermission('ai-video:model:test')")
+    @ApiAccessLog(requestEnable = false, responseEnable = false)
+    public CommonResult<Map<String, Object>> imageValidation(@Valid @RequestBody RequestVO request) {
+        if (!Set.of("validation.list", "validation.options", "validation.get", "validation.save",
+                "validation.sample-save", "validation.sample-delete", "validation.image", "validation.delete", "validation.runs",
+                "validation.run-create", "validation.run-get", "validation.run-item", "validation.result").contains(request.getAction())) {
+            return success(Map.of("ok", false, "code", 400, "message", "不支持的验证操作"));
+        }
+        if (request.getPayload().get("imageBase64") instanceof String image && image.length() > 5_592_408) {
+            return success(Map.of("ok", false, "code", 422, "message", "图片不能超过 4 MB"));
         }
         return success(service.invoke(request.getNodeId(), request.getAction(), request.getPayload()));
     }
@@ -71,7 +104,8 @@ public class NodeGatewayController {
     @PreAuthorize("@ss.hasPermission('ai-video:node:operate') and @ss.hasPermission('ai-video:task:update')")
     @ApiAccessLog(requestEnable = false, responseEnable = false)
     public CommonResult<Map<String, Object>> update(@Valid @RequestBody RequestVO request) {
-        if (!Set.of("task.save", "access.password").contains(request.getAction())) {
+        if (!Set.of("task.save", "access.password", "event-stream.configure")
+                .contains(request.getAction())) {
             return success(Map.of("ok", false, "code", 400, "message", "不支持的修改操作"));
         }
         return success(service.invoke(request.getNodeId(), request.getAction(), request.getPayload()));

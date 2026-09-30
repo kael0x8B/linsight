@@ -22,7 +22,10 @@ export async function bootstrapGateway() {
   registerLoadingDirective(app, { loading: 'loading', spinning: 'spinning' });
   await setupI18n(app);
   await initStores(app, { namespace: 'linsight-gateway' });
-  const router = createRouter({ history: createWebHashHistory(), routes: [{ path: '/:pathMatch(.*)*', component: GatewayApp }] });
+  const router = createRouter({
+    history: createWebHashHistory(),
+    routes: [{ path: '/:pathMatch(.*)*', component: GatewayApp }],
+  });
   app.use(router);
   app.mount('#app');
 }

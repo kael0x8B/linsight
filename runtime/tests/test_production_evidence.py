@@ -329,9 +329,12 @@ def test_all_six_structured_reports_and_assembled_manifest_pass(tmp_path) -> Non
     MODULE.initialize_workspace(tmp_path, ENVIRONMENT)
     for evidence_type in MODULE.EVIDENCE_TYPES:
         report, report_path = valid_report(evidence_type, tmp_path)
-        assert MODULE.validate_evidence_report(
-            report, evidence_type, report_path, tmp_path, ENVIRONMENT
-        ) == []
+        assert (
+            MODULE.validate_evidence_report(
+                report, evidence_type, report_path, tmp_path, ENVIRONMENT
+            )
+            == []
+        )
 
     manifest = MODULE.assemble_manifest(tmp_path)
     assert MODULE.validate_manifest(manifest) == []

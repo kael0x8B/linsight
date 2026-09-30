@@ -42,6 +42,8 @@ class ModelCommandDetail(BaseModel):
     command_type: str = Field(alias="commandType")
     config_version: int = Field(alias="configVersion")
     model_version_id: int = Field(alias="modelVersionId")
+    display_name: str | None = Field(default=None, alias="modelName")
+    version: str | None = Field(default=None, alias="modelVersion")
     artifact_url: SecretStr = Field(alias="artifactUrl")
     artifact_name: str = Field(alias="artifactName")
     artifact_format: str = Field(alias="artifactFormat")
@@ -55,6 +57,10 @@ class ModelCommandDetail(BaseModel):
 
 
 class TaskCommandDetail(BaseModel):
+    algorithm_package_url: SecretStr | None = Field(default=None, alias="algorithmPackageUrl")
+    algorithm_resources: dict[str, Any] | None = Field(
+        default=None, alias="algorithmResources", exclude=True
+    )
     expected_gateway_revision: int | None = Field(
         default=None, alias="expectedGatewayRevision", ge=0
     )
@@ -65,9 +71,11 @@ class TaskCommandDetail(BaseModel):
     run_id: str = Field(alias="runId")
     camera_id: int = Field(alias="cameraId", gt=0)
     stream_url: SecretStr | None = Field(default=None, alias="streamUrl")
+    stream_urls: dict[str, SecretStr] | None = Field(default=None, alias="streamUrls")
     algorithm_id: int = Field(alias="algorithmId", gt=0)
     pipeline_version_id: int = Field(alias="pipelineVersionId", gt=0)
     pipeline: dict[str, Any]
+    display_names: dict[str, str] | None = Field(default=None, alias="displayNames")
     model_version_id: int = Field(alias="modelVersionId", gt=0)
     model_bindings: dict[str, int] = Field(default_factory=dict, alias="modelBindings")
     rule_id: int | None = Field(default=None, alias="ruleId", gt=0)
@@ -168,15 +176,26 @@ class ControlPlaneClient:
         return None if data is None else NodeCommandAssignment.model_validate(data)
 
     async def get_entry_stations(self, identity: NodeIdentity) -> list[dict]:
-        response = await self._client.get("/node-api/ai-video/task/entry-access/stations", headers=self._node_headers(identity))
+        response = await self._client.get(
+            "/node-api/ai-video/task/entry-access/stations", headers=self._node_headers(identity)
+        )
         return self._checked_envelope(response)["data"]
 
     async def start_entry_automatically(self, identity: NodeIdentity, payload: dict) -> int:
-        response = await self._client.post("/node-api/ai-video/task/entry-access/auto-start", headers=self._node_headers(identity), json=payload)
+        response = await self._client.post(
+            "/node-api/ai-video/task/entry-access/auto-start",
+            headers=self._node_headers(identity),
+            json=payload,
+        )
         return self._checked_envelope(response)["data"]
 
     async def report_entry_station(self, identity: NodeIdentity, state: dict):
-        response = await self._client.post("/node-api/ai-video/task/entry-access/station-report", headers=self._node_headers(identity), params={key:state[key] for key in ("entryId","version","state")}, json=state.get("frame"))
+        response = await self._client.post(
+            "/node-api/ai-video/task/entry-access/station-report",
+            headers=self._node_headers(identity),
+            params={key: state[key] for key in ("entryId", "version", "state")},
+            json=state.get("frame"),
+        )
         return self._checked_envelope(response)["data"]
 
     async def get_entry_command(
@@ -236,6 +255,14 @@ class ControlPlaneClient:
     async def report_task_runtime(self, identity: NodeIdentity, payload: dict[str, Any]) -> None:
         response = await self._client.post(
             "/node-api/ai-video/task/runtime/report",
+            headers=self._node_headers(identity),
+            json=payload,
+        )
+        self._checked_envelope(response)
+
+    async def report_task_removal(self, identity: NodeIdentity, payload: dict[str, Any]) -> None:
+        response = await self._client.post(
+            "/node-api/ai-video/task/removal/report",
             headers=self._node_headers(identity),
             json=payload,
         )

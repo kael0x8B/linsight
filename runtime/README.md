@@ -29,7 +29,7 @@ python -m uvicorn ai_runtime.app.main:create_app --factory --app-dir runtime --h
 
 可选预览参数使用 `LINSIGHT_RUNTIME_` 前缀，包括 `FFMPEG_BINARY`、`PREVIEW_ROOT`、`PREVIEW_STARTUP_SECONDS`、`PREVIEW_IDLE_SECONDS`、`PREVIEW_HLS_SEGMENT_SECONDS` 和 `PREVIEW_HLS_LIST_SIZE`。Java 本地配置需将 `LINSIGHT_RUNTIME_ENABLED=true`。Edge Agent 使用 `LINSIGHT_AGENT_RUNTIME_URL` 与 `LINSIGHT_AGENT_RUNTIME_API_KEY` 访问本机 Runtime，并从 `LINSIGHT_AGENT_CONTROL_PLANE_URL` 推导 `ws://`/`wss://` 反向通道。正式环境必须使用 HTTPS/WSS；明文 WS 默认仅允许回环或私网地址，也可用 `LINSIGHT_AGENT_PREVIEW_TUNNEL_ALLOW_INSECURE` 显式控制。管理端始终通过 Java 代理获取 HLS，不直接访问 Runtime。
 
-模型执行还可配置 `LINSIGHT_RUNTIME_DATA_ROOT` 和 `LINSIGHT_RUNTIME_MODEL_POOL_SIZE`。任务抽帧可配置 `LINSIGHT_RUNTIME_TASK_CAPTURE_FPS` 和 `LINSIGHT_RUNTIME_TASK_STARTUP_SECONDS`。Runtime 只接受数据根目录内的模型/图片绝对路径。旧部署使用的 `LINSIGHT_RUNTIME_RUNTIME_DATA_ROOT` 仍兼容，但新部署必须使用文档化名称。Agent 必须配置相同挂载目录 `LINSIGHT_AGENT_RUNTIME_DATA_ROOT`、Runtime 地址 `LINSIGHT_AGENT_RUNTIME_URL` 和 `LINSIGHT_AGENT_RUNTIME_API_KEY`；任务状态上报间隔可用 `LINSIGHT_AGENT_TASK_REPORT_INTERVAL_SECONDS` 调整。
+模型执行还可配置 `LINSIGHT_RUNTIME_DATA_ROOT` 和 `LINSIGHT_RUNTIME_MODEL_POOL_SIZE`（生产默认 4 槽位）。任务配置与启动会按本节点运行中任务及共享模型去重预检槽位，并以已校验模型制品的 2 倍、最低 64 MiB 估算每个唯一模型的内存预算。默认至少保留系统内存的 5% 或 512 MiB，可用 `LINSIGHT_RUNTIME_MODEL_MEMORY_SAFETY_RATIO`、`LINSIGHT_RUNTIME_MODEL_MEMORY_MIN_RESERVE_MIB` 调整。预检只读，不加载/淘汰模型或改变任务状态；不通过时返回冲突任务和模型。任务抽帧可配置 `LINSIGHT_RUNTIME_TASK_CAPTURE_FPS` 和 `LINSIGHT_RUNTIME_TASK_STARTUP_SECONDS`。Runtime 只接受数据根目录内的模型/图片绝对路径。旧部署使用的 `LINSIGHT_RUNTIME_RUNTIME_DATA_ROOT` 仍兼容，但新部署必须使用文档化名称。Agent 必须配置相同挂载目录 `LINSIGHT_AGENT_RUNTIME_DATA_ROOT`、Runtime 地址 `LINSIGHT_AGENT_RUNTIME_URL` 和 `LINSIGHT_AGENT_RUNTIME_API_KEY`；任务状态上报间隔可用 `LINSIGHT_AGENT_TASK_REPORT_INTERVAL_SECONDS` 调整。部署器通过 `LINSIGHT_RUNTIME_PLATFORM_URL` 把初始平台地址交给本地管理页；登录 `48901` 后可在“平台连接设置”保存设备侧覆盖值，Agent 自动重建中心连接而不停止 Runtime 任务。
 
 ONNX CPU 使用 `LINSIGHT_RUNTIME_ONNX_INTRA_OP_THREADS` 控制每个会话的计算线程数（默认 2，范围 1–32），会话 inter-op 为 1，关闭 intra/inter-op worker spinning，给视频解码、WebRTC 和 Agent 留出 CPU。RK3566 双模型 PPE 场景已实测；其他硬件应基于实际路数与模型测量后调整，不能仅提高任务 sampleFps 就假定分析帧率提高。模型输入尺寸、权重、阈值和规则不随线程配置变化。
 
@@ -68,3 +68,5 @@ Edge Agent 在线升级必须配置 `LINSIGHT_AGENT_UPGRADE_ROOT` 和由密钥�
 ## 自治与本地管理
 
 Runtime 持久化加密的执行配置并自行恢复模型和任务；Edge Agent 不再是重启恢复的前置依赖。原有 `ai_runtime.app.main:create_app` 启动时自动在同一 Python 进程内提供 48901 本地管理入口，通过进程内 ASGI 调用共享 Runtime 配置。无需单独启动网页进程或安装 systemd 服务。平台通过反向通道 `gateway.rpc` 使用同一管理接口。详细步骤和兼容性见 [双入口说明](../docs/GATEWAY_DUAL_ENTRY.md)。
+
+盒子事件接口采用 TCP 服务端订阅，默认监听 `0.0.0.0:48902`、订阅开关默认关闭。可通过 `LINSIGHT_RUNTIME_GATEWAY_EVENT_TCP_HOST` / `LINSIGHT_RUNTIME_GATEWAY_EVENT_TCP_PORT` 修改监听；鉴权、实时订阅、30 秒心跳和事件字段见 [盒子 TCP 事件订阅协议](../docs/GATEWAY_EVENT_DELIVERY.md)。

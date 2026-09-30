@@ -37,6 +37,77 @@ import static com.linsight.module.aivideo.enums.node.ErrorCodeConstants.*;
 @Validated
 public class NodeServiceImpl implements NodeService {
     @Override
+    public NodeModelEnvironmentDTO getModelEnvironment(Long nodeId) {
+        validateNodeAvailable(nodeId);
+        var node = edgeNodeMapper.selectById(nodeId);
+        if (node.getResourceSnapshot() == null) return NodeModelEnvironmentDTO.unknown();
+        var snapshot = JsonUtils.parseMap(node.getResourceSnapshot());
+        if (!"UP".equals(snapshot.get("runtimeStatus"))
+                || !(snapshot.get("modelEnvironment") instanceof Map<?, ?> environment)
+                || !"1.0".equals(environment.get("schemaVersion"))) return NodeModelEnvironmentDTO.unknown();
+        return new NodeModelEnvironmentDTO(true, environmentStrings(environment.get("formats")),
+                environmentStrings(environment.get("rknnTargets")),
+                environmentProviders(environment.get("providers")));
+    }
+
+    private static List<String> environmentStrings(Object value) {
+        return value instanceof List<?> values
+                ? values.stream().filter(String.class::isInstance).map(String.class::cast).distinct().toList()
+                : List.of();
+    }
+
+    private static List<NodeExecutionProviderDTO> environmentProviders(Object value) {
+        if (!(value instanceof List<?> values)) return List.of();
+        return values.stream().filter(Map.class::isInstance).map(Map.class::cast).map(provider ->
+                new NodeExecutionProviderDTO(
+                        environmentString(provider.get("code")),
+                        environmentString(provider.get("deviceType")),
+                        environmentString(provider.get("vendor")),
+                        environmentStrings(provider.get("targets")),
+                        environmentStrings(provider.get("formats")),
+                        environmentString(provider.get("runtime")),
+                        environmentString(provider.get("runtimeVersion"))))
+                .filter(provider -> provider.code() != null && provider.deviceType() != null
+                        && provider.runtime() != null)
+                .distinct().toList();
+    }
+
+    private static String environmentString(Object value) {
+        return value instanceof String text && !text.isBlank() ? text : null;
+    }
+
+    @Override
+    public NodeTaskCapacityPreflightDTO preflightTaskCapacity(
+            Long nodeId, Long taskId, java.util.Collection<Long> modelVersionIds) {
+        validateNodeAvailable(nodeId);
+        try {
+            var reply = gatewayTunnel.request(nodeId,
+                    com.linsight.framework.tenant.core.context.TenantContextHolder.getTenantId(),
+                    "gateway.rpc", Map.of("action", "task.capacity.preflight", "payload",
+                            Map.of("taskId", taskId, "modelVersionIds",
+                                    modelVersionIds.stream().distinct().sorted().toList()))).payload();
+            if (!Boolean.TRUE.equals(reply.get("ok")) || !(reply.get("data") instanceof Map<?, ?> raw)) {
+                throw exception(NODE_TASK_CAPACITY_PREFLIGHT_FAILED,
+                        String.valueOf(reply.getOrDefault("message", "网关未返回容量报告，请先在线升级")));
+            }
+            Map<String, Object> report = new LinkedHashMap<>();
+            raw.forEach((key, value) -> report.put(String.valueOf(key), value));
+            boolean allowed = Boolean.TRUE.equals(report.get("allowed"));
+            return new NodeTaskCapacityPreflightDTO(allowed,
+                    report.get("code") == null ? null : String.valueOf(report.get("code")),
+                    String.valueOf(report.getOrDefault("message", "容量预检未提供说明")), report);
+        } catch (com.linsight.module.aivideo.integration.runtime.NodePreviewTunnelHandler.TunnelRequestException error) {
+            throw exception(NODE_TASK_CAPACITY_PREFLIGHT_FAILED, "网关暂不可达，未创建启动命令");
+        }
+    }
+
+    @Override
+    public boolean supportsAlgorithmPackages(Long nodeId) {
+        validateNodeAvailable(nodeId);
+        var node = edgeNodeMapper.selectById(nodeId);
+        return node.getResourceSnapshot() != null && "1.0".equals(JsonUtils.parseMap(node.getResourceSnapshot()).get("algorithmPackageSdk"));
+    }
+    @Override
     public boolean supportsModelUninstall(Long nodeId) {
         validateNodeAvailable(nodeId);
         var node = edgeNodeMapper.selectById(nodeId);
@@ -50,6 +121,19 @@ public class NodeServiceImpl implements NodeService {
         return edgeNodeMapper.selectBatchIds(ids).stream()
                 .map(value -> new NodeRuntimeSummaryDTO(value.getId(), value.getName(), value.getStatus(),
                         value.getOnlineStatus(), value.getLastHeartbeatTime())).toList();
+    }
+
+    @Resource private com.linsight.module.aivideo.integration.runtime.NodePreviewTunnelHandler gatewayTunnel;
+    @Override
+    public void removeGatewayTask(Long nodeId, Long taskId, long expectedRevision) {
+        validateNodeAvailable(nodeId);
+        try {
+            var reply = gatewayTunnel.request(nodeId, com.linsight.framework.tenant.core.context.TenantContextHolder.getTenantId(), "gateway.rpc",
+                    Map.of("action", "task.remove", "payload", Map.of("taskId", taskId, "expectedRevision", expectedRevision, "requestId", java.util.UUID.randomUUID().toString()))).payload();
+            if (!Boolean.TRUE.equals(reply.get("ok"))) throw exception(NODE_TASK_REMOVE_FAILED);
+        } catch (com.linsight.module.aivideo.integration.runtime.NodePreviewTunnelHandler.TunnelRequestException error) {
+            throw exception(NODE_TASK_REMOVE_FAILED);
+        }
     }
 
     @Resource private NodeUpgradeActivationService activationService;
@@ -216,8 +300,17 @@ public class NodeServiceImpl implements NodeService {
         resources.put("gpuUsage", heartbeatReqVO.getGpuUsage());
         resources.put("gpuMemoryUsedBytes", heartbeatReqVO.getGpuMemoryUsedBytes());
         resources.put("gpuMemoryTotalBytes", heartbeatReqVO.getGpuMemoryTotalBytes());
+        resources.put("npuUsage", heartbeatReqVO.getNpuUsage());
+        resources.put("diskCleanupStatus", heartbeatReqVO.getDiskCleanupStatus());
+        resources.put("diskCleanupLastRunEpochSeconds", heartbeatReqVO.getDiskCleanupLastRunEpochSeconds());
+        resources.put("diskCleanupBeforePercent", heartbeatReqVO.getDiskCleanupBeforePercent());
+        resources.put("diskCleanupAfterPercent", heartbeatReqVO.getDiskCleanupAfterPercent());
+        resources.put("diskCleanupFreedBytes", heartbeatReqVO.getDiskCleanupFreedBytes());
+        resources.put("diskCleanupActions", heartbeatReqVO.getDiskCleanupActions());
         resources.put("runtimeStatus", heartbeatReqVO.getRuntimeStatus());
+        resources.put("modelEnvironment", heartbeatReqVO.getModelEnvironment());
         resources.put("modelUninstall", heartbeatReqVO.getModelUninstall());
+        resources.put("algorithmPackageSdk", heartbeatReqVO.getAlgorithmPackageSdk());
         resources.put("activationGuard", heartbeatReqVO.getActivationGuard());
         resources.put("agentRollbackAvailable", heartbeatReqVO.getAgentRollbackAvailable());
         resources.put("failedAgentVersion", heartbeatReqVO.getFailedAgentVersion());

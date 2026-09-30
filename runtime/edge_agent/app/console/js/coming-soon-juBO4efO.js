@@ -1,1 +1,0 @@
-import{$t as e,Et as t,Fn as n,Pt as r}from"./unmount-global-loading-LeYQHS8i.js";import{t as i}from"./fallback-9bFh3pRs.js";var a=r({__name:`coming-soon`,setup(r){return(r,a)=>(e(),t(n(i),{status:`coming-soon`}))}});export{a as default};

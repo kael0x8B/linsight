@@ -8,11 +8,7 @@ import { useVbenModal } from '@vben/common-ui';
 import { Alert, message } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
-import {
-  createCamera,
-  getCamera,
-  updateCamera,
-} from '#/api/ai-video/camera';
+import { createCamera, getCamera, updateCamera } from '#/api/ai-video/camera';
 import { $t } from '#/locales';
 
 import { useCameraFormSchema } from '../data';
@@ -96,6 +92,12 @@ const [Modal, modalApi] = useVbenModal({
 
 <template>
   <Modal :title="title" class="w-[680px]">
+    <Alert
+      class="mx-4 mb-4"
+      message="摄像头主码流和子码流均需设置为 H.264。高清识别可继续使用主码流，无需降低分辨率。"
+      show-icon
+      type="info"
+    />
     <Alert
       v-if="isEdit"
       class="mx-4 mb-4"

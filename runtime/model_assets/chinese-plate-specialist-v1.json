@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "1.0",
+  "revision": 1,
+  "models": [
+    {
+      "code": "chinese-plate-yolo",
+      "name": "中文车牌检测 · 四角定位",
+      "sourceType": "PRESET",
+      "description": "中文车牌专用轻量 YOLO 四角定位，区分单双层；配合原图透视裁剪。现场准确率待验收。",
+      "sourceRepository": "https://github.com/we0091234/Chinese_license_plate_detection_recognition",
+      "sourceRevision": "670b765c09fff11850a7b1c542787ad66c24ae50",
+      "licenseSpdx": "GPL-3.0",
+      "version": "specialist-670b765-onnx-v1",
+      "fileName": "plate_detect.onnx",
+      "sha256": "71c1c7102625cfcacb9aedbe1f083b51f6f69647e1c520e65f61c46414b23c46",
+      "size": 5418052,
+      "runtimeManifest": {
+        "schemaVersion": "1.0",
+        "taskType": "OBJECT_DETECTION",
+        "preprocess": {
+          "inputWidth": 640,
+          "inputHeight": 640,
+          "color": "RGB",
+          "layout": "NCHW",
+          "dtype": "FLOAT32",
+          "scale": 0.00392156862745098,
+          "mean": [
+            0,
+            0,
+            0
+          ],
+          "std": [
+            1,
+            1,
+            1
+          ],
+          "resize": "LETTERBOX"
+        },
+        "decoder": {
+          "type": "YOLO_PLATE"
+        }
+      },
+      "originalWeightsSha256": "585d1c6067d0fbe6a7116f39c53b3b338faf50129c58016aa531e925d25f4ec0"
+    },
+    {
+      "code": "chinese-plate-ocr",
+      "name": "中文车牌文字识别 · 专用 OCR",
+      "sourceType": "PRESET",
+      "description": "中文车牌专用 CNN/CTC 字符识别与颜色分类，78 字符表，168×48 BGR。现场准确率待验收。",
+      "sourceRepository": "https://github.com/we0091234/Chinese_license_plate_detection_recognition",
+      "sourceRevision": "670b765c09fff11850a7b1c542787ad66c24ae50",
+      "licenseSpdx": "GPL-3.0",
+      "version": "specialist-670b765-onnx-v1",
+      "fileName": "plate_rec_color.onnx",
+      "sha256": "063c521cc7450cae63b2cb4e3063286463ea9856d1c6cdc633a406ff8686f475",
+      "size": 721056,
+      "runtimeManifest": {
+        "schemaVersion": "1.0",
+        "taskType": "OCR",
+        "preprocess": {
+          "inputWidth": 168,
+          "inputHeight": 48,
+          "color": "BGR",
+          "layout": "NCHW",
+          "dtype": "FLOAT32",
+          "scale": 0.00392156862745098,
+          "mean": [
+            0.588,
+            0.588,
+            0.588
+          ],
+          "std": [
+            0.193,
+            0.193,
+            0.193
+          ],
+          "resize": "STRETCH"
+        },
+        "decoder": {
+          "type": "CHINESE_PLATE_CTC"
+        }
+      },
+      "originalWeightsSha256": "786833c12c05aaaabf62db4e1acc94a83f72891c79ad22c1809389b26d802187"
+    }
+  ],
+  "export": {
+    "script": "scripts/export-chinese-plate-models.py",
+    "torchVersion": "2.8.0",
+    "onnxOpset": 12,
+    "trainingPerformed": false
+  }
+}

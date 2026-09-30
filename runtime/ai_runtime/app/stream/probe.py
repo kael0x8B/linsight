@@ -134,6 +134,22 @@ class StreamProbeService:
             return self._failed(
                 request, diagnostic_id, stages, "VIDEO_STREAM_MISSING", "未发现视频轨道"
             )
+        if (video_stream.get("codec_name") or "").lower() != "h264":
+            stages.append(
+                self._stage(
+                    ProbeStageName.STREAM,
+                    ProbeStageStatus.FAILED,
+                    started,
+                    "视频编码不是 H.264",
+                )
+            )
+            return self._failed(
+                request,
+                diagnostic_id,
+                stages,
+                "UNSUPPORTED_VIDEO_CODEC",
+                "视频编码不是 H.264，请将摄像头主、子码流均设置为 H.264",
+            )
         stages.append(
             self._stage(ProbeStageName.STREAM, ProbeStageStatus.SUCCESS, started, "视频轨道可读取")
         )

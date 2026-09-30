@@ -8,6 +8,7 @@ import com.linsight.module.aivideo.controller.admin.task.vo.TaskBatchCreateReqVO
 import com.linsight.module.aivideo.controller.admin.task.vo.TaskBatchResultRespVO;
 import com.linsight.module.aivideo.controller.node.task.vo.TaskCommandDetailRespVO;
 import com.linsight.module.aivideo.controller.node.task.vo.TaskRuntimeReportReqVO;
+import com.linsight.module.aivideo.controller.node.task.vo.TaskRemovalReportReqVO;
 import com.linsight.module.aivideo.dal.dataobject.task.TaskDO;
 import com.linsight.module.aivideo.dal.dataobject.task.TaskRunDO;
 import com.linsight.module.aivideo.service.node.NodeCommandDTO;
@@ -33,6 +34,9 @@ public interface TaskService {
     TaskCommandDetailRespVO getCommandDetail(String commandId, Long nodeId);
     void applyCommandReport(NodeCommandDTO report);
     void reportRuntime(Long nodeId, TaskRuntimeReportReqVO reqVO);
+    void reportRemoval(Long nodeId, TaskRemovalReportReqVO reqVO);
     void validateRuntimeOverlay(Long nodeId, Long taskId, String runId, Long cameraId);
+    /** Active recognition source for the shared camera preview; null when no task is active. */
+    String getActiveStreamType(Long cameraId, Long nodeId);
     boolean hasTasksForNode(Long nodeId);
 }

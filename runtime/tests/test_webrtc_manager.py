@@ -65,3 +65,48 @@ def test_connected_session_is_not_expired_by_throttled_browser_polling() -> None
 
     assert not WebRtcManager._session_should_expire(connected, deadline=20.0)
     assert WebRtcManager._session_should_expire(disconnected, deadline=20.0)
+
+
+def test_new_stream_retires_old_preview_sessions() -> None:
+    players: list[FakePlayer] = []
+
+    async def create_player(_source_url: SecretStr) -> FakePlayer:
+        player = FakePlayer()
+        players.append(player)
+        return player
+
+    async def offer(browser: RTCPeerConnection) -> str:
+        browser.addTransceiver("video", direction="recvonly")
+        return (await browser.createOffer()).sdp
+
+    async def scenario() -> None:
+        settings = RuntimeSettings(api_key="a-secure-runtime-key-for-tests")
+        manager = WebRtcManager(settings, player_factory=create_player)
+        sub_browser, main_browser = RTCPeerConnection(), RTCPeerConnection()
+        try:
+            sub = await manager.create_session(
+                WebRtcOfferRequest(
+                    cameraId=7,
+                    sourceUrl=SecretStr("rtsp://camera/sub"),
+                    offerSdp=await offer(sub_browser),
+                )
+            )
+            main = await manager.create_session(
+                WebRtcOfferRequest(
+                    cameraId=7,
+                    sourceUrl=SecretStr("rtsp://camera/main"),
+                    offerSdp=await offer(main_browser),
+                )
+            )
+            assert not manager.has_session(sub.session_id)
+            assert manager.has_session(main.session_id)
+            assert manager.active_stream_count == 1
+            assert players[0].video.readyState == "ended"
+            await manager.release_session(sub.session_id)
+            assert manager.has_session(main.session_id)
+        finally:
+            await manager.close()
+            await sub_browser.close()
+            await main_browser.close()
+
+    asyncio.run(scenario())

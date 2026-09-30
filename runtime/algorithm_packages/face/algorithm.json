@@ -1,0 +1,132 @@
+{
+  "schemaVersion": "1.0",
+  "sdkVersion": "1.0",
+  "version": "1.0.1",
+  "entrypoint": "processor.py",
+  "timeoutMillis": 5000,
+  "code": "face-identification-package",
+  "name": "人员库刷脸识别",
+  "category": "IDENTITY",
+  "description": "在刷脸区域与指定人员库比对，按相似度及多帧确认身份；不包含活体检测。",
+  "models": [
+    {
+      "slot": "face",
+      "name": "人脸检测与特征模型",
+      "taskType": "FACE_VERIFICATION",
+      "formats": [
+        "ARCHIVE"
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "key": "people",
+      "type": "FACE_LIBRARY",
+      "parameter": "libraryId",
+      "selectionParameter": "personIds",
+      "modelSlot": "face"
+    }
+  ],
+  "parameterSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "libraryId",
+      "similarity",
+      "margin",
+      "confirmFrames",
+      "windowFrames",
+      "roi"
+    ],
+    "properties": {
+      "libraryId": {
+        "type": "integer",
+        "title": "对比人员库",
+        "minimum": 1,
+        "x-widget": "person-library"
+      },
+      "personIds": {
+        "type": "array",
+        "title": "参与比对人员",
+        "x-widget": "people",
+        "x-library-field": "libraryId",
+        "maxItems": 256
+      },
+      "similarity": {
+        "type": "number",
+        "title": "身份相似度",
+        "minimum": 0.1,
+        "maximum": 1
+      },
+      "margin": {
+        "type": "number",
+        "title": "候选身份最小差值",
+        "minimum": 0.01,
+        "maximum": 0.5
+      },
+      "confirmFrames": {
+        "type": "integer",
+        "title": "至少确认帧数",
+        "minimum": 2,
+        "maximum": 10
+      },
+      "windowFrames": {
+        "type": "integer",
+        "title": "观察窗口帧数",
+        "minimum": 2,
+        "maximum": 15
+      },
+      "roi": {
+        "type": "object",
+        "title": "识别区域",
+        "x-widget": "roi",
+        "required": [
+          "x",
+          "y",
+          "width",
+          "height"
+        ],
+        "properties": {
+          "x": {
+            "type": "number",
+            "title": "区域左侧（0–1）",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "y": {
+            "type": "number",
+            "title": "区域顶部（0–1）",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "width": {
+            "type": "number",
+            "title": "区域宽度（0–1）",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "height": {
+            "type": "number",
+            "title": "区域高度（0–1）",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    }
+  },
+  "defaultParameters": {
+    "similarity": 0.6,
+    "margin": 0.08,
+    "confirmFrames": 3,
+    "windowFrames": 5,
+    "personIds": [],
+    "roi": {
+      "x": 0.25,
+      "y": 0.1,
+      "width": 0.5,
+      "height": 0.8
+    }
+  },
+  "eventType": "FACE_IDENTIFICATION"
+}

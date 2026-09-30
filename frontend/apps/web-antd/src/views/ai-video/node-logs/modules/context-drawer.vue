@@ -43,21 +43,41 @@ const [Drawer, drawerApi] = useVbenDrawer({
 </script>
 
 <template>
-  <Drawer class="w-[1000px] max-w-[calc(100vw-32px)]" :footer="false" title="前后 100 行日志上下文">
+  <Drawer
+    class="w-[1000px] max-w-[calc(100vw-32px)]"
+    :footer="false"
+    title="前后 100 行日志上下文"
+  >
     <div class="px-3 py-2">
       <Alert v-if="error" :message="error" show-icon type="error">
-        <template #action><Button size="small" @click="load">重试</Button></template>
+        <template #action>
+          <Button size="small" @click="load">重试</Button>
+        </template>
       </Alert>
       <Spin :spinning="loading">
-        <div v-if="logs.length" class="max-h-[calc(100vh-150px)] overflow-auto rounded bg-[#111827] p-3 font-mono text-xs text-slate-200">
-          <div v-for="item in logs" :key="item.id" class="grid grid-cols-[175px_70px_110px_1fr] gap-2 border-b border-slate-800 py-1.5">
+        <div
+          v-if="logs.length"
+          class="max-h-[calc(100vh-150px)] overflow-auto rounded bg-[#111827] p-3 font-mono text-xs text-slate-200"
+        >
+          <div
+            v-for="item in logs"
+            :key="item.id"
+            class="grid grid-cols-[175px_70px_110px_1fr] gap-2 border-b border-slate-800 py-1.5"
+          >
             <span class="text-slate-400">{{ item.loggedAt }}</span>
-            <Tag :color="levelColors[item.level] || 'default'">{{ item.level }}</Tag>
+            <Tag :color="levelColors[item.level] || 'default'">
+              {{ item.level }}
+            </Tag>
             <span class="text-cyan-300">{{ item.component }}</span>
-            <span class="whitespace-pre-wrap break-all">{{ item.message }}</span>
+            <span class="whitespace-pre-wrap break-all">{{
+              item.message
+            }}</span>
           </div>
         </div>
-        <Empty v-else-if="!loading && !error" description="该日志没有可读取的上下文" />
+        <Empty
+          v-else-if="!loading && !error"
+          description="该日志没有可读取的上下文"
+        />
       </Spin>
     </div>
   </Drawer>

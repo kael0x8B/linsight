@@ -81,6 +81,27 @@ def test_auth_failure_is_sanitized_and_later_stages_are_skipped() -> None:
     assert "/private" not in serialized
 
 
+def test_h265_video_is_rejected_before_keyframe_check() -> None:
+    async def runner(_args: list[str], _timeout: float) -> ProcessResult:
+        payload = {
+            "streams": [{"codec_type": "video", "codec_name": "hevc"}],
+            "frames": [{"key_frame": 1}],
+        }
+        return ProcessResult(0, json.dumps(payload).encode(), b"")
+
+    service = StreamProbeService(
+        resolver=successful_network,
+        connector=successful_network,
+        process_runner=runner,
+    )
+    result = asyncio.run(service.probe(request()))
+
+    assert result.online is False
+    assert result.error_code == "UNSUPPORTED_VIDEO_CODEC"
+    assert result.stages[3].status is ProbeStageStatus.FAILED
+    assert result.stages[4].status is ProbeStageStatus.SKIPPED
+
+
 def test_dns_failure_does_not_attempt_tcp_or_ffprobe() -> None:
     calls = {"connector": 0, "runner": 0}
 
@@ -111,7 +132,10 @@ def test_ffprobe_arguments_encode_credentials_without_changing_response_contract
 
     async def runner(args: list[str], _timeout: float) -> ProcessResult:
         captured.extend(args)
-        payload = {"streams": [{"codec_type": "video"}], "frames": [{"key_frame": 1}]}
+        payload = {
+            "streams": [{"codec_type": "video", "codec_name": "h264"}],
+            "frames": [{"key_frame": 1}],
+        }
         return ProcessResult(0, json.dumps(payload).encode(), b"")
 
     probe_request = request().model_copy(

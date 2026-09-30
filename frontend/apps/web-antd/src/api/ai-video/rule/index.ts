@@ -126,10 +126,10 @@ export function publishRuleVersion(id: number) {
 export interface RuleDetectionFrame {
   timestampMillis: number;
   objects: Array<{
+    bbox: { height: number; width: number; x: number; y: number };
     class: string;
-    trackId?: string;
     confidence?: number;
-    bbox: { x: number; y: number; width: number; height: number };
+    trackId?: string;
   }>;
 }
 
@@ -142,8 +142,8 @@ export function dryRunRule(
   return requestClient.post<{
     confirmed: boolean;
     transitions: Array<{
-      state: string;
       occurredAtMillis: number;
+      state: string;
       trackId?: string;
     }>;
   }>('/ai-video/rule/runtime-dry-run', {

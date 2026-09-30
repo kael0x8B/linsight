@@ -2,7 +2,15 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { AiVideoNodeLogApi } from '#/api/ai-video/node-log';
 
-import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, watch } from 'vue';
+import {
+  computed,
+  onActivated,
+  onBeforeUnmount,
+  onDeactivated,
+  onMounted,
+  ref,
+  watch,
+} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { useAccess } from '@vben/access';
@@ -11,7 +19,11 @@ import { Page, useVbenDrawer, useVbenModal } from '@vben/common-ui';
 import { Alert, Button, message, Space, Switch, Tag } from 'ant-design-vue';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
-import { getNodeDiagnostic, getNodeLogPage, getNodeLogSnapshot } from '#/api/ai-video/node-log';
+import {
+  getNodeDiagnostic,
+  getNodeLogPage,
+  getNodeLogSnapshot,
+} from '#/api/ai-video/node-log';
 import { AiPageHeader } from '#/components/ai-video';
 
 import { useLogColumns, useLogFormSchema } from './data';
@@ -72,7 +84,8 @@ async function waitForDiagnostic(id: number) {
         message.success(`诊断包已生成，共 ${result.logCount} 行日志`);
         return;
       }
-      if (result.status === 'FAILED') throw new Error(result.errorMessage || '诊断包生成失败');
+      if (result.status === 'FAILED')
+        throw new Error(result.errorMessage || '诊断包生成失败');
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     message.info('诊断包仍在后台生成，可稍后重新进入页面查看');
@@ -93,13 +106,21 @@ const [Grid, gridApi] = useVbenVxeGrid({
       ajax: {
         query: async ({ page }, formValues) => {
           const expected = ++generation;
-          const changed = JSON.stringify(filters) !== JSON.stringify(formValues);
-          if (changed) { snapshotMaxId = undefined; cursor = 0; buffered = []; pendingCount.value = 0; }
+          const changed =
+            JSON.stringify(filters) !== JSON.stringify(formValues);
+          if (changed) {
+            snapshotMaxId = undefined;
+            cursor = 0;
+            buffered = [];
+            pendingCount.value = 0;
+          }
           filters = { ...formValues };
           currentPage = page.currentPage;
           pageSize = page.pageSize;
-          historical.value = currentPage !== 1 || Boolean(formValues.loggedAt?.length);
-          if (snapshotMaxId === undefined) snapshotMaxId = await getNodeLogSnapshot(nodeId);
+          historical.value =
+            currentPage !== 1 || Boolean(formValues.loggedAt?.length);
+          if (snapshotMaxId === undefined)
+            snapshotMaxId = await getNodeLogSnapshot(nodeId);
           if (expected !== generation) return { list: rows, total };
           const result = await getNodeLogPage({
             ...formValues,
@@ -123,9 +144,15 @@ const [Grid, gridApi] = useVbenVxeGrid({
 });
 
 function mergeIncoming() {
-  if (historical.value || !buffered.length) return;
-  const byId = new Map([...buffered, ...rows].map(row => [row.id, row]));
-  rows = [...byId.values()].sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime() || b.id - a.id).slice(0, pageSize);
+  if (historical.value || buffered.length === 0) return;
+  const byId = new Map([...buffered, ...rows].map((row) => [row.id, row]));
+  rows = [...byId.values()]
+    .toSorted(
+      (a, b) =>
+        new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime() ||
+        b.id - a.id,
+    )
+    .slice(0, pageSize);
   buffered = [];
   pendingCount.value = 0;
   snapshotMaxId = cursor;
@@ -145,33 +172,52 @@ function startRefresh() {
     const expected = generation;
     if (disposed || epoch !== pollEpoch) return;
     try {
-    if (snapshotMaxId !== undefined && !paused.value && !refreshing && !historical.value && document.visibilityState === 'visible') {
-      refreshing = true;
-      try {
-        const result = await getNodeLogPage({ ...filters, nodeId, afterId: cursor, pageNo: 1, pageSize: 100 }, true);
-        if (expected !== generation || disposed || epoch !== pollEpoch) return;
-        if (result.list.length) {
-          cursor = Math.max(cursor, ...result.list.map(row => row.id));
-          total += result.list.length;
-          buffered = [...result.list, ...buffered].slice(0, 500);
-          pendingCount.value += result.list.length;
-          if (follow.value) mergeIncoming();
+      if (
+        snapshotMaxId !== undefined &&
+        !paused.value &&
+        !refreshing &&
+        !historical.value &&
+        document.visibilityState === 'visible'
+      ) {
+        refreshing = true;
+        try {
+          const result = await getNodeLogPage(
+            { ...filters, nodeId, afterId: cursor, pageNo: 1, pageSize: 100 },
+            true,
+          );
+          if (expected !== generation || disposed || epoch !== pollEpoch)
+            return;
+          if (result.list.length > 0) {
+            cursor = Math.max(cursor, ...result.list.map((row) => row.id));
+            total += result.list.length;
+            buffered = [...result.list, ...buffered].slice(0, 500);
+            pendingCount.value += result.list.length;
+            if (follow.value) mergeIncoming();
+          }
+          failures = 0;
+          refreshError.value = '';
+        } catch {
+          if (expected !== generation || disposed || epoch !== pollEpoch)
+            return;
+          failures++;
+          refreshError.value = '日志更新失败，保留当前内容并稍后重试。';
+        } finally {
+          refreshing = false;
         }
-        failures = 0;
-        refreshError.value = '';
-      } catch {
-        if (expected !== generation || disposed || epoch !== pollEpoch) return;
-        failures++;
-        refreshError.value = '日志更新失败，保留当前内容并稍后重试。';
-      } finally { refreshing = false; }
-    }
+      }
     } finally {
-      if (!disposed && epoch === pollEpoch) refreshTimer = setTimeout(poll, Math.min(60_000, 10_000 * 2 ** failures));
+      if (!disposed && epoch === pollEpoch)
+        refreshTimer = setTimeout(
+          poll,
+          Math.min(60_000, 10_000 * 2 ** failures),
+        );
     }
   };
   refreshTimer = setTimeout(poll, 10_000);
 }
-watch(follow, value => { if (value) mergeIncoming(); });
+watch(follow, (value) => {
+  if (value) mergeIncoming();
+});
 function reloadLatest() {
   snapshotMaxId = undefined;
   cursor = 0;
@@ -188,57 +234,93 @@ onMounted(() => {
   startRefresh();
 });
 onActivated(startRefresh);
-onDeactivated(() => { disposed = true; stopRefresh(); });
-onBeforeUnmount(() => { disposed = true; stopRefresh(); });
+onDeactivated(() => {
+  disposed = true;
+  stopRefresh();
+});
+onBeforeUnmount(() => {
+  disposed = true;
+  stopRefresh();
+});
 </script>
 
 <template>
-  <component :is="embedded ? 'div' : Page" :auto-content-height="!embedded" :class="embedded ? 'h-[650px]' : ''">
+  <component
+    :is="embedded ? 'div' : Page"
+    :auto-content-height="!embedded"
+    :class="embedded ? 'h-[650px]' : ''"
+  >
     <ContextDrawer />
     <DiagnosticModal @success="waitForDiagnostic" />
     <div class="ai-page ai-page-stack h-full">
-      <AiPageHeader v-if="!embedded" :title="`节点日志 · ${nodeId}`" description="按时间、级别、组件和任务定位运行异常；敏感字段已由服务端脱敏。" icon="lucide:terminal-square" status="Diagnostics" />
-      <Alert
-        message="最新页每 10 秒增量更新；历史页和指定时间范围保持不变。日志保留 DEBUG 1 天、INFO 3 天、WARN 7 天、ERROR 14 天。"
-        show-icon
-        type="info"
+      <AiPageHeader
+        v-if="!embedded"
+        :title="`节点日志 · ${nodeId}`"
+        icon="lucide:terminal-square"
       />
-      <Alert v-if="refreshError" :message="refreshError" show-icon type="warning" />
+
+      <Alert
+        v-if="refreshError"
+        :message="refreshError"
+        show-icon
+        type="warning"
+      />
       <div class="min-h-0 flex-1">
         <Grid :table-title="`节点与任务日志 · Node ${nodeId}`">
           <template #toolbar-tools>
             <Space>
               <span>暂停刷新</span><Switch v-model:checked="paused" />
               <Button @click="reloadLatest">获取最新快照</Button>
-              <span>跟随最新</span><Switch v-model:checked="follow" :disabled="historical" />
-              <Button v-if="pendingCount" @click="mergeIncoming">显示 {{ pendingCount }} 条新日志</Button>
+              <span>跟随最新</span
+              ><Switch v-model:checked="follow" :disabled="historical" />
+              <Button v-if="pendingCount" @click="mergeIncoming">
+                显示 {{ pendingCount }} 条新日志
+              </Button>
               <span>自动换行</span><Switch v-model:checked="wrapLines" />
               <Button
                 v-if="canCreateDiagnostic"
                 type="primary"
                 @click="diagnosticModalApi.setData({ nodeId }).open()"
               >
-生成诊断包
-</Button>
+                生成诊断包
+              </Button>
             </Space>
           </template>
           <template #level="{ row }">
-            <Tag :color="row.level === 'ERROR' ? 'error' : row.level === 'WARN' ? 'warning' : row.level === 'INFO' ? 'processing' : 'default'">
+            <Tag
+              :color="
+                row.level === 'ERROR'
+                  ? 'error'
+                  : row.level === 'WARN'
+                    ? 'warning'
+                    : row.level === 'INFO'
+                      ? 'processing'
+                      : 'default'
+              "
+            >
               {{ row.level }}
             </Tag>
           </template>
           <template #message="{ row }">
-            <span class="font-mono" :class="wrapLines ? 'whitespace-pre-wrap break-all' : 'block truncate'">{{ row.message }}</span>
+            <span
+              class="font-mono"
+              :class="
+                wrapLines ? 'whitespace-pre-wrap break-all' : 'block truncate'
+              "
+              >{{ row.message }}</span
+            >
           </template>
           <template #actions="{ row }">
             <TableAction
-              :actions="[{
-                auth: ['ai-video:node-log:query'],
-                icon: ACTION_ICON.VIEW,
-                label: '上下文',
-                onClick: openContext.bind(null, row),
-                type: 'link',
-              }]"
+              :actions="[
+                {
+                  auth: ['ai-video:node-log:query'],
+                  icon: ACTION_ICON.VIEW,
+                  label: '上下文',
+                  onClick: openContext.bind(null, row),
+                  type: 'link',
+                },
+              ]"
             />
           </template>
         </Grid>

@@ -39,3 +39,4 @@ class AgentSettings(BaseSettings):
     upgrade_root: Path = Path("./var/edge-agent")
     upgrade_signing_key: SecretStr | None = None
     lifecycle_request_path: Path = Path("/run/linsight/node-power-request")
+    disk_cleanup_status_file: Path = Path("/var/lib/linsight/disk-pressure/last-run.env")

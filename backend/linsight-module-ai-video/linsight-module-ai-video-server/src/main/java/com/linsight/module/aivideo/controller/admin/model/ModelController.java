@@ -44,6 +44,12 @@ import static com.linsight.framework.common.pojo.CommonResult.success;
 @RequestMapping("/ai-video/model")
 @Validated
 public class ModelController {
+    @GetMapping("/executable-options")
+    @Operation(summary = "获得明确可部署的模型版本目录")
+    @PreAuthorize("@ss.hasPermission('ai-video:model:query')")
+    public CommonResult<List<Map<String, Object>>> executableOptions() {
+        return success(modelService.getExecutableOptions());
+    }
 
     @Resource
     private ModelService modelService;

@@ -1,1 +1,0 @@
-import{Et as e}from"./useConfigInject-BMK_ugQd.js";var t=((t,n,r)=>{e(t,`[ant-design-vue: ${n}] ${r}`)});export{t};

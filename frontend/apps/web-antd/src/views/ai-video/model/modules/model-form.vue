@@ -3,7 +3,7 @@ import type { AiVideoModelApi } from '#/api/ai-video/model';
 
 import { useVbenModal } from '@vben/common-ui';
 
-import { Alert, message } from 'ant-design-vue';
+import { message } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import { createModel } from '#/api/ai-video/model';
@@ -54,7 +54,6 @@ const [Modal, modalApi] = useVbenModal({
 
 <template>
   <Modal class="w-[640px]" title="新增模型">
-    <Alert class="mx-4 mb-4" message="已有模型的新版权重或其他部署格式，请在原模型的“版本与部署”中上传新版本，无需重复新建模型。" type="info" show-icon />
     <Form class="mx-4" />
   </Modal>
 </template>

@@ -1,8 +1,8 @@
 """H.264 user-data SEI carrying a non-secret source clock through WebRTC."""
 
-import struct
 import hashlib
 import re
+import struct
 from uuid import UUID
 
 # Versioned application UUID. Payload: stream UUID (16 bytes), 90 kHz PTS (uint64).
@@ -38,11 +38,11 @@ def h264_frame_key(data: bytes) -> str | None:
         units = []
         offset = 0
         while offset + 4 <= len(data):
-            size = int.from_bytes(data[offset:offset + 4], "big")
+            size = int.from_bytes(data[offset : offset + 4], "big")
             offset += 4
             if size <= 0 or offset + size > len(data):
                 return None
-            units.append(data[offset:offset + size])
+            units.append(data[offset : offset + size])
             offset += size
         if offset != len(data):
             return None

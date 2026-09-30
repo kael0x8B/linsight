@@ -53,7 +53,7 @@ const frame = computed<AiVideoCameraApi.OverlayFrame | undefined>(() => {
       status.value?.state || '',
     )
   )
-    return;
+    return undefined;
   return {
     ...value,
     sessionId: `entry-${props.entryId}`,
@@ -70,7 +70,11 @@ async function poll(request: number) {
   try {
     const value = await getEntryStationStatus(props.entryId, props.nodeId);
     if (request !== generation) return;
-    if (value.cameraId !== props.cameraId || (props.nodeId !== undefined && value.nodeId !== props.nodeId)) throw new Error('Entry scope mismatch');
+    if (
+      value.cameraId !== props.cameraId ||
+      (props.nodeId !== undefined && value.nodeId !== props.nodeId)
+    )
+      throw new Error('Entry scope mismatch');
     status.value = value;
     failed.value = false;
     emit('status', value);
@@ -149,12 +153,14 @@ defineExpose({ takeScreenshot: () => sync.value?.takeScreenshot() });
   inset: 0;
   pointer-events: none;
 }
+
 .entry-roi {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
+
 .entry-roi rect {
   fill: rgb(59 130 246 / 8%);
   stroke: #60a5fa;
@@ -162,16 +168,17 @@ defineExpose({ takeScreenshot: () => sync.value?.takeScreenshot() });
   stroke-dasharray: 8 5;
   vector-effect: non-scaling-stroke;
 }
+
 .entry-prompt {
   position: absolute;
   top: 12px;
-  left: 12px;
   right: 12px;
+  left: 12px;
   width: fit-content;
   padding: 8px 12px;
-  border-radius: 6px;
-  background: rgb(2 6 23 / 80%);
-  color: #fff;
   font-size: 14px;
+  color: #fff;
+  background: rgb(2 6 23 / 80%);
+  border-radius: 6px;
 }
 </style>

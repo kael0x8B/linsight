@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 
 import psutil
 
+from ai_runtime.app.model.environment import model_environment
 from ai_runtime.app.model.pool import ModelPool
 from ai_runtime.app.observability.contracts import RuntimeObservabilitySnapshot
 from ai_runtime.app.task.manager import TaskManager
@@ -76,6 +77,7 @@ class RuntimeObservabilityService:
             {
                 "schemaVersion": "1.0",
                 "generatedAt": datetime.now(UTC),
+                "modelEnvironment": model_environment(),
                 "system": {
                     "cpuPercent": psutil.cpu_percent(interval=None),
                     "loadAverage1m": load_1m,
@@ -125,8 +127,7 @@ class RuntimeObservabilityService:
             lines.extend(
                 (
                     "# TYPE linsight_system_temperature_celsius gauge",
-                    f"linsight_system_temperature_celsius "
-                    f"{snapshot.system.temperature_celsius:g}",
+                    f"linsight_system_temperature_celsius {snapshot.system.temperature_celsius:g}",
                 )
             )
         return "\n".join(lines) + "\n"

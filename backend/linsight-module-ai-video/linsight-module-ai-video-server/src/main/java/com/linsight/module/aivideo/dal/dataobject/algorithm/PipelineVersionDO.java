@@ -17,6 +17,8 @@ public class PipelineVersionDO extends TenantBaseDO {
     private Long algorithmId;
     private Integer version;
     private String dag;
+    @lombok.ToString.Exclude
+    private String packageArtifactRef;
     private String validationStatus;
     private String validationErrors;
     private LocalDateTime publishedTime;

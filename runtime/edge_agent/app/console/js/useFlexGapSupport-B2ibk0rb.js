@@ -1,1 +1,0 @@
-import{Xt as e,kn as t}from"./unmount-global-loading-LeYQHS8i.js";import{n}from"./styleChecker-D_hAkV7Q.js";var r=(()=>{let r=t(!1);return e(()=>{r.value=n()}),r});export{r as t};

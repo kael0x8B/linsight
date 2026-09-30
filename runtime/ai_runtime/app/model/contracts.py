@@ -9,6 +9,10 @@ from ai_runtime.app.model.registry import ModelAdapterName
 
 class DeployModelRequest(BaseModel):
     model_version_id: int = Field(alias="modelVersionId", gt=0)
+    display_name: str | None = Field(
+        default=None, alias="displayName", min_length=1, max_length=100
+    )
+    version: str | None = Field(default=None, min_length=1, max_length=64)
     artifact_path: Path = Field(alias="artifactPath")
     artifact_format: Literal["ONNX", "TORCHSCRIPT", "PYTORCH", "ARCHIVE", "RKNN"] = Field(
         default="ONNX", alias="artifactFormat"
@@ -32,6 +36,12 @@ class DeployModelRequest(BaseModel):
             raise ValueError("RKNN artifacts require RKNPU; other formats require CPU")
         if self.artifact_format == "RKNN" and self.runtime_manifest is None:
             raise ValueError("RKNN execution requires runtimeManifest")
+        if self.runtime_manifest is not None and self.runtime_manifest.decoder.type in {
+            "YOLO_PLATE", "YOLO26_PLATE_POSE", "CHINESE_PLATE_CTC"
+        }:
+            embedded = self.runtime_manifest.preprocess.dtype == "UINT8"
+            if embedded != (self.artifact_format == "RKNN"):
+                raise ValueError("plate normalization must match the CPU/NPU artifact")
         return self
 
 

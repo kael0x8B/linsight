@@ -47,11 +47,21 @@ class GatewayPreview:
         if action == "preview.frames":
             frames = []
             for item in self.gateway.store.all():
-                if not item["enabled"] or item["config"]["cameraId"] != document["config"]["cameraId"]:
+                if (
+                    not item["enabled"]
+                    or item["config"]["cameraId"] != document["config"]["cameraId"]
+                ):
                     continue
                 frame = self.gateway.tasks.latest_overlay(item["config"]["taskId"])
                 if frame is not None:
-                    frames.append({**frame.model_dump(mode="json", by_alias=True, exclude={"image_base64"}), "sessionId": session_id})
+                    frames.append(
+                        {
+                            **frame.model_dump(
+                                mode="json", by_alias=True, exclude={"image_base64"}
+                            ),
+                            "sessionId": session_id,
+                        }
+                    )
             return frames
         if action == "preview.frame":
             frame = self.gateway.tasks.latest_overlay(task_id)

@@ -163,6 +163,11 @@ class EvidenceBuffer:
                 "runId": self.request.run_id,
                 "configVersion": self.request.config_version,
                 "cameraId": self.request.camera_id,
+                **(
+                    {"displayNames": self.request.display_names.model_dump(exclude_none=True)}
+                    if self.request.display_names is not None
+                    else {}
+                ),
                 "modelBindings": self.request.model_bindings,
                 "parameters": self.request.parameters.model_dump(by_alias=True),
             },
@@ -215,7 +220,9 @@ class EvidenceBuffer:
                     # about how often the inference loop supplied a frame.
                     "-r",
                     str(self.fps),
-                    "-fps_mode",
+                    # FFmpeg 4.4 on deployed RK3588 nodes uses -vsync rather
+                    # than the newer -fps_mode option.
+                    "-vsync",
                     "cfr",
                     "-c:v",
                     "libx264",
@@ -239,8 +246,10 @@ class EvidenceBuffer:
             error = type(caught).__name__
             LOGGER.warning(
                 "Evidence video failed taskId=%s sourceEventId=%s errorType=%s frames=%s",
-                self.request.task_id, capture.transition.source_event_id,
-                error, len(capture.frames),
+                self.request.task_id,
+                capture.transition.source_event_id,
+                error,
+                len(capture.frames),
             )
         finally:
             shutil.rmtree(frames_dir, ignore_errors=True)

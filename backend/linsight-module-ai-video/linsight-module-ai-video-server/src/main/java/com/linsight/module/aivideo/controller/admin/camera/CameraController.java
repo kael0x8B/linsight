@@ -134,7 +134,7 @@ public class CameraController {
     }
 
     @PostMapping("/preview/webrtc/offer")
-    @Operation(summary = "通过 WebRTC Offer 创建子码流预览会话")
+    @Operation(summary = "通过 WebRTC Offer 创建与识别任务同源的预览会话")
     @PreAuthorize("@ss.hasPermission('ai-video:camera:preview')")
     @ApiAccessLog(enable = false)
     public CommonResult<PreviewSessionRespVO> createWebRtcPreview(

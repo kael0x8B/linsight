@@ -9,7 +9,6 @@ import { computed, ref } from 'vue';
 import { useVbenDrawer } from '@vben/common-ui';
 
 import {
-  Alert,
   Button,
   Descriptions,
   DescriptionsItem,
@@ -57,7 +56,10 @@ const [FileForm, fileFormApi] = useVbenForm({
   schema: [
     {
       component: 'Input',
-      componentProps: { maxlength: 64, placeholder: '例如 1.0.0' },
+      componentProps: {
+        maxlength: 64,
+        placeholder: '填写新的版本号，如 1.0.0',
+      },
       fieldName: 'version',
       label: '版本标识',
       rules: z.string().trim().min(1, '请输入版本标识').max(64),
@@ -220,12 +222,6 @@ const [Drawer, drawerApi] = useVbenDrawer({
     <div class="space-y-5 px-3 py-2">
       <Steps :current="currentStep" :items="stepItems" size="small" />
 
-      <Alert
-        v-if="currentStep === 0"
-        message="模型文件上传后不可原地覆盖；相同版本号或相同 SHA256 会被拒绝。"
-        show-icon
-        type="info"
-      />
       <FileForm v-show="currentStep === 0">
         <template #file>
           <Upload.Dragger
@@ -236,26 +232,19 @@ const [Drawer, drawerApi] = useVbenDrawer({
           >
             <p class="font-medium">点击或拖拽模型文件到此区域</p>
             <p class="text-muted-foreground mt-1 text-xs">
-              上传后由控制面计算 SHA256，并根据实际扩展名完成格式探测。
+              支持 ONNX、RKNN 等模型文件，最大 64 MB；已上传的文件不可覆盖。
             </p>
           </Upload.Dragger>
         </template>
       </FileForm>
 
-      <Alert
-        v-if="currentStep === 1"
-        message="来源必须固定到可复现的 commit、tag 或 revision；许可证仅作资产来源说明，不参与发布审核。"
-        show-icon
-        type="info"
-      />
       <MetadataForm v-show="currentStep === 1" />
 
       <template v-if="currentStep === 2">
-        <Alert
-          message="信息完整。上传成功后版本进入草稿状态，可在格式校验通过后发布。"
-          show-icon
-          type="success"
-        />
+        <p class="text-xs text-muted-foreground">
+          核对以下信息后上传，校验通过即可发布。
+        </p>
+
         <Descriptions bordered :column="1" size="small">
           <DescriptionsItem label="模型资产">
             {{ model?.name }}

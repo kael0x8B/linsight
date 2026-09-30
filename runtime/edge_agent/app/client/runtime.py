@@ -44,12 +44,17 @@ class RuntimeClient:
         return response.json()
 
     async def sync_entry_stations(self, stations: list[dict]) -> list[dict]:
-        response = await self._client.post("/v1/tasks/entry-stations/sync", json={"stations":stations})
+        response = await self._client.post(
+            "/v1/tasks/entry-stations/sync", json={"stations": stations}
+        )
         response.raise_for_status()
         return response.json()
 
     async def acknowledge_entry_station(self, entry_id: int, encounter_id: str, completed: bool):
-        response = await self._client.post("/v1/tasks/entry-stations/ack", json={"entryId":entry_id,"encounterId":encounter_id,"completed":completed})
+        response = await self._client.post(
+            "/v1/tasks/entry-stations/ack",
+            json={"entryId": entry_id, "encounterId": encounter_id, "completed": completed},
+        )
         response.raise_for_status()
 
     async def cancel_entry(self, session_id: str) -> None:
@@ -116,8 +121,9 @@ class RuntimeClient:
         return response.json()
 
     async def gateway_rpc(self, payload: dict[str, Any]) -> dict[str, Any]:
-        response = await self._client.post("/v1/gateway/rpc", json=payload, timeout=150.0,
-                                          headers={"X-Gateway-Origin": "PLATFORM"})
+        response = await self._client.post(
+            "/v1/gateway/rpc", json=payload, timeout=150.0, headers={"X-Gateway-Origin": "PLATFORM"}
+        )
         response.raise_for_status()
         return response.json()
 

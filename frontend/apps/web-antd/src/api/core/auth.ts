@@ -23,7 +23,6 @@ export namespace AuthApi {
     id: number;
     name: string;
   }
-
 }
 
 /** 登录 */

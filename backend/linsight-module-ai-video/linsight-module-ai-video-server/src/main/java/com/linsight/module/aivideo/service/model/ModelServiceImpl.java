@@ -34,6 +34,22 @@ import static com.linsight.module.aivideo.enums.model.ErrorCodeConstants.*;
 @Service
 @Validated
 public class ModelServiceImpl implements ModelService {
+    @Override
+    public java.util.List<java.util.Map<String, Object>> getExecutableOptions() {
+        var models = modelMapper.selectList(new com.linsight.framework.mybatis.core.query.LambdaQueryWrapperX<ModelDO>().eq(ModelDO::getStatus, 0));
+        var byId = models.stream().collect(java.util.stream.Collectors.toMap(ModelDO::getId, value -> value));
+        if (byId.isEmpty()) return java.util.List.of();
+        return modelVersionMapper.selectListByModelIds(byId.keySet()).stream()
+                .filter(v -> "PUBLISHED".equals(v.getPublishStatus()) && "READY".equals(v.getExecutionStatus()))
+                .map(v -> {
+                    java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
+                    result.put("id", v.getId()); result.put("modelId", v.getModelId());
+                    result.put("name", byId.get(v.getModelId()).getName()); result.put("version", v.getVersion());
+                    result.put("defaultVersion", Objects.equals(byId.get(v.getModelId()).getCurrentVersionId(), v.getId()));
+                    result.put("format", v.getArtifactFormat()); result.put("manifest", JsonUtils.parseMap(v.getRuntimeManifest()));
+                    return result;
+                }).toList();
+    }
 
     private static final String STATUS_DRAFT = "DRAFT";
     private static final String STATUS_PUBLISHED = "PUBLISHED";
@@ -247,18 +263,48 @@ public class ModelServiceImpl implements ModelService {
             throw exception(MODEL_RUNTIME_MANIFEST_INVALID);
         }
         Object preprocessValue = manifest.get("preprocess");
+        String targetPlatform = manifest.get("targetPlatform") instanceof String target ? target : null;
+        if (manifest.containsKey("targetPlatform") && (targetPlatform == null
+                || !targetPlatform.matches("[a-z0-9][a-z0-9._-]{0,63}"))) {
+            throw exception(MODEL_RUNTIME_MANIFEST_INVALID);
+        }
+        if (manifest.containsKey("execution")) {
+            if (!(manifest.get("execution") instanceof Map<?, ?> execution)
+                    || !(execution.get("provider") instanceof String provider)
+                    || !provider.matches("[a-z0-9][a-z0-9._-]{0,63}")
+                    || !validExecutionToken(execution, "target")
+                    || !validExecutionToken(execution, "runtime")
+                    || !validRuntimeVersion(execution, "minRuntimeVersion")
+                    || (execution.containsKey("minRuntimeVersion") && !execution.containsKey("runtime"))
+                    || (targetPlatform != null && execution.containsKey("target")
+                        && !targetPlatform.equals(execution.get("target")))) {
+                throw exception(MODEL_RUNTIME_MANIFEST_INVALID);
+            }
+        }
         Object decoderValue = manifest.get("decoder");
         if (!"1.0".equals(manifest.get("schemaVersion"))
                 || !Set.of("OBJECT_DETECTION", "CLASSIFICATION", "OCR", "FACE_VERIFICATION")
                         .contains(manifest.get("taskType"))
                 || !(preprocessValue instanceof Map<?, ?> preprocess)
                 || !(decoderValue instanceof Map<?, ?> decoder)
-                || (preprocess.containsKey("resize") && !"STRETCH".equals(preprocess.get("resize")))
+                || (preprocess.containsKey("resize") && !"STRETCH".equals(preprocess.get("resize"))
+                    && !("LETTERBOX".equals(preprocess.get("resize"))
+                        && "YOLO_PLATE".equals(decoder.get("type")))
+                    && !("OCR_RIGHT_PAD".equals(preprocess.get("resize"))
+                        && "PLATE_OCR_ROUTED".equals(decoder.get("type"))))
                 || !Set.of("RGB", "BGR").contains(preprocess.get("color"))
                 || !Set.of("NCHW", "NHWC").contains(preprocess.get("layout"))
                 || !Set.of("FLOAT32", "UINT8").contains(preprocess.get("dtype"))
-                || !Set.of("AUTO_DETECTION", "CLASSIFICATION", "CTC_GREEDY", "LPD_YUNET", "LPRNET", "FACE_PAIR_SFACE", "FACE_PAIR_SFACE_RKNN")
+                || !Set.of("AUTO_DETECTION", "CLASSIFICATION", "CTC_GREEDY", "LPD_YUNET", "LPRNET",
+                        "YOLO_PLATE", "CHINESE_PLATE_CTC", "PLATE_OCR_ROUTED",
+                        "FACE_PAIR_SFACE", "FACE_PAIR_SFACE_RKNN")
                         .contains(decoder.get("type"))) {
+            throw exception(MODEL_RUNTIME_MANIFEST_INVALID);
+        }
+        if (("YOLO_PLATE".equals(decoder.get("type"))
+                && !"OBJECT_DETECTION".equals(manifest.get("taskType")))
+                || (Set.of("CHINESE_PLATE_CTC", "PLATE_OCR_ROUTED").contains(decoder.get("type"))
+                && !"OCR".equals(manifest.get("taskType")))) {
             throw exception(MODEL_RUNTIME_MANIFEST_INVALID);
         }
         if ("FACE_VERIFICATION".equals(manifest.get("taskType"))
@@ -270,6 +316,16 @@ public class ModelServiceImpl implements ModelService {
                 && (!(labels instanceof List<?> values) || values.isEmpty())) {
             throw exception(MODEL_RUNTIME_MANIFEST_INVALID);
         }
+    }
+
+    private static boolean validExecutionToken(Map<?, ?> execution, String key) {
+        return !execution.containsKey(key) || (execution.get(key) instanceof String value
+                && value.matches("[a-z0-9][a-z0-9._-]{0,63}"));
+    }
+
+    private static boolean validRuntimeVersion(Map<?, ?> execution, String key) {
+        return !execution.containsKey(key) || (execution.get(key) instanceof String value
+                && value.matches("[0-9A-Za-z][0-9A-Za-z.+_-]{0,63}"));
     }
 
 }

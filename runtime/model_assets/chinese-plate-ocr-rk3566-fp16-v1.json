@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "1.0",
+  "revision": 1,
+  "models": [
+    {
+      "code": "chinese-plate-ocr",
+      "name": "中文车牌文字识别 · 专用 OCR",
+      "sourceType": "PRESET",
+      "description": "中文车牌专用 CNN/CTC 字符识别与颜色分类，78 字符表，168×48 BGR。现场准确率待验收。",
+      "sourceRepository": "https://github.com/we0091234/Chinese_license_plate_detection_recognition",
+      "sourceRevision": "670b765c09fff11850a7b1c542787ad66c24ae50",
+      "licenseSpdx": "GPL-3.0",
+      "version": "specialist-670b765-rk3566-fp16-v1",
+      "fileName": "plate_rec_color_fp16.rknn",
+      "sha256": "fface93fc33f908f455204c221b4a35c26f5733ca6aef0f938d668e0054c335f",
+      "size": 412886,
+      "runtimeManifest": {
+        "schemaVersion": "1.0",
+        "taskType": "OCR",
+        "preprocess": {
+          "inputWidth": 168,
+          "inputHeight": 48,
+          "color": "BGR",
+          "layout": "NHWC",
+          "dtype": "UINT8",
+          "scale": 1.0,
+          "mean": [
+            0,
+            0,
+            0
+          ],
+          "std": [
+            1,
+            1,
+            1
+          ],
+          "resize": "STRETCH"
+        },
+        "decoder": {
+          "type": "CHINESE_PLATE_CTC"
+        },
+        "targetPlatform": "rk3566"
+      },
+      "originalWeightsSha256": "786833c12c05aaaabf62db4e1acc94a83f72891c79ad22c1809389b26d802187"
+    }
+  ],
+  "conversion": {
+    "schemaVersion": "1.0",
+    "sourceOnnxSha256": "063c521cc7450cae63b2cb4e3063286463ea9856d1c6cdc633a406ff8686f475",
+    "sourceManifestSha256": "9184069faafa7e89dce5bf1a5bb19d0243ecc93c2f2ea967a0829258c3cd2258",
+    "artifactSha256": "fface93fc33f908f455204c221b4a35c26f5733ca6aef0f938d668e0054c335f",
+    "targetPlatform": "rk3566",
+    "precision": "fp16",
+    "toolkitVersion": "2.3.2",
+    "calibrationImages": [
+      {
+        "name": "box-live-plate-crop.jpg",
+        "sha256": "521b04e6d227139b6fae94e177d0822f9581ed717f9100aa08ec61cf173eba40",
+        "resizedSha256": "f965d6388168b64ad8715f69022019380b4ab13934c72e65a2a7d2855879231d"
+      },
+      {
+        "name": "box-user-plate-crop.jpg",
+        "sha256": "7aef1061cfcbe0cafbe59a9f4ca117bd0965e2f070b468d851049d1d9cc8dee8",
+        "resizedSha256": "ab69c281fdb911889738f692c22c35df57fa4e4a7150201d2a6f108398e8c1bc"
+      }
+    ],
+    "embeddedNormalization": {
+      "meanValues": [
+        149.94,
+        149.94,
+        149.94
+      ],
+      "stdValues": [
+        49.215,
+        49.215,
+        49.215
+      ]
+    },
+    "validationStatus": "RK3566_FP16_CPU_PARITY_VERIFIED",
+    "validation": {
+      "date": "2026-09-22",
+      "node": "192.168.2.17",
+      "report": "artifacts/plate-ocr-npu-20260922/REPORT.md",
+      "imageCases": 149,
+      "textMatchesCpu": 149,
+      "colorMatchesCpu": 149,
+      "videoFramesPerBackend": 126,
+      "videoFrameResultDifferences": 0,
+      "fieldAccuracyAcceptance": "PENDING"
+    }
+  }
+}

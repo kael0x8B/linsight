@@ -93,6 +93,21 @@ class CameraServiceImplTest {
     }
 
     @Test
+    void runtimeAlternativesIncludeOnlyConfiguredStreamsUsingTheSameCredentials() {
+        CameraDO camera = cameraDO();
+        camera.setMainStreamUri("/main");
+        camera.setSubStreamUri("/sub");
+        camera.setUsername("operator");
+        camera.setPassword("p@ss word");
+        when(cameraMapper.selectById(1L)).thenReturn(camera);
+        var streams = cameraService.getRuntimeStreamUrls(1L);
+        assertEquals(cameraService.getRuntimeStreamUrl(1L, "MAIN"), streams.get("MAIN"));
+        assertEquals(cameraService.getRuntimeStreamUrl(1L, "SUB"), streams.get("SUB"));
+        camera.setSubStreamUri("");
+        assertEquals(java.util.Set.of("MAIN"), cameraService.getRuntimeStreamUrls(1L).keySet());
+    }
+
+    @Test
     void runtimeSubStreamMustRejectMissingConfiguration() {
         when(cameraMapper.selectById(1L)).thenReturn(cameraDO());
 

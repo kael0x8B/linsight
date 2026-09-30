@@ -23,7 +23,9 @@ def create_environment(target: Path) -> None:
         raise ValueError("随包 pip 校验失败，未创建 Python 环境")
     target = target.absolute()
     if target.is_symlink() or target.resolve() in {
-        Path(sys.prefix).resolve(), Path(sys.base_prefix).resolve(), Path("/"),
+        Path(sys.prefix).resolve(),
+        Path(sys.base_prefix).resolve(),
+        Path("/"),
     }:
         raise ValueError("不能修改当前或系统 Python 环境")
     if target.exists() and any(target.iterdir()) and not (target / "pyvenv.cfg").is_file():
@@ -32,8 +34,9 @@ def create_environment(target: Path) -> None:
     python = target / "bin" / "python"
     # Ignore caller Python/pip configuration, including index, target and prefix
     # overrides. -I prevents current-directory or PYTHONPATH module injection.
-    env = {key: value for key, value in os.environ.items()
-           if not key.startswith(("PIP_", "PYTHON"))}
+    env = {
+        key: value for key, value in os.environ.items() if not key.startswith(("PIP_", "PYTHON"))
+    }
     env["PIP_CONFIG_FILE"] = os.devnull
     seed = (
         "import pathlib,runpy,sys; "
@@ -42,13 +45,31 @@ def create_environment(target: Path) -> None:
         "sys.path.insert(0,sys.argv.pop(1)); runpy.run_module('pip',run_name='__main__')"
     )
     subprocess.run(  # noqa: S603 - fixed interpreter in a verified application venv
-        [str(python), "-I", "-c", seed, str(target), str(PIP_WHEEL),
-         "--isolated", "install", "--no-index", "--no-deps", "--no-cache-dir",
-         "--disable-pip-version-check", "--ignore-installed", str(PIP_WHEEL)],
-        env=env, check=True, timeout=90,
+        [
+            str(python),
+            "-I",
+            "-c",
+            seed,
+            str(target),
+            str(PIP_WHEEL),
+            "--isolated",
+            "install",
+            "--no-index",
+            "--no-deps",
+            "--no-cache-dir",
+            "--disable-pip-version-check",
+            "--ignore-installed",
+            str(PIP_WHEEL),
+        ],
+        env=env,
+        check=True,
+        timeout=90,
     )
     subprocess.run(  # noqa: S603
-        [str(python), "-I", "-m", "pip", "--version"], env=env, check=True, timeout=15,
+        [str(python), "-I", "-m", "pip", "--version"],
+        env=env,
+        check=True,
+        timeout=15,
     )
 
 

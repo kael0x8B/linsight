@@ -1,4 +1,5 @@
 """Durable activation journal shared by the launcher and accepted-heartbeat loop."""
+
 import json
 import os
 import time
@@ -25,8 +26,15 @@ def stage(root: Path, version: str, previous: Path | None) -> None:
     if read_pending(root) is not None:
         raise ValueError("an Agent release is still awaiting activation")
     (root / "failed-activation-version").unlink(missing_ok=True)
-    write_pending(root, {"version": version, "previous": str(previous) if previous else None,
-                         "token": uuid.uuid4().hex, "startedAt": None})
+    write_pending(
+        root,
+        {
+            "version": version,
+            "previous": str(previous) if previous else None,
+            "token": uuid.uuid4().hex,
+            "startedAt": None,
+        },
+    )
 
 
 def acknowledge(root: Path, version: str) -> None:

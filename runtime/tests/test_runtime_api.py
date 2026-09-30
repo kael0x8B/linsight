@@ -6,9 +6,7 @@ from ai_runtime.app.main import create_app
 
 def test_health_is_public_but_runtime_operations_require_runtime_key(tmp_path) -> None:
     app = create_app(
-        RuntimeSettings(
-            api_key="a-secure-runtime-key-for-tests", runtime_data_root=tmp_path
-        )
+        RuntimeSettings(api_key="a-secure-runtime-key-for-tests", runtime_data_root=tmp_path)
     )
     client = TestClient(app)
 

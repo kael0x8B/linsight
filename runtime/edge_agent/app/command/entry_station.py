@@ -1,4 +1,5 @@
 """The edge drives visitor arrival sessions independently of any open management page."""
+
 import asyncio
 import logging
 
@@ -11,26 +12,46 @@ async def synchronize_entry_stations(identity, client, runtime):
     for state in states:
         encounter = state.get("encounterId")
         if state["state"] == "TRIGGERED" and encounter:
-            await client.start_entry_automatically(identity, {key:state[key] for key in ("entryId","version","encounterId","observedAtMillis")})
-            await runtime.acknowledge_entry_station(state["entryId"],encounter,False)
+            await client.start_entry_automatically(
+                identity,
+                {
+                    key: state[key]
+                    for key in ("entryId", "version", "encounterId", "observedAtMillis")
+                },
+            )
+            await runtime.acknowledge_entry_station(state["entryId"], encounter, False)
         if state["state"] == "SCANNING" and encounter:
-            result = await client.get_entry_command(identity,encounter,state=True)
-            if result.get("cancelled") or result.get("status") in {"SUCCEEDED","FAILED","CANCELLED","EXPIRED"}:
-                await runtime.acknowledge_entry_station(state["entryId"],encounter,True)
-        await client.report_entry_station(identity,state)
+            result = await client.get_entry_command(identity, encounter, state=True)
+            if result.get("cancelled") or result.get("status") in {
+                "SUCCEEDED",
+                "FAILED",
+                "CANCELLED",
+                "EXPIRED",
+            }:
+                await runtime.acknowledge_entry_station(state["entryId"], encounter, True)
+        await client.report_entry_station(identity, state)
 
 
 async def entry_station_loop(identity, client, runtime):
     while True:
         try:
-            await synchronize_entry_stations(identity,client,runtime)
+            await synchronize_entry_stations(identity, client, runtime)
         except asyncio.CancelledError:
             raise
         except Exception as error:
-            # Revoke the presence lease on lost authority; a resumed station first requires an empty zone.
+            # Revoke the presence lease on lost authority; a resumed station first
+            # requires an empty zone.
             try:
                 await runtime.sync_entry_stations([])
-            except Exception:
-                pass  # The Runtime also expires the 15-second lease without a successful refresh.
-            LOGGER.warning("Entrance station synchronization failed nodeId=%s errorType=%s",identity.node_id,type(error).__name__)
-        await asyncio.sleep(.4)
+            except Exception as revoke_error:
+                # The Runtime also expires the lease without a successful refresh.
+                LOGGER.debug(
+                    "Entrance station lease revocation failed errorType=%s",
+                    type(revoke_error).__name__,
+                )
+            LOGGER.warning(
+                "Entrance station synchronization failed nodeId=%s errorType=%s",
+                identity.node_id,
+                type(error).__name__,
+            )
+        await asyncio.sleep(0.4)

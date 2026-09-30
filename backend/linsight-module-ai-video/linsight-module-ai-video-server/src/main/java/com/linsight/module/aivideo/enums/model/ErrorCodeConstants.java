@@ -5,6 +5,7 @@ import com.linsight.framework.common.exception.ErrorCode;
 /** Model 领域错误码，使用 1-020-001-000 段。 */
 public interface ErrorCodeConstants {
     ErrorCode MODEL_UNINSTALL_UNSUPPORTED = new ErrorCode(1_020_001_028, "当前网关尚不支持模型卸载，请先在线升级网关");
+    ErrorCode MODEL_NODE_INCOMPATIBLE = new ErrorCode(1_020_001_029, "模型与目标网关不兼容：{}");
     ErrorCode MODEL_NOT_FOUND = new ErrorCode(1_020_001_000, "模型资产不存在");
     ErrorCode MODEL_CODE_DUPLICATE = new ErrorCode(1_020_001_001, "模型编码已存在");
     ErrorCode MODEL_HAS_VERSIONS = new ErrorCode(1_020_001_002, "模型已有版本，不能删除");

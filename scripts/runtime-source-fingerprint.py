@@ -30,6 +30,22 @@ def source_files(root: Path) -> list[Path]:
             and "__pycache__" not in path.parts
             and path.suffix != ".pyc"
         )
+    console_manifest = root / "gateway-console/manifest.json"
+    if not console_manifest.is_file():
+        raise ValueError(
+            "Gateway console artifact is missing; run make gateway-console"
+        )
+    try:
+        console = json.loads(console_manifest.read_text(encoding="utf-8"))
+        artifact_name = console["artifact"]["fileName"]
+    except (KeyError, TypeError, json.JSONDecodeError) as error:
+        raise ValueError("Gateway console manifest is invalid") from error
+    if not isinstance(artifact_name, str) or Path(artifact_name).name != artifact_name:
+        raise ValueError("Gateway console artifact filename is invalid")
+    console_artifact = console_manifest.parent / artifact_name
+    if not console_artifact.is_file():
+        raise ValueError("Gateway console artifact referenced by the manifest is missing")
+    files.extend((console_manifest, console_artifact))
     return sorted(files, key=lambda path: path.relative_to(root).as_posix())
 
 
@@ -66,6 +82,8 @@ def fingerprint(root: Path) -> dict[str, object]:
                 "runtime/pyproject.toml",
                 "runtime/ai_runtime/**/*",
                 "runtime/edge_agent/**/*",
+                "runtime/gateway-console/manifest.json",
+                "runtime/gateway-console/gateway-console-<sha256-prefix>.tar.gz",
             ],
             "excluded": ["**/__pycache__/**", "**/*.pyc"],
         },

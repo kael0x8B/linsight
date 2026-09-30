@@ -1,0 +1,250 @@
+{
+  "schemaVersion": "1.0",
+  "sdkVersion": "1.0",
+  "code": "person-absence-package",
+  "version": "2.0.0",
+  "name": "人员离岗",
+  "category": "REGION",
+  "eventType": "PERSON_ABSENCE",
+  "description": "核验指定登记人员是否在岗位区域；其他人不能代替，身份无法确认时暂停离岗判定。",
+  "entrypoint": "processor.py",
+  "timeoutMillis": 15000,
+  "models": [
+    {
+      "slot": "person",
+      "name": "人员检测模型",
+      "taskType": "OBJECT_DETECTION",
+      "formats": [
+        "ONNX",
+        "RKNN"
+      ],
+      "labels": [
+        "person"
+      ]
+    },
+    {
+      "slot": "face",
+      "name": "人脸检测与特征模型",
+      "taskType": "FACE_VERIFICATION",
+      "formats": [
+        "ARCHIVE"
+      ]
+    }
+  ],
+  "parameterSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "libraryId": {
+        "type": "integer",
+        "title": "对比人员库",
+        "minimum": 1,
+        "x-widget": "person-library"
+      },
+      "personIds": {
+        "type": "array",
+        "title": "指定在岗人员",
+        "x-widget": "people",
+        "x-library-field": "libraryId",
+        "maxItems": 1,
+        "minItems": 1,
+        "items": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "similarity": {
+        "type": "number",
+        "title": "身份相似度",
+        "minimum": 0.1,
+        "maximum": 1
+      },
+      "confirmFrames": {
+        "type": "integer",
+        "title": "至少确认帧数",
+        "minimum": 2,
+        "maximum": 10
+      },
+      "windowFrames": {
+        "type": "integer",
+        "title": "观察窗口帧数",
+        "minimum": 2,
+        "maximum": 15
+      },
+      "roi": {
+        "type": "object",
+        "title": "岗位识别区域",
+        "x-widget": "roi",
+        "required": [
+          "x",
+          "y",
+          "width",
+          "height"
+        ],
+        "properties": {
+          "x": {
+            "type": "number",
+            "title": "区域左侧（0–1）",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "y": {
+            "type": "number",
+            "title": "区域顶部（0–1）",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "width": {
+            "type": "number",
+            "title": "区域宽度（0–1）",
+            "minimum": 0.01,
+            "maximum": 1
+          },
+          "height": {
+            "type": "number",
+            "title": "区域高度（0–1）",
+            "minimum": 0.01,
+            "maximum": 1
+          }
+        }
+      },
+      "personConfidence": {
+        "type": "number",
+        "title": "人员置信度",
+        "minimum": 0.01,
+        "maximum": 1,
+        "description": "低于此值的人员不计入岗位人数；请根据现场画面调节。"
+      },
+      "rejectSimilarity": {
+        "type": "number",
+        "title": "非本人相似度上限",
+        "description": "低于此值并连续确认才视为其他人员；中间区间保持待确认。",
+        "minimum": 0,
+        "maximum": 0.9
+      },
+      "identityHoldSeconds": {
+        "type": "number",
+        "title": "身份短时保留（秒）",
+        "description": "仅在同一人员连续且无歧义跟踪时保留；人员离开、交叉或超时后重新核验。",
+        "minimum": 0,
+        "maximum": 30
+      }
+    },
+    "required": [
+      "libraryId",
+      "personIds",
+      "similarity",
+      "confirmFrames",
+      "windowFrames",
+      "roi",
+      "personConfidence",
+      "rejectSimilarity",
+      "identityHoldSeconds"
+    ]
+  },
+  "defaultParameters": {
+    "similarity": 0.6,
+    "confirmFrames": 3,
+    "windowFrames": 5,
+    "roi": {
+      "x": 0,
+      "y": 0,
+      "width": 1,
+      "height": 1
+    },
+    "personConfidence": 0.35,
+    "rejectSimilarity": 0.3,
+    "identityHoldSeconds": 10
+  },
+  "defaultRule": {
+    "schemaVersion": "1.0",
+    "eventType": "PERSON_ABSENCE",
+    "severity": "MAJOR",
+    "cooldownSeconds": 60,
+    "recoverySeconds": 5,
+    "dedup": {
+      "scope": "CAMERA_TASK_TYPE",
+      "windowSeconds": 60
+    },
+    "schedule": {
+      "timezone": "Asia/Shanghai",
+      "weekly": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "start": "00:00",
+          "end": "23:59"
+        }
+      ]
+    },
+    "regions": [
+      {
+        "id": "main",
+        "name": "岗位状态",
+        "type": "POLYGON",
+        "pointMode": "CENTROID",
+        "overlapThreshold": 0.2,
+        "sourceWidth": 1920,
+        "sourceHeight": 1080,
+        "points": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 1
+          },
+          {
+            "x": 0,
+            "y": 1
+          }
+        ]
+      }
+    ],
+    "condition": {
+      "type": "AND",
+      "children": [
+        {
+          "type": "ROI_ENTER",
+          "regionId": "main",
+          "objectClasses": [
+            "post_status"
+          ]
+        },
+        {
+          "type": "N_OF_M",
+          "n": 3,
+          "m": 5
+        },
+        {
+          "type": "DURATION",
+          "seconds": 60
+        }
+      ]
+    }
+  },
+  "resources": [
+    {
+      "key": "people",
+      "type": "FACE_LIBRARY",
+      "parameter": "libraryId",
+      "selectionParameter": "personIds",
+      "modelSlot": "face"
+    }
+  ],
+  "runtimeRequirements": [
+    "observation-validity-v1"
+  ]
+}

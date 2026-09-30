@@ -2,6 +2,7 @@ import json
 import sqlite3
 import threading
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -32,6 +33,7 @@ class OfflineEventStore:
     def __init__(self, path: Path, retain_history: bool = False) -> None:
         self._retain_history = retain_history
         self.local_task_ids: set[int] = set()
+        self.on_event_created = None
         path.parent.mkdir(parents=True, exist_ok=True)
         self._connection = sqlite3.connect(path, check_same_thread=False)
         self._connection.row_factory = sqlite3.Row
@@ -83,7 +85,21 @@ class OfflineEventStore:
                 "capture_error TEXT, stored_at INTEGER NOT NULL, "
                 "delivered INTEGER NOT NULL DEFAULT 0)"
             )
+            self._connection.execute(
+                "CREATE TABLE IF NOT EXISTS event_media_pin ("
+                "owner TEXT PRIMARY KEY, source_event_id TEXT NOT NULL)"
+            )
+            self._connection.execute(
+                "CREATE INDEX IF NOT EXISTS ix_event_media_pin_source "
+                "ON event_media_pin(source_event_id)"
+            )
         self.cleanup_delivered_media()
+
+    @contextmanager
+    def transaction(self):
+        """Share the event transaction with durable local delivery consumers."""
+        with self._lock, self._connection:
+            yield self._connection
 
     def _ensure_delivery_columns(self, table: str) -> None:
         columns = {
@@ -105,6 +121,13 @@ class OfflineEventStore:
 
     def upsert_event(self, value: PendingEvent) -> None:
         with self._lock, self._connection:
+            existing = self._connection.execute(
+                "SELECT 1 FROM local_event_history WHERE source_event_id=? "
+                "UNION ALL SELECT 1 FROM pending_event WHERE source_event_id=? LIMIT 1",
+                (value.source_event_id, value.source_event_id),
+            ).fetchone()
+            if existing is None and self.on_event_created is not None:
+                self.on_event_created(self._connection, value)
             self._connection.execute(
                 """
                 INSERT INTO pending_event
@@ -239,6 +262,10 @@ class OfflineEventStore:
             for row in rows:
                 path = Path(row["path"])
                 source_id = row["source_event_id"]
+                if self._connection.execute(
+                    "SELECT 1 FROM event_media_pin WHERE source_event_id=? LIMIT 1", (source_id,)
+                ).fetchone():
+                    continue
                 # Do not follow symlinks, accept arbitrary queue paths or remove
                 # frame spools while an encoder still owns the event directory.
                 if (
@@ -320,6 +347,11 @@ class OfflineEventStore:
                 (_now_millis() - days * 86_400_000,),
             ).fetchall()
             for row in rows:
+                if self._connection.execute(
+                    "SELECT 1 FROM event_media_pin WHERE source_event_id=? LIMIT 1",
+                    (row["source_event_id"],),
+                ).fetchone():
+                    continue
                 for value in (row["snapshot_path"], row["video_path"]):
                     if value:
                         self._connection.execute(

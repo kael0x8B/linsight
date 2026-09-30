@@ -117,8 +117,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
 </script>
 <template>
   <Page auto-content-height>
-    <template #doc>
-    </template>
+    <template #doc> </template>
 
     <FormModal @success="handleRefresh" />
     <Grid table-title="邮箱账号列表">

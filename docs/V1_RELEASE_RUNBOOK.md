@@ -157,9 +157,10 @@ Java Server 当前 302 个运行时组件中无未接受漏洞。OSV 仍报告 2
 这些阻断项不会影响契约测试，但会使生产门禁保持 `BLOCKED_EXTERNAL`。任意非空文件不再能
 通过门禁；每类验收必须提供唯一结构化报告、原始附件哈希、环境/版本绑定和可计算指标。
 
-平台部署前执行 `make runtime-source-fingerprint`，保存输出中的确定性源码 SHA256；部署后必须在
-网关 `/opt/linsight/runtime` 对同一文件集合复算并匹配。正式证据中的 `softwareVersion` 应绑定
-平台部署编号和该 SHA256，不能只使用可重复的版本显示字符串或“部署成功”状态。
+平台部署前先执行 `make gateway-console`，再执行 `make runtime-source-fingerprint`。确定性指纹同时覆盖
+Runtime/Agent 源码、网关控制台 manifest 及它引用的内容寻址制品；部署后必须在网关
+`/opt/linsight/runtime` 对同一文件集合复算并匹配。正式证据中的 `softwareVersion` 应绑定平台部署编号、
+Runtime 包 SHA256 和控制台制品 SHA256，不能只使用可重复的版本显示字符串或“部署成功”状态。
 
 
 ## 在线升级与生命周期操作（2026-09-06）

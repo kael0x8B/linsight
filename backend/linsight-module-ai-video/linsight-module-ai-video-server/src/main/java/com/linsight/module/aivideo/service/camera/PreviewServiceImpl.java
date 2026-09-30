@@ -57,10 +57,11 @@ public class PreviewServiceImpl implements PreviewService {
         if (!runtimePreviewClient.isNodeConnected(nodeId, tenantId)) {
             throw exception(CAMERA_PREVIEW_TUNNEL_NOT_CONNECTED, nodeId, UUID.randomUUID());
         }
-        String sourceUrl = cameraService.getRuntimeStreamUrl(cameraId, "SUB");
+        String selectedStream = activeOrRequestedStream(cameraId, nodeId, streamType);
+        String sourceUrl = cameraService.getRuntimeStreamUrl(cameraId, selectedStream);
         try {
             RuntimePreviewClient.Session runtimeSession = runtimePreviewClient.createSession(
-                    nodeId, tenantId, cameraId, sourceUrl, "SUB");
+                    nodeId, tenantId, cameraId, sourceUrl, selectedStream);
             if (runtimeSession == null || runtimeSession.getSessionId() == null) {
                 throw new RuntimePreviewClient.RuntimePreviewException(
                         new IllegalStateException("Runtime preview response is empty"));
@@ -86,7 +87,8 @@ public class PreviewServiceImpl implements PreviewService {
         if (!runtimePreviewClient.isNodeConnected(nodeId, tenantId)) {
             throw exception(CAMERA_PREVIEW_TUNNEL_NOT_CONNECTED, nodeId, UUID.randomUUID());
         }
-        String sourceUrl = cameraService.getRuntimeStreamUrl(cameraId, "SUB");
+        String sourceUrl = cameraService.getRuntimeStreamUrl(cameraId,
+                activeOrRequestedStream(cameraId, nodeId, "SUB"));
         try {
             RuntimePreviewClient.Session runtimeSession = runtimePreviewClient.createWebRtcSession(
                     nodeId, tenantId, cameraId, sourceUrl, offerSdp, offerType);
@@ -104,6 +106,12 @@ public class PreviewServiceImpl implements PreviewService {
             serviceException.initCause(exception);
             throw serviceException;
         }
+    }
+
+    private String activeOrRequestedStream(Long cameraId, Long nodeId, String requestedStream) {
+        String active = taskService.getActiveStreamType(cameraId, nodeId);
+        if (active != null) return active;
+        return "MAIN".equals(requestedStream) ? "MAIN" : "SUB";
     }
 
     @Override

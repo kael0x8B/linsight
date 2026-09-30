@@ -1,0 +1,123 @@
+{
+  "schemaVersion": "1.0",
+  "sdkVersion": "1.0",
+  "code": "person-dwell-package",
+  "version": "1.0.0",
+  "name": "异常停留",
+  "category": "REGION",
+  "eventType": "PERSON_DWELL",
+  "description": "在指定区域内持续停留超过设定时间后告警；按同一人员轨迹计时，短暂经过不告警。",
+  "entrypoint": "processor.py",
+  "timeoutMillis": 5000,
+  "models": [
+    {
+      "slot": "primary",
+      "name": "通用目标检测模型",
+      "taskType": "OBJECT_DETECTION",
+      "formats": [
+        "ONNX",
+        "RKNN"
+      ],
+      "labels": [
+        "person"
+      ]
+    }
+  ],
+  "parameterSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "confidence"
+    ],
+    "properties": {
+      "confidence": {
+        "type": "number",
+        "title": "目标置信度",
+        "minimum": 0.01,
+        "maximum": 1
+      }
+    }
+  },
+  "defaultParameters": {
+    "confidence": 0.5
+  },
+  "defaultRule": {
+    "schemaVersion": "1.0",
+    "eventType": "PERSON_DWELL",
+    "severity": "MAJOR",
+    "cooldownSeconds": 60,
+    "recoverySeconds": 5,
+    "dedup": {
+      "scope": "TRACK",
+      "windowSeconds": 60
+    },
+    "schedule": {
+      "timezone": "Asia/Shanghai",
+      "weekly": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "start": "00:00",
+          "end": "23:59"
+        }
+      ]
+    },
+    "regions": [
+      {
+        "id": "main",
+        "name": "检测区域",
+        "type": "POLYGON",
+        "pointMode": "CENTROID",
+        "overlapThreshold": 0.2,
+        "sourceWidth": 1920,
+        "sourceHeight": 1080,
+        "points": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 1
+          },
+          {
+            "x": 0,
+            "y": 1
+          }
+        ]
+      }
+    ],
+    "condition": {
+      "type": "AND",
+      "children": [
+        {
+          "type": "ROI_ENTER",
+          "regionId": "main",
+          "objectClasses": [
+            "person"
+          ]
+        },
+        {
+          "type": "N_OF_M",
+          "n": 3,
+          "m": 5
+        },
+        {
+          "type": "DURATION",
+          "seconds": 120
+        }
+      ]
+    }
+  }
+}

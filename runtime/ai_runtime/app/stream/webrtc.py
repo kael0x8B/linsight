@@ -13,7 +13,11 @@ from aiortc.contrib.media import MediaPlayer, MediaRelay
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from ai_runtime.app.core.config import RuntimeSettings
-from ai_runtime.app.stream.shared import CameraMediaHub, SharedPreviewPlayer
+from ai_runtime.app.stream.shared import (
+    CameraMediaHub,
+    SharedPreviewPlayer,
+    UnsupportedTimelineCodec,
+)
 
 LOGGER = logging.getLogger("linsight.runtime.webrtc")
 
@@ -98,7 +102,7 @@ class WebRtcSession:
 
 
 class WebRtcManager:
-    """Owns browser peer sessions while sharing one encoded SUB RTSP pull per camera."""
+    """Owns browser peer sessions while sharing one encoded RTSP pull per camera."""
 
     def __init__(
         self,
@@ -158,6 +162,8 @@ class WebRtcManager:
                 diagnostic_id=diagnostic_id,
             )
             async with self._lock:
+                if self._sources.get(request.camera_id) is not source:
+                    raise RuntimeError("RTSP source changed during negotiation")
                 self._sessions[session_id] = session
             self._bind_connection_lifecycle(session)
 
@@ -189,7 +195,12 @@ class WebRtcManager:
                 if source is not None:
                     await self._release_source_subscriber(source, session_id)
                 await peer.close()
-            raise WebRtcUnavailableError("WEBRTC_NEGOTIATION_FAILED", diagnostic_id) from error
+            error_code = (
+                "UNSUPPORTED_VIDEO_CODEC"
+                if isinstance(error, UnsupportedTimelineCodec)
+                else "WEBRTC_NEGOTIATION_FAILED"
+            )
+            raise WebRtcUnavailableError(error_code, diagnostic_id) from error
 
     async def get_session(self, session_id: str) -> WebRtcSessionResponse:
         session = await self._require_session(session_id)
@@ -207,7 +218,8 @@ class WebRtcManager:
             source = session.source
             source.subscribers.discard(session_id)
             if not source.subscribers:
-                self._sources.pop(source.camera_id, None)
+                if self._sources.get(source.camera_id) is source:
+                    self._sources.pop(source.camera_id, None)
         session.outbound_track.stop()
         await session.peer.close()
         if source is not None and not source.subscribers:
@@ -220,22 +232,40 @@ class WebRtcManager:
             await self.release_session(session_id)
         return registered
 
-    async def _release_source_subscriber(
-        self, source: WebRtcSource, session_id: str
-    ) -> None:
+    async def _release_source_subscriber(self, source: WebRtcSource, session_id: str) -> None:
         async with self._lock:
             source.subscribers.discard(session_id)
             should_stop = not source.subscribers
-            if should_stop:
+            if should_stop and self._sources.get(source.camera_id) is source:
                 self._sources.pop(source.camera_id, None)
         if should_stop:
             source.stop()
 
-    async def _acquire_source(
-        self, request: WebRtcOfferRequest, session_id: str
-    ) -> WebRtcSource:
+    async def _acquire_source(self, request: WebRtcOfferRequest, session_id: str) -> WebRtcSource:
         async with self._lock:
             source = self._sources.get(request.camera_id)
+            if source is not None and (
+                source.source_url.get_secret_value() != request.source_url.get_secret_value()
+            ):
+                # The task may have switched from SUB to MAIN while browsers still
+                # hold the old preview. Retire those sessions before opening the
+                # new one; the media hub will keep the camera to a single pull.
+                stale_sessions = [
+                    self._sessions.pop(old_id)
+                    for old_id in tuple(source.subscribers)
+                    if old_id in self._sessions
+                ]
+                for old_session in stale_sessions:
+                    old_session.state = WebRtcState.CLOSED
+                    old_session.outbound_track.stop()
+                source.subscribers.clear()
+                self._sources.pop(request.camera_id, None)
+                source.stop()
+                await asyncio.gather(
+                    *(old_session.peer.close() for old_session in stale_sessions),
+                    return_exceptions=True,
+                )
+                source = None
             if source is None:
                 try:
                     player = await asyncio.wait_for(
@@ -256,8 +286,6 @@ class WebRtcManager:
                     source.stop()
                     raise RuntimeError("RTSP source has no video track")
                 self._sources[request.camera_id] = source
-            elif source.source_url.get_secret_value() != request.source_url.get_secret_value():
-                raise RuntimeError("RTSP SUB source changed")
             source.subscribers.add(session_id)
             return source
 
@@ -265,6 +293,13 @@ class WebRtcManager:
         @session.peer.on("connectionstatechange")
         async def connection_state_changed() -> None:
             state = session.peer.connectionState
+            if state == "failed":
+                LOGGER.warning(
+                    "WebRTC peer failed cameraId=%s sessionId=%s iceState=%s",
+                    session.camera_id,
+                    session.session_id,
+                    session.peer.iceConnectionState,
+                )
             if state in {"failed", "closed"}:
                 session.state = WebRtcState.FAILED
 
@@ -323,8 +358,7 @@ class WebRtcManager:
         # ICE consent eventually moves the peer out of connected and normal idle
         # cleanup applies.
         return (
-            session.last_access_monotonic < deadline
-            and session.peer.connectionState != "connected"
+            session.last_access_monotonic < deadline and session.peer.connectionState != "connected"
         )
 
     async def _create_player(self, source_url: SecretStr) -> Player:

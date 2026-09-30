@@ -59,6 +59,11 @@ export namespace AiVideoCameraApi {
     executionBackend?: string;
     analysisFps?: number;
     totalLatencyMillis?: number;
+    regions?: {
+      id: string;
+      name: string;
+      points: { x: number; y: number }[];
+    }[];
   }
 
   export interface CameraPageParams {
@@ -88,7 +93,13 @@ export namespace AiVideoCameraApi {
     overlayMessageType: string;
     protocol: 'HLS' | 'WEBRTC';
     sessionId: string;
-    state: 'CLOSED' | 'CONNECTING' | 'FAILED' | 'READY' | 'RECONNECTING' | 'STARTING';
+    state:
+      | 'CLOSED'
+      | 'CONNECTING'
+      | 'FAILED'
+      | 'READY'
+      | 'RECONNECTING'
+      | 'STARTING';
     subscriberCount: number;
   }
 
@@ -254,7 +265,10 @@ export function getVideoWallLayouts() {
 export function createVideoWallLayout(
   data: AiVideoCameraApi.VideoWallLayoutSave,
 ) {
-  return requestClient.post<number>('/ai-video/camera/wall-layout/create', data);
+  return requestClient.post<number>(
+    '/ai-video/camera/wall-layout/create',
+    data,
+  );
 }
 
 export function updateVideoWallLayout(
@@ -264,13 +278,9 @@ export function updateVideoWallLayout(
 }
 
 export function activateVideoWallLayout(id: number) {
-  return requestClient.put(
-    `/ai-video/camera/wall-layout/activate?id=${id}`,
-  );
+  return requestClient.put(`/ai-video/camera/wall-layout/activate?id=${id}`);
 }
 
 export function deleteVideoWallLayout(id: number) {
-  return requestClient.delete(
-    `/ai-video/camera/wall-layout/delete?id=${id}`,
-  );
+  return requestClient.delete(`/ai-video/camera/wall-layout/delete?id=${id}`);
 }

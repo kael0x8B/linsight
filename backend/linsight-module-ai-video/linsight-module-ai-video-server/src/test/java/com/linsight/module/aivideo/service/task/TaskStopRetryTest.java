@@ -33,8 +33,14 @@ class TaskStopRetryTest {
         task.setActiveRunId("run-a");
         task.setLastCommandId("previous-command");
         when(tasks.selectById(2L)).thenReturn(task);
+        when(tasks.selectByIdForUpdate(2L)).thenReturn(task);
         when(transactions.execute(any())).thenAnswer(call ->
                 ((TransactionCallback<?>) call.getArgument(0)).doInTransaction(mock(TransactionStatus.class)));
+        doAnswer(call -> {
+            java.util.function.Consumer<TransactionStatus> callback = call.getArgument(0);
+            callback.accept(mock(TransactionStatus.class));
+            return null;
+        }).when(transactions).executeWithoutResult(any());
         when(commands.createCommand(anyString(), eq(1L), eq("STOP_TASK"), eq(2L), eq(3), anyString()))
                 .thenReturn("durable-command");
     }
@@ -94,6 +100,19 @@ class TaskStopRetryTest {
         assertThat(service.stopTask(2L)).isEqualTo("durable-command");
         assertThat(task.getLastCommandId()).isEqualTo("durable-command");
     }
+
+    @Test
+    void locallyStoppedGatewayCanReconcileTheDesiredStateWithoutAnotherCommand() {
+        task.setActualStatus("STOPPED");
+        task.setDesiredStatus("RUNNING");
+        assertThat(service.stopTask(2L)).isNull();
+        assertThat(task.getDesiredStatus()).isEqualTo("STOPPED");
+        assertThat(task.getActiveRunId()).isEqualTo("run-a");
+        verify(tasks).updateRuntimeState(task);
+        verify(commands, never()).createCommand(anyString(), anyLong(), anyString(),
+                anyLong(), anyInt(), anyString());
+    }
+
     @Test
     void runningHeartbeatCannotHidePendingStopOrItsFailure() {
         var runs=mock(com.linsight.module.aivideo.dal.mysql.task.TaskRunMapper.class);

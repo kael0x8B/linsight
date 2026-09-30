@@ -1,0 +1,233 @@
+{
+  "schemaVersion": "1.0",
+  "revision": 3,
+  "algorithm": {
+    "name": "厂区车辆识别",
+    "code": "yard-vehicle-recognition",
+    "category": "CUSTOM",
+    "sceneGroup": "LICENSE_PLATE",
+    "implementationType": "COMPOSITE",
+    "description": "识别厂区、矿区及料仓车头车牌，采用中文车牌专用四角检测、原图区域裁剪与透视矫正、专用 OCR 和 3/5 帧确认。输出车牌、截图、时间及位置，按车牌到访去重；事件接口按任务绑定。现场效果待验收。",
+    "capabilityKey": "ocr.license-plate",
+    "requiredCapabilities": [
+      "detector.license-plate",
+      "ocr.license-plate",
+      "tracker.iou"
+    ],
+    "eventType": "VEHICLE_PLATE_RECOGNIZED",
+    "status": 0,
+    "parameterSchema": {
+      "schemaVersion": "1.0",
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "confidence",
+        "sampleFps",
+        "ocrMinConfidence",
+        "ocrMinVotes",
+        "ocrVoteFrames",
+        "ocrVoteMaxAgeSeconds"
+      ],
+      "properties": {
+        "confidence": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 1
+        },
+        "sampleFps": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 10
+        },
+        "ocrMinConfidence": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 1,
+          "title": "车牌最低置信度"
+        },
+        "ocrMinVotes": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 30,
+          "title": "一致识别帧数"
+        },
+        "ocrVoteFrames": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 30,
+          "title": "投票窗口帧数"
+        },
+        "ocrVoteMaxAgeSeconds": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 60,
+          "title": "投票有效时间（秒）"
+        },
+        "plateUseRuleRoi": {
+          "type": "boolean",
+          "title": "在告警区域内检测车牌"
+        },
+        "plateMaxCandidates": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "title": "每帧最多识别车牌数"
+        }
+      }
+    },
+    "defaultParameters": {
+      "schemaVersion": "1.0",
+      "validationOnly": true,
+      "confidence": 0.5,
+      "sampleFps": 4,
+      "inputWidth": 640,
+      "inputHeight": 640,
+      "nmsThreshold": 0.5,
+      "ocrMinConfidence": 0.75,
+      "ocrMinVotes": 3,
+      "ocrVoteFrames": 5,
+      "ocrVoteMaxAgeSeconds": 10,
+      "plateUseRuleRoi": true,
+      "plateMaxCandidates": 10
+    }
+  },
+  "models": [
+    {
+      "slot": "plate-detector",
+      "modelCode": "chinese-plate-yolo",
+      "sha256": "71c1c7102625cfcacb9aedbe1f083b51f6f69647e1c520e65f61c46414b23c46",
+      "alternativeSha256": [
+        "ba1f907fb20e61bc97c24d54944f27c1cafbd6d4edd76e1f5cac86925337a8b2"
+      ]
+    },
+    {
+      "slot": "plate-ocr",
+      "modelCode": "chinese-plate-ocr",
+      "sha256": "063c521cc7450cae63b2cb4e3063286463ea9856d1c6cdc633a406ff8686f475",
+      "alternativeSha256": [
+        "fface93fc33f908f455204c221b4a35c26f5733ca6aef0f938d668e0054c335f",
+        "87c8e9596781705d627acae2e3f4669f8abf1f1ad3c0640ba3d017c311659437"
+      ]
+    }
+  ],
+  "pipeline": {
+    "schemaVersion": "1.0",
+    "acceptance": {
+      "status": "PENDING",
+      "note": "专用预训练权重；模型效果需按真实矿区车头视频验收。单张静态图片不能证明多帧确认或现场准确率。"
+    },
+    "nodes": [
+      {
+        "id": "plate-detector",
+        "type": "DETECTOR",
+        "capabilityKey": "detector.license-plate"
+      },
+      {
+        "id": "plate-ocr",
+        "type": "OCR",
+        "capabilityKey": "ocr.license-plate"
+      },
+      {
+        "id": "iou-tracker",
+        "type": "TRACKER",
+        "capabilityKey": "tracker.iou"
+      }
+    ],
+    "edges": [
+      {
+        "from": "plate-detector",
+        "to": "plate-ocr"
+      },
+      {
+        "from": "plate-ocr",
+        "to": "iou-tracker"
+      }
+    ]
+  },
+  "rule": {
+    "name": "厂区车辆车牌确认",
+    "code": "yard-vehicle-plate-confirmed",
+    "eventType": "VEHICLE_PLATE_RECOGNIZED",
+    "description": "算法已完成 3/5 帧车牌确认；事件按车牌到访去重，连续离开识别区 5 秒后允许再次到访。部署时按实际车道调整识别区域。",
+    "status": 0
+  },
+  "ruleAst": {
+    "schemaVersion": "1.0",
+    "eventType": "VEHICLE_PLATE_RECOGNIZED",
+    "severity": "INFO",
+    "regions": [
+      {
+        "id": "plate-area",
+        "name": "车牌识别区域",
+        "type": "POLYGON",
+        "sourceWidth": 1920,
+        "sourceHeight": 1080,
+        "pointMode": "CENTROID",
+        "overlapThreshold": 0,
+        "points": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 1
+          },
+          {
+            "x": 0,
+            "y": 1
+          }
+        ]
+      }
+    ],
+    "schedule": {
+      "timezone": "Asia/Shanghai",
+      "weekly": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "start": "00:00",
+          "end": "23:59"
+        }
+      ]
+    },
+    "condition": {
+      "type": "AND",
+      "children": [
+        {
+          "type": "ROI_ENTER",
+          "regionId": "plate-area",
+          "objectClasses": [
+            "license_plate"
+          ]
+        },
+        {
+          "type": "N_OF_M",
+          "n": 1,
+          "m": 1
+        },
+        {
+          "type": "DURATION",
+          "seconds": 0
+        }
+      ]
+    },
+    "cooldownSeconds": 0,
+    "recoverySeconds": 5,
+    "dedup": {
+      "scope": "TRACK",
+      "windowSeconds": 60
+    }
+  }
+}

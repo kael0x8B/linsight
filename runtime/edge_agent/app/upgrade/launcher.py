@@ -1,4 +1,5 @@
 """Systemd entry point: execute the selected verified release, or the source baseline."""
+
 import os
 import subprocess
 import time
@@ -29,8 +30,11 @@ def activate_guarded(root: Path, timeout: float = 120) -> bool:
         executable = selected_executable(root)
         if executable is None or executable.parent.parent.name != pending["version"]:
             raise ValueError("activation journal does not match selected release")
-        env = dict(os.environ, LINSIGHT_AGENT_AGENT_VERSION=pending["version"],
-                   LINSIGHT_AGENT_ACTIVATION_GUARD="v1")
+        env = dict(
+            os.environ,
+            LINSIGHT_AGENT_AGENT_VERSION=pending["version"],
+            LINSIGHT_AGENT_ACTIVATION_GUARD="v1",
+        )
         child = subprocess.Popen([str(executable)], env=env, start_new_session=True)  # noqa: S603
         while time.time() - pending["startedAt"] < timeout:
             if healthy(root, pending):
@@ -46,6 +50,7 @@ def activate_guarded(root: Path, timeout: float = 120) -> bool:
         if (root / "pending-activation.json").exists():
             if child is not None and child.poll() is None:
                 import signal
+
                 os.killpg(child.pid, signal.SIGTERM)
                 try:
                     child.wait(timeout=5)
@@ -65,6 +70,7 @@ def main() -> None:
         os.environ["LINSIGHT_AGENT_AGENT_VERSION"] = executable.parent.parent.name
         os.execv(str(executable), [str(executable)])  # noqa: S606 - verified local release
     from edge_agent.app.main import main as run_agent
+
     run_agent()
 
 

@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Collection;
 
 public interface ModelExecutionService {
+    java.util.Map<Long, String> getNodeDeploymentStates(Long nodeId);
+    void reconcileNodeInventory(Long nodeId, Collection<Long> installedModelVersionIds);
     void validateFaceVerificationReady(Long modelVersionId, Long nodeId);
     java.util.Map<Long, Long> getNodeCounts(java.util.Collection<Long> nodeIds);
     boolean hasDeploymentOnNode(Long modelVersionId, Long nodeId);

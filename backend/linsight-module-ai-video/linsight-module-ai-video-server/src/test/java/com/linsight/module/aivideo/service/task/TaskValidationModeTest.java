@@ -14,6 +14,10 @@ import com.linsight.module.aivideo.service.algorithm.AlgorithmService;
 import com.linsight.module.aivideo.service.camera.CameraService;
 import com.linsight.module.aivideo.service.model.ModelExecutionService;
 import com.linsight.module.aivideo.service.model.ModelService;
+import com.linsight.module.aivideo.service.node.NodeService;
+import com.linsight.module.aivideo.service.settings.GlobalSettingsService;
+import com.linsight.module.aivideo.controller.admin.settings.vo.AiGlobalSettingsVO;
+import com.linsight.module.aivideo.controller.admin.settings.vo.GlobalSettingsRespVO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -38,6 +42,8 @@ class TaskValidationModeTest {
     @Mock private AlgorithmService algorithmService;
     @Mock private ModelService modelService;
     @Mock private ModelExecutionService modelExecutionService;
+    @Mock private NodeService nodeService;
+    @Mock private GlobalSettingsService globalSettingsService;
     @InjectMocks private TaskServiceImpl service;
 
     private TaskSaveReqVO request(Object mode) {
@@ -88,5 +94,34 @@ class TaskValidationModeTest {
         TaskSaveReqVO request = request("true");
         assertThrows(ServiceException.class, () -> service.createTask(request));
         verify(algorithmService, never()).validatePipelineRunnable(any(PipelineVersionDO.class), anyBoolean());
+    }
+
+    @Test
+    void taskAcceptsPublishedModelFromAnotherDeclaredHardwareTarget() {
+        TaskSaveReqVO request = request(false);
+        request.setModelVersionId(143L);
+        request.setModelBindings(Map.of("plate-ocr", 143L));
+        PipelineVersionDO pipeline = new PipelineVersionDO();
+        pipeline.setId(82670L);
+        pipeline.setDag(JsonUtils.toJsonString(Map.of(
+                "schemaVersion", "1.0",
+                "nodes", List.of(Map.of(
+                        "id", "plate-ocr",
+                        "type", "OCR",
+                        "capabilityKey", "custom.plate-ocr",
+                        "modelId", 71036L,
+                        "modelIds", List.of(71036L, 71039L))))));
+        when(algorithmService.getPublishedPipeline(72001L, 82621L)).thenReturn(pipeline);
+        ModelVersionDO version = new ModelVersionDO();
+        version.setModelId(71039L);
+        version.setPublishStatus("PUBLISHED");
+        version.setExecutionStatus("READY");
+        when(modelService.getVersion(143L)).thenReturn(version);
+        when(globalSettingsService.getCurrent()).thenReturn(
+                new GlobalSettingsRespVO(1, new AiGlobalSettingsVO()));
+
+        service.createTask(request);
+
+        verify(taskMapper).insert(any(TaskDO.class));
     }
 }

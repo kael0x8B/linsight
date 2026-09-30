@@ -40,7 +40,14 @@ export interface AiVideoNodeUpgrade {
   resultSummary?: string;
   sha256?: string;
   stage?: string;
-  status: 'AWAITING_ACTIVATION' | 'EXPIRED' | 'FAILED' | 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'VERIFYING';
+  status:
+    | 'AWAITING_ACTIVATION'
+    | 'EXPIRED'
+    | 'FAILED'
+    | 'QUEUED'
+    | 'RUNNING'
+    | 'SUCCEEDED'
+    | 'VERIFYING';
   targetVersion?: string;
 }
 
@@ -108,8 +115,7 @@ export interface AiVideoNodeDeploymentConnection {
   username: string;
 }
 
-export interface AiVideoNodeDeploymentCreate
-  extends AiVideoNodeDeploymentConnection {
+export interface AiVideoNodeDeploymentCreate extends AiVideoNodeDeploymentConnection {
   controlPlaneUrl: string;
   hostKey: string;
   hostKeyFingerprint: string;
@@ -126,7 +132,9 @@ export function getNodeSimpleList() {
 }
 
 export function getNodeList(silent = false) {
-  return requestClient.get<AiVideoNode[]>('/ai-video/node/list', { headers: { 'x-silent-error': String(silent) } });
+  return requestClient.get<AiVideoNode[]>('/ai-video/node/list', {
+    headers: { 'x-silent-error': String(silent) },
+  });
 }
 
 export function createNodeBootstrapToken(data: {
@@ -159,9 +167,7 @@ export function getNodeUpgradeList(nodeId: number) {
   );
 }
 
-export function preflightNodeDeployment(
-  data: AiVideoNodeDeploymentConnection,
-) {
+export function preflightNodeDeployment(data: AiVideoNodeDeploymentConnection) {
   return requestClient.post<AiVideoNodeDeploymentPreflight>(
     '/ai-video/node/deployment/preflight',
     data,
@@ -170,7 +176,9 @@ export function preflightNodeDeployment(
 }
 
 export function createNodeDeployment(data: AiVideoNodeDeploymentCreate) {
-  return requestClient.post<number>('/ai-video/node/deployment/create', data, { timeout: 90_000 });
+  return requestClient.post<number>('/ai-video/node/deployment/create', data, {
+    timeout: 90_000,
+  });
 }
 
 export function getNodeDeployment(id: number) {
@@ -197,8 +205,15 @@ export function getNodeDeploymentList() {
     '/ai-video/node/deployment/list',
   );
 }
-export function getNodeDeploymentPage(params: { nodeId?: number; pageNo: number; pageSize: number }) {
-  return requestClient.get<{ list: AiVideoNodeDeployment[]; total: number }>('/ai-video/node/deployment/page', { params });
+export function getNodeDeploymentPage(params: {
+  nodeId?: number;
+  pageNo: number;
+  pageSize: number;
+}) {
+  return requestClient.get<{ list: AiVideoNodeDeployment[]; total: number }>(
+    '/ai-video/node/deployment/page',
+    { params },
+  );
 }
 
 export interface AiVideoNodeCommand {
@@ -212,5 +227,8 @@ export interface AiVideoNodeCommand {
 }
 
 export function getNodeCommandList(nodeId: number) {
-  return requestClient.get<AiVideoNodeCommand[]>(`/ai-video/node/command/list?nodeId=${nodeId}`, { headers: { 'x-silent-error': 'true' } });
+  return requestClient.get<AiVideoNodeCommand[]>(
+    `/ai-video/node/command/list?nodeId=${nodeId}`,
+    { headers: { 'x-silent-error': 'true' } },
+  );
 }

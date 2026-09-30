@@ -14,6 +14,12 @@ import java.util.List;
 
 @Mapper
 public interface TaskMapper extends BaseMapperX<TaskDO> {
+    /** Serialize lifecycle commands with their acknowledgements and gateway heartbeats. */
+    default TaskDO selectByIdForUpdate(Long id) {
+        return selectOne(new LambdaQueryWrapperX<TaskDO>()
+                .eq(TaskDO::getId, id).last("FOR UPDATE"));
+    }
+
     /**
      * Persist the complete runtime state, including nullable fields that intentionally clear
      * diagnostics or the active run. MyBatis' default NOT_NULL strategy would otherwise leave

@@ -88,6 +88,10 @@ def test_task_start_reports_safe_model_failure_reason(tmp_path, code):
             "modelBindings": {"detector": 40},
             "parameters": {"schemaVersion": "1.0"},
             "streamUrl": "rtsp://camera.invalid/live",
+            "streamUrls": {
+                "MAIN": "rtsp://user:main-secret@camera.invalid/main",
+                "SUB": "rtsp://camera.invalid/live",
+            },
         }
     )
     runtime = AsyncMock()
@@ -110,6 +114,11 @@ def test_task_start_reports_safe_model_failure_reason(tmp_path, code):
         }
     )
     asyncio.run(executor.execute(command))
+    assert runtime.start_task.await_args.args[0]["streamUrls"] == {
+        "MAIN": "rtsp://user:main-secret@camera.invalid/main",
+        "SUB": "rtsp://camera.invalid/live",
+    }
+    assert "main-secret" not in str(control_plane.get_task_command.return_value)
     report = control_plane.report_command.await_args.args[1]
     assert report["status"] == "FAILED"
     if code == "UNKNOWN":

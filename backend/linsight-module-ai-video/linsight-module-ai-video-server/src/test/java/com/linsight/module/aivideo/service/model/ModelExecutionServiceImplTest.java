@@ -11,6 +11,7 @@ import com.linsight.module.aivideo.dal.mysql.model.ModelTestMapper;
 import com.linsight.module.aivideo.dal.mysql.model.ModelVersionMapper;
 import com.linsight.module.aivideo.service.node.NodeCommandDTO;
 import com.linsight.module.aivideo.service.node.NodeCommandService;
+import com.linsight.module.aivideo.service.node.NodeModelEnvironmentDTO;
 import com.linsight.module.infra.api.file.FileApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import org.springframework.web.multipart.MultipartFile;
 import com.linsight.module.aivideo.controller.admin.model.vo.ModelTestCreateReqVO;
@@ -94,6 +96,25 @@ class ModelExecutionServiceImplTest {
     }
 
     @Test
+    void liveGatewayInventoryReclaimsStaleReadyDeployment() {
+        ModelDeploymentDO missing = new ModelDeploymentDO();
+        missing.setModelVersionId(121L);
+        missing.setActualStatus("READY");
+        ModelDeploymentDO installed = new ModelDeploymentDO();
+        installed.setModelVersionId(128L);
+        installed.setActualStatus("READY");
+        when(deploymentMapper.selectList(any())).thenReturn(List.of(missing, installed));
+
+        service.reconcileNodeInventory(20L, List.of(128L));
+
+        assertEquals("REMOVED", missing.getActualStatus());
+        assertEquals("DEVICE_INVENTORY_MISSING", missing.getErrorCode());
+        assertEquals("READY", installed.getActualStatus());
+        verify(deploymentMapper).updateById(missing);
+        verify(deploymentMapper, never()).updateById(installed);
+    }
+
+    @Test
     void failedDeploymentRetryMustCreateNextConfigVersion() {
         when(transactionTemplate.execute(any())).thenAnswer(invocation ->
                 invocation.<TransactionCallback<?>>getArgument(0).doInTransaction(null));
@@ -125,6 +146,29 @@ class ModelExecutionServiceImplTest {
                 org.mockito.ArgumentMatchers.eq("DEPLOY_MODEL"),
                 org.mockito.ArgumentMatchers.eq(30L), org.mockito.ArgumentMatchers.eq(3),
                 org.mockito.ArgumentMatchers.eq("model-deploy:10:20:3"));
+    }
+
+    @Test
+    void incompatibleAcceleratorTargetIsRejectedBeforeCreatingACommand() {
+        ModelDO model = new ModelDO();
+        model.setId(1L);
+        ModelVersionDO version = new ModelVersionDO();
+        version.setId(10L);
+        version.setModelId(1L);
+        version.setArtifactFormat("RKNN");
+        version.setPublishStatus("PUBLISHED");
+        version.setRuntimeManifest(runtimeManifest().replace("\"preprocess\":{",
+                "\"targetPlatform\":\"rk3588\",\"preprocess\":{"));
+        when(modelVersionMapper.selectById(10L)).thenReturn(version);
+        when(modelMapper.selectById(1L)).thenReturn(model);
+        when(nodeService.getModelEnvironment(20L)).thenReturn(
+                new NodeModelEnvironmentDTO(true, List.of("RKNN"), List.of("rk3566")));
+
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.deployModel(10L, 20L));
+
+        assertEquals(1_020_001_029, error.getCode());
+        verify(nodeCommandService, never()).createCommand(any(), any(), any(), any(), any(), any());
     }
 
     @Test

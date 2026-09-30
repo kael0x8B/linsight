@@ -4,6 +4,7 @@ import com.linsight.framework.common.exception.ErrorCode;
 
 /** Algorithm 领域错误码，使用 1-020-002-000 段。 */
 public interface ErrorCodeConstants {
+    ErrorCode ALGORITHM_PACKAGE_INVALID = new ErrorCode(1_020_002_030, "算法包不可用：{}");
     ErrorCode ALGORITHM_NOT_FOUND = new ErrorCode(1_020_002_000, "算法不存在");
     ErrorCode ALGORITHM_CODE_DUPLICATE = new ErrorCode(1_020_002_001, "算法编码已存在");
     ErrorCode ALGORITHM_CODE_IMMUTABLE = new ErrorCode(1_020_002_002, "算法编码使用后不可修改");

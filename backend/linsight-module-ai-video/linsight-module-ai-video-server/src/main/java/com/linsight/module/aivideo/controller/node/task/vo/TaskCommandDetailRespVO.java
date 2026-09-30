@@ -13,10 +13,18 @@ public class TaskCommandDetailRespVO {
     private Long taskId;
     private String runId;
     private Long cameraId;
+    @lombok.ToString.Exclude
     private String streamUrl;
+    @lombok.ToString.Exclude
+    private Map<String, String> streamUrls;
     private Long algorithmId;
     private Long pipelineVersionId;
     private Map<String, Object> pipeline;
+    private Map<String, String> displayNames;
+    @lombok.ToString.Exclude
+    private String algorithmPackageUrl;
+    @lombok.ToString.Exclude
+    private Map<String, Object> algorithmResources;
     private Long modelVersionId;
     private Map<String, Long> modelBindings;
     private Long ruleId;

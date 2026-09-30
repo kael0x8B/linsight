@@ -30,10 +30,16 @@ export interface FaceVerificationInput {
 }
 
 export function createFaceVerification(data: FaceVerificationInput) {
-  return requestClient.upload<number>('/ai-video/task/face-verification/create', data);
+  return requestClient.upload<number>(
+    '/ai-video/task/face-verification/create',
+    data,
+  );
 }
 export function getFaceVerification(id: number) {
-  return requestClient.get<FaceVerificationResult>('/ai-video/task/face-verification/get', {
-    params: { id },
-  });
+  return requestClient.get<FaceVerificationResult>(
+    '/ai-video/task/face-verification/get',
+    {
+      params: { id },
+    },
+  );
 }

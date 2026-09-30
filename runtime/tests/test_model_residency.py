@@ -11,7 +11,7 @@ from test_model_pool import _write_contract_model
 from test_task_manager import FakeSharedStream, request
 
 from ai_runtime.app.core.config import RuntimeSettings
-from ai_runtime.app.gateway.service import GatewayService
+from ai_runtime.app.gateway.service import GatewayCapacityExceeded, GatewayService
 from ai_runtime.app.model.contracts import DeployModelRequest, ModelTestRequest
 from ai_runtime.app.model.deployed import DeployedModelRegistry
 from ai_runtime.app.model.pool import ModelCapacityError, ModelPool, ModelUnavailableError
@@ -26,8 +26,10 @@ def registered(root, ids):
     values = {}
     for model_id in ids:
         value = DeployModelRequest(
-            modelVersionId=model_id, artifactPath=path,
-            sha256=hashlib.sha256(path.read_bytes()).hexdigest(), adapter="person_detection_v1",
+            modelVersionId=model_id,
+            artifactPath=path,
+            sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+            adapter="person_detection_v1",
         )
         registry.record(value.model_dump(mode="json", by_alias=True, exclude_none=True))
         values[model_id] = value
@@ -35,10 +37,12 @@ def registered(root, ids):
 
 
 def task_config(task_id, ids):
-    return request(task_id, str(uuid4())).model_copy(update={
-        "model_version_id": ids[0],
-        "model_bindings": {f"detector-{index}": value for index, value in enumerate(ids)},
-    })
+    return request(task_id, str(uuid4())).model_copy(
+        update={
+            "model_version_id": ids[0],
+            "model_bindings": {f"detector-{index}": value for index, value in enumerate(ids)},
+        }
+    )
 
 
 def settings(root):
@@ -109,14 +113,15 @@ def test_capacity_rejection_keeps_other_tasks_running_and_reports_actionable_rea
         first = task_config(1, [1, 2])
         try:
             await manager.start_task(first)
-            result = await gateway.platform_start(task_config(2, [3]), 0)
-            assert result.status == "FAILED"
-            assert result.error_code == "MODEL_CAPACITY_EXCEEDED"
-            assert "上限为 2" in result.error_message
+            with pytest.raises(GatewayCapacityExceeded, match="2") as rejected:
+                await gateway.platform_start(task_config(2, [3]), 0)
+            assert rejected.value.report["code"] == "MODEL_CAPACITY_EXCEEDED"
+            assert rejected.value.report["conflictTasks"][0]["taskId"] == 1
+            assert gateway.store.get(2) is None
             assert manager.statuses()[0].status == "RUNNING"
             assert pool.is_loaded(1) and pool.is_loaded(2)
             await manager.stop_task(1, first.run_id)
-            await gateway.reconcile()
+            await gateway.platform_start(task_config(2, [3]), 0)
             assert gateway.status(2).status == "RUNNING"
             assert pool.is_loaded(3)
         finally:
@@ -203,21 +208,33 @@ def test_cancelled_native_inference_cannot_be_evicted_until_worker_finishes(tmp_
         try:
             await pool.deploy(values[1])
             adapter = pool._entries[(1, "CPU")].adapter
+
             def slow_infer(*args):
                 entered.set()
                 assert finish.wait(3)
                 return "done"
+
             monkeypatch.setattr(adapter, "infer", slow_infer)
             image = tmp_path / "input.png"
             Image.new("RGB", (32, 32)).save(image)
-            call = asyncio.create_task(pool.test(ModelTestRequest.model_validate({
-                "modelVersionId": 1, "imagePath": str(image),
-                "parameters": {
-                    "schemaVersion": "1.0", "inputWidth": 32, "inputHeight": 32,
-                    "confidence": 0.5, "nmsThreshold": 0.5,
-                    "outputCoordinates": "NORMALIZED_XYWH",
-                },
-            })))
+            call = asyncio.create_task(
+                pool.test(
+                    ModelTestRequest.model_validate(
+                        {
+                            "modelVersionId": 1,
+                            "imagePath": str(image),
+                            "parameters": {
+                                "schemaVersion": "1.0",
+                                "inputWidth": 32,
+                                "inputHeight": 32,
+                                "confidence": 0.5,
+                                "nmsThreshold": 0.5,
+                                "outputCoordinates": "NORMALIZED_XYWH",
+                            },
+                        }
+                    )
+                )
+            )
             assert await asyncio.to_thread(entered.wait, 2)
             call.cancel()
             await asyncio.sleep(0)
@@ -242,14 +259,22 @@ def test_model_test_loads_from_cold_registry(tmp_path):
         image = tmp_path / "input.png"
         Image.new("RGB", (32, 32)).save(image)
         try:
-            result = await pool.test(ModelTestRequest.model_validate({
-                "modelVersionId": 1, "imagePath": str(image),
-                "parameters": {
-                    "schemaVersion": "1.0", "inputWidth": 32, "inputHeight": 32,
-                    "confidence": 0.5, "nmsThreshold": 0.5,
-                    "outputCoordinates": "NORMALIZED_XYWH",
-                },
-            }))
+            result = await pool.test(
+                ModelTestRequest.model_validate(
+                    {
+                        "modelVersionId": 1,
+                        "imagePath": str(image),
+                        "parameters": {
+                            "schemaVersion": "1.0",
+                            "inputWidth": 32,
+                            "inputHeight": 32,
+                            "confidence": 0.5,
+                            "nmsThreshold": 0.5,
+                            "outputCoordinates": "NORMALIZED_XYWH",
+                        },
+                    }
+                )
+            )
             assert result.objects[0].class_name == "person"
             assert pool.is_loaded(1) and not pool._pins
         finally:
@@ -263,10 +288,12 @@ def test_failed_batch_load_preserves_other_leases(tmp_path, monkeypatch):
         registry, _ = registered(tmp_path, [1, 2, 3])
         pool = ModelPool(max_models=3)
         construct = pool._construct_adapter
+
         def fail_third(value, python, digest):
             if value.model_version_id == 3:
                 raise ValueError("unsupported artifact")
             return construct(value, python, digest)
+
         monkeypatch.setattr(pool, "_construct_adapter", fail_third)
         try:
             lease = await pool.acquire([1], registry)
@@ -289,12 +316,15 @@ def test_cancelled_loader_closes_new_adapter_and_releases_reservations(tmp_path,
         entered, finish = threading.Event(), threading.Event()
         adapter = object()
         closed = []
+
         def slow_load(*args):
             entered.set()
             assert finish.wait(3)
             return adapter, "test"
+
         async def close(value):
             closed.append(value)
+
         monkeypatch.setattr(pool, "_construct_adapter", slow_load)
         monkeypatch.setattr(pool, "_close_adapter", close)
         call = asyncio.create_task(pool.acquire([1], registry))

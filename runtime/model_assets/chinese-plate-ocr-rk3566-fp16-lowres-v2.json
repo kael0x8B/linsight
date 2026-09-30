@@ -1,0 +1,119 @@
+{
+  "schemaVersion": "1.0",
+  "revision": 1,
+  "models": [
+    {
+      "code": "chinese-plate-ocr",
+      "name": "中文车牌文字识别 · 专用 OCR",
+      "sourceType": "PRESET",
+      "description": "现场低清车牌微调 v2；CNN/CTC 字符识别，RK3566 FP16。需要与 2.5%/10% 透视裁剪 Runtime 配套。现场泛化尚待持续验收。",
+      "sourceRepository": "https://github.com/we0091234/Chinese_license_plate_detection_recognition",
+      "sourceRevision": "670b765c09fff11850a7b1c542787ad66c24ae50",
+      "licenseSpdx": "GPL-3.0",
+      "version": "site-lowres-20260922-rk3566-fp16-v2",
+      "fileName": "plate_ocr_lowres_v2_fp16.rknn",
+      "sha256": "87c8e9596781705d627acae2e3f4669f8abf1f1ad3c0640ba3d017c311659437",
+      "size": 412886,
+      "runtimeManifest": {
+        "schemaVersion": "1.0",
+        "taskType": "OCR",
+        "preprocess": {
+          "inputWidth": 168,
+          "inputHeight": 48,
+          "color": "BGR",
+          "layout": "NHWC",
+          "dtype": "UINT8",
+          "scale": 1.0,
+          "mean": [
+            0,
+            0,
+            0
+          ],
+          "std": [
+            1,
+            1,
+            1
+          ],
+          "resize": "STRETCH"
+        },
+        "decoder": {
+          "type": "CHINESE_PLATE_CTC"
+        },
+        "targetPlatform": "rk3566"
+      },
+      "originalWeightsSha256": "786833c12c05aaaabf62db4e1acc94a83f72891c79ad22c1809389b26d802187",
+      "fineTune": {
+        "baseModelRevision": "670b765c09fff11850a7b1c542787ad66c24ae50",
+        "checkpointSha256": "f93fa320efe3f70b3052545247ff4daeb48734600a6fa605942ccdc4e38ab2d2",
+        "onnxSha256": "b092b3e6ed0e3608585285a347cf1adefc27d7ec0781fa7c96fd3fb265f763f9",
+        "trainingReport": "training-runs/20260922-lowres-optimization-v1/REPORT.md",
+        "trainingPerformed": true
+      }
+    }
+  ],
+  "conversion": {
+    "schemaVersion": "1.0",
+    "sourceOnnxSha256": "b092b3e6ed0e3608585285a347cf1adefc27d7ec0781fa7c96fd3fb265f763f9",
+    "sourceManifestSha256": "cc47f2452488011ec5d69cc1a49168caf1663a58122584d3aca69e126bd497cc",
+    "artifactSha256": "87c8e9596781705d627acae2e3f4669f8abf1f1ad3c0640ba3d017c311659437",
+    "targetPlatform": "rk3566",
+    "precision": "fp16",
+    "toolkitVersion": "2.3.2",
+    "calibrationImages": [
+      {
+        "name": "box-live-plate-crop.jpg",
+        "sha256": "521b04e6d227139b6fae94e177d0822f9581ed717f9100aa08ec61cf173eba40",
+        "resizedSha256": "f965d6388168b64ad8715f69022019380b4ab13934c72e65a2a7d2855879231d"
+      },
+      {
+        "name": "box-user-plate-crop.jpg",
+        "sha256": "7aef1061cfcbe0cafbe59a9f4ca117bd0965e2f070b468d851049d1d9cc8dee8",
+        "resizedSha256": "ab69c281fdb911889738f692c22c35df57fa4e4a7150201d2a6f108398e8c1bc"
+      }
+    ],
+    "embeddedNormalization": {
+      "meanValues": [
+        149.94,
+        149.94,
+        149.94
+      ],
+      "stdValues": [
+        49.215,
+        49.215,
+        49.215
+      ]
+    },
+    "validationStatus": "RK3566_FULL_TASK_SINGLE_IMAGE_VERIFIED",
+    "validation": {
+      "date": "2026-09-22",
+      "nodeId": 1,
+      "modelVersionId": 140,
+      "deploymentId": 61,
+      "backend": "RKNN_RUNTIME_MANIFEST_CHINESE_PLATE_CTC",
+      "userPlateTenPercentMargin": {
+        "testId": 139,
+        "text": "辽BF27861",
+        "ocrMinCharConfidence": 0.907392439345208
+      },
+      "fieldValidationSimulatedLow": {
+        "cases": 5,
+        "textMatchesOnnx": 5,
+        "exactGroundTruth": 4
+      },
+      "fullTaskLiveAcceptance": {
+        "status": "SINGLE_IMAGE_VERIFIED",
+        "taskId": 33,
+        "taskRevision": 27,
+        "runtimeDeploymentId": 84,
+        "runtimeVersion": "source-43bd9ef0802d",
+        "backend": "RKNPU",
+        "sampleOutput": "辽BF27861",
+        "sampleMinCharConfidence": 0.9461844846192408,
+        "cropMargin": 0.1,
+        "cropRetried": true,
+        "evidence": "artifacts/plate-lowres-deploy-20260922/final-user-image.json",
+        "limitation": "单张图片验证，不代表连续视频准确率或多帧事件确认。"
+      }
+    }
+  }
+}

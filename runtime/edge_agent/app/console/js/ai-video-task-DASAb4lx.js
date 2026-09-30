@@ -1,1 +1,0 @@
-var e=`现场验证`,t=`正式运行`,n=`运行用途`,r=`用于真实视频采样、阈值调优和告警验证。仍要求模型已发布、节点部署及单图测试成功；不会把算法标记为正式验收通过。`,i={validationMode:e,productionMode:t,mode:n,validationHelp:r};export{i as default,n as mode,t as productionMode,r as validationHelp,e as validationMode};

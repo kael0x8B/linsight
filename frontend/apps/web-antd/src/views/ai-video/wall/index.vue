@@ -8,6 +8,7 @@ import type { AiVideoCameraApi } from '#/api/ai-video/camera';
 import type { AiVideoNodeSimple } from '#/api/ai-video/node';
 
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 
 import { useAccess } from '@vben/access';
 import { confirm, Page } from '@vben/common-ui';
@@ -24,6 +25,7 @@ import {
   InputNumber,
   message,
   Radio,
+  Select,
   Space,
   Spin,
   Switch,
@@ -46,9 +48,10 @@ import { AiPageHeader, CameraPreviewPlayer } from '#/components/ai-video';
 import CameraRecognitionOverlay from '#/components/ai-video/camera-recognition-overlay.vue';
 import { cameraPreviewNode } from '#/components/ai-video/recognition-layers';
 import { $t } from '#/locales';
-import { router } from '#/router';
 
 import { acceptsTaskFrame } from '../live/modules/overlay-presentation';
+
+const router = useRouter();
 
 type SplitCount = 1 | 4 | 9 | 16;
 
@@ -82,7 +85,21 @@ const cameraIds = ref<Array<null | number>>(
   Array.from({ length: 4 }, () => null),
 );
 const selectedCell = ref(0);
-const selectedNodeId = ref<number>();
+const previewNodeStorageKey = 'linsight-video-wall-preview-node-id';
+const persistedPreviewNodeId =
+  typeof window === 'undefined'
+    ? 0
+    : Number(window.localStorage.getItem(previewNodeStorageKey));
+const selectedNodeId = ref<number | undefined>(
+  Number.isSafeInteger(persistedPreviewNodeId) && persistedPreviewNodeId > 0
+    ? persistedPreviewNodeId
+    : undefined,
+);
+watch(selectedNodeId, (nodeId) => {
+  if (typeof window === 'undefined') return;
+  if (nodeId) window.localStorage.setItem(previewNodeStorageKey, String(nodeId));
+  else window.localStorage.removeItem(previewNodeStorageKey);
+});
 const directoryCameras = ref<AiVideoCameraApi.Camera[]>([]);
 const directoryPage = ref(1);
 const directoryTotal = ref(0);
@@ -90,28 +107,60 @@ let directoryRequest = 0;
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 const overlayEnabled = ref(true);
 const patrol = ref(false);
-const patrolSeconds=ref(30);
-const patrolPage=ref(0);
-let patrolTimer:ReturnType<typeof setTimeout>|undefined;
-let patrolRequest=0;
-let manualCameraIds:Array<null|number>=[];
+const patrolSeconds = ref(30);
+const patrolPage = ref(0);
+let patrolTimer: ReturnType<typeof setTimeout> | undefined;
+let patrolRequest = 0;
+let manualCameraIds: Array<null | number> = [];
 async function nextPatrolPage() {
- const request=++patrolRequest;
- try {
-  let pageNo=patrolPage.value+1;
-  let page=await getCameraPage({pageNo,pageSize:splitCount.value,name:cameraKeyword.value||undefined,status:0});
-  if(!page.list.length && pageNo>1){pageNo=1;page=await getCameraPage({pageNo,pageSize:splitCount.value,name:cameraKeyword.value||undefined,status:0});}
-  if(request!==patrolRequest||!patrol.value||disposed)return;
-  cacheCameras(page.list);patrolPage.value=pageNo;assignCameraIds(normalizeCameraIds(page.list.map(c=>c.id??null),splitCount.value));
- } catch {cameraError.value='轮巡批次加载失败，稍后重试';}
- if(request===patrolRequest&&patrol.value&&!disposed)patrolTimer=setTimeout(()=>void nextPatrolPage(),Math.max(10,patrolSeconds.value||30)*1000);
+  const request = ++patrolRequest;
+  try {
+    let pageNo = patrolPage.value + 1;
+    let page = await getCameraPage({
+      pageNo,
+      pageSize: splitCount.value,
+      name: cameraKeyword.value || undefined,
+      status: 0,
+    });
+    if (page.list.length === 0 && pageNo > 1) {
+      pageNo = 1;
+      page = await getCameraPage({
+        pageNo,
+        pageSize: splitCount.value,
+        name: cameraKeyword.value || undefined,
+        status: 0,
+      });
+    }
+    if (request !== patrolRequest || !patrol.value || disposed) return;
+    cacheCameras(page.list);
+    patrolPage.value = pageNo;
+    assignCameraIds(
+      normalizeCameraIds(
+        page.list.map((c) => c.id ?? null),
+        splitCount.value,
+      ),
+    );
+  } catch {
+    cameraError.value = '轮巡批次加载失败，稍后重试';
+  }
+  if (request === patrolRequest && patrol.value && !disposed)
+    patrolTimer = setTimeout(
+      () => void nextPatrolPage(),
+      Math.max(10, patrolSeconds.value || 30) * 1000,
+    );
 }
 function togglePatrol() {
- patrol.value=!patrol.value;clearTimeout(patrolTimer);patrolRequest++;
- if(patrol.value){manualCameraIds=[...cameraIds.value];patrolPage.value=0;void nextPatrolPage();}
- else {assignCameraIds(normalizeCameraIds(manualCameraIds,splitCount.value));}
+  patrol.value = !patrol.value;
+  clearTimeout(patrolTimer);
+  patrolRequest++;
+  if (patrol.value) {
+    manualCameraIds = [...cameraIds.value];
+    patrolPage.value = 0;
+    void nextPatrolPage();
+  } else {
+    assignCameraIds(normalizeCameraIds(manualCameraIds, splitCount.value));
+  }
 }
-
 
 let capabilityTimer: ReturnType<typeof setInterval> | undefined;
 let disposed = false;
@@ -121,7 +170,9 @@ const wallGridRef = ref<HTMLElement>();
 const cellElements = ref<Array<HTMLElement | undefined>>([]);
 const cellMuted = ref<boolean[]>(Array.from({ length: 16 }, () => true));
 const sessions = ref<Array<AiVideoCameraApi.PreviewSession | undefined>>([]);
-const overlayFrames = ref<Array<Record<string,AiVideoCameraApi.OverlayFrame>>>([]);
+const overlayFrames = ref<Array<Record<string, AiVideoCameraApi.OverlayFrame>>>(
+  [],
+);
 
 const cameraById = computed(
   () => new Map(cameras.value.map((camera) => [camera.id, camera])),
@@ -140,15 +191,26 @@ const layoutSlots = computed(() =>
 );
 const wallCells = computed(() =>
   cameraIds.value.map((cameraId, index) => {
-    const camera = cameraId === null ? undefined : cameraById.value.get(cameraId);
+    const camera =
+      cameraId === null ? undefined : cameraById.value.get(cameraId);
 
     return {
       camera,
       cameraId,
-      nodeId: cameraPreviewNode(camera,nodes.value),
+      nodeId: cameraPreviewNode(camera, nodes.value, selectedNodeId.value),
       index,
     };
   }),
+);
+const previewNodeOptions = computed(() =>
+  nodes.value
+    .filter(
+      (node) =>
+        node.status === 0 &&
+        node.onlineStatus === 1 &&
+        node.previewTunnelConnected,
+    )
+    .map((node) => ({ label: node.name, value: node.id })),
 );
 const gridStyle = computed<Record<string, string>>(() => ({
   '--wall-columns': String(Math.sqrt(splitCount.value)),
@@ -164,22 +226,26 @@ const treeData = computed<CameraTreeNode[]>(() => {
   }
   const groupNodes = groups.value
     .map((group) => {
-      const children = (grouped.get(group.id ?? 0) ?? []).map(toCameraNode);
+      const children = (grouped.get(group.id ?? 0) ?? []).map((camera) =>
+        toCameraNode(camera),
+      );
       return {
         children,
-        key: 'group:' + group.id,
+        key: `group:${group.id}`,
         selectable: false,
-        title: group.name + ' (' + children.length + ')',
+        title: `${group.name} (${children.length})`,
       } satisfies CameraTreeNode;
     })
     .filter((node) => node.children.length > 0);
-  const ungrouped = (grouped.get(0) ?? []).map(toCameraNode);
+  const ungrouped = (grouped.get(0) ?? []).map((camera) =>
+    toCameraNode(camera),
+  );
   if (ungrouped.length > 0) {
     groupNodes.unshift({
       children: ungrouped,
       key: 'group:0',
       selectable: false,
-      title: $t('page.aiVideo.wall.ungrouped') + ' (' + ungrouped.length + ')',
+      title: `${$t('page.aiVideo.wall.ungrouped')} (${ungrouped.length})`,
     });
   }
   return groupNodes;
@@ -187,57 +253,79 @@ const treeData = computed<CameraTreeNode[]>(() => {
 
 const refreshToken = computed(() => accessStore.refreshToken);
 const websocketUrl = computed(() => {
-  const base = (import.meta.env.VITE_BASE_URL + '/infra/ws').replace(
+  const base = `${import.meta.env.VITE_BASE_URL}/infra/ws`.replace(
     'http',
     'ws',
   );
-  return base + '?token=' + (refreshToken.value ?? '');
+  return `${base}?token=${refreshToken.value ?? ''}`;
 });
-const { close: closeWebSocket } = useWebSocket(
-  websocketUrl,
-  {
-    autoReconnect: { delay: 3000, retries: Number.POSITIVE_INFINITY },
-    heartbeat: true,
+const { close: closeWebSocket } = useWebSocket(websocketUrl, {
+  autoReconnect: { delay: 3000, retries: Number.POSITIVE_INFINITY },
+  heartbeat: true,
   onMessage: (_socket, event) => receiveOverlay(event.data),
-    immediate: Boolean(refreshToken.value),
-  },
-);
+  immediate: Boolean(refreshToken.value),
+});
 
 function toCameraNode(camera: AiVideoCameraApi.Camera): CameraTreeNode {
   return {
     camera,
     disabled: camera.status !== 0,
     isLeaf: true,
-    key: 'camera:' + camera.id,
-    title: '[' + camera.protocol + '] ' + camera.name,
+    key: `camera:${camera.id}`,
+    title: `[${camera.protocol}] ${camera.name}`,
   };
 }
 
 function cacheCameras(values: AiVideoCameraApi.Camera[]) {
-  const map = new Map(cameras.value.map(camera => [camera.id,camera]));
-  values.forEach(camera => map.set(camera.id,camera));cameras.value=[...map.values()];
+  const map = new Map(cameras.value.map((camera) => [camera.id, camera]));
+  values.forEach((camera) => map.set(camera.id, camera));
+  cameras.value = [...map.values()];
 }
-async function loadDirectory(more=false) {
-  const request=++directoryRequest;cameraLoading.value=true;cameraError.value='';
-  const pageNo=more ? directoryPage.value+1 : 1;
+async function loadDirectory(more = false) {
+  const request = ++directoryRequest;
+  cameraLoading.value = true;
+  cameraError.value = '';
+  const pageNo = more ? directoryPage.value + 1 : 1;
   try {
-    const page=await getCameraPage({pageNo,pageSize:50,name:cameraKeyword.value||undefined});
-    if(request!==directoryRequest)return;
-    directoryCameras.value=more ? [...directoryCameras.value,...page.list] : page.list;
-    directoryTotal.value=page.total;directoryPage.value=pageNo;cacheCameras(page.list);
-  } catch { if(request===directoryRequest)cameraError.value=$t('page.aiVideo.live.cameraLoadFailed'); }
-  finally {if(request===directoryRequest)cameraLoading.value=false;}
+    const page = await getCameraPage({
+      pageNo,
+      pageSize: 50,
+      name: cameraKeyword.value || undefined,
+    });
+    if (request !== directoryRequest) return;
+    directoryCameras.value = more
+      ? [...directoryCameras.value, ...page.list]
+      : page.list;
+    directoryTotal.value = page.total;
+    directoryPage.value = pageNo;
+    cacheCameras(page.list);
+  } catch {
+    if (request === directoryRequest)
+      cameraError.value = $t('page.aiVideo.live.cameraLoadFailed');
+  } finally {
+    if (request === directoryRequest) cameraLoading.value = false;
+  }
 }
 async function refreshVisibleCameras() {
-  const ids=cameraIds.value.filter((id):id is number=>id!==null);
-  if(!ids.length)return;
-  const page=await getCameraPage({pageNo:1,pageSize:16,ids});
-  if(!disposed)cacheCameras(page.list);
+  const ids = cameraIds.value.filter((id): id is number => id !== null);
+  if (ids.length === 0) return;
+  const page = await getCameraPage({ pageNo: 1, pageSize: 16, ids });
+  if (!disposed) cacheCameras(page.list);
 }
 async function loadCamerasAndGroups() {
-  await Promise.all([loadDirectory(),getCameraGroupList().then(value=>groups.value=value).catch(()=>{cameraError.value='摄像头分组读取失败';})]);
+  await Promise.all([
+    loadDirectory(),
+    getCameraGroupList()
+      .then((value) => (groups.value = value))
+      .catch(() => {
+        cameraError.value = '摄像头分组读取失败';
+      }),
+  ]);
 }
-watch(cameraKeyword,()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>void loadDirectory(),300);});
+watch(cameraKeyword, () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => void loadDirectory(), 300);
+});
 async function loadNodes() {
   try {
     nodes.value = await getNodeSimpleList();
@@ -284,13 +372,19 @@ function normalizeCameraIds(values: Array<null | number>, count: SplitCount) {
 
 function assignCameraIds(next: Array<null | number>) {
   const previous = cameraIds.value;
-  sessions.value = next.map((id, index) => id !== null && id === previous[index] ? sessions.value[index] : undefined);
-  overlayFrames.value = next.map((id, index) => id !== null && id === previous[index] ? overlayFrames.value[index] ?? {} : {});
+  sessions.value = next.map((id, index) =>
+    id !== null && id === previous[index] ? sessions.value[index] : undefined,
+  );
+  overlayFrames.value = next.map((id, index) =>
+    id !== null && id === previous[index]
+      ? (overlayFrames.value[index] ?? {})
+      : {},
+  );
   cameraIds.value = next;
 }
 
 function changeSplit(count: SplitCount) {
-  if(patrol.value)togglePatrol();
+  if (patrol.value) togglePatrol();
   splitCount.value = count;
   assignCameraIds(normalizeCameraIds(cameraIds.value, count));
   selectedCell.value = Math.min(selectedCell.value, count - 1);
@@ -299,7 +393,7 @@ function changeSplit(count: SplitCount) {
 function addCamera(camera: AiVideoCameraApi.Camera) {
   if (!camera.id || camera.status !== 0) return;
   const existingIndex = cameraIds.value.indexOf(camera.id);
-  if (existingIndex >= 0) {
+  if (existingIndex !== -1) {
     selectedCell.value = existingIndex;
     message.info($t('page.aiVideo.wall.cameraAlreadyAdded'));
     return;
@@ -307,7 +401,7 @@ function addCamera(camera: AiVideoCameraApi.Camera) {
   const target =
     cameraIds.value[selectedCell.value] === null
       ? selectedCell.value
-      : cameraIds.value.findIndex((cameraId) => cameraId === null);
+      : cameraIds.value.indexOf(null);
   if (target < 0) {
     message.warning($t('page.aiVideo.wall.noEmptyChannel'));
     return;
@@ -374,9 +468,21 @@ function receiveOverlay(raw: unknown) {
     if (!envelope) return;
     sessions.value.forEach((session, index) => {
       const cell = wallCells.value[index];
-      if (session?.sessionId === envelope.data.sessionId && cell?.cameraId === envelope.data.cameraId
-        && acceptsTaskFrame(envelope.data, cell.camera?.recognitionCapabilities?.find(cap=>cap.taskId===envelope.data.taskId), overlayFrames.value[index]?.[`task-${envelope.data.taskId}`])) {
-        overlayFrames.value[index] = {...overlayFrames.value[index], [`task-${envelope.data.taskId}`]:envelope.data};
+      if (
+        session?.sessionId === envelope.data.sessionId &&
+        cell?.cameraId === envelope.data.cameraId &&
+        acceptsTaskFrame(
+          envelope.data,
+          cell.camera?.recognitionCapabilities?.find(
+            (cap) => cap.taskId === envelope.data.taskId,
+          ),
+          overlayFrames.value[index]?.[`task-${envelope.data.taskId}`],
+        )
+      ) {
+        overlayFrames.value[index] = {
+          ...overlayFrames.value[index],
+          [`task-${envelope.data.taskId}`]: envelope.data,
+        };
       }
     });
   } catch {
@@ -387,7 +493,9 @@ function receiveOverlay(raw: unknown) {
 function applyLayout(layout: AiVideoCameraApi.VideoWallLayout) {
   changeSplit(layout.splitCount);
   assignCameraIds(normalizeCameraIds(layout.cameraIds, layout.splitCount));
-  void refreshVisibleCameras().catch(()=>{cameraError.value="方案中的摄像头加载失败，请刷新";});
+  void refreshVisibleCameras().catch(() => {
+    cameraError.value = '方案中的摄像头加载失败，请刷新';
+  });
   const layoutNode = nodes.value.find(
     (node) =>
       node.id === layout.nodeId &&
@@ -409,7 +517,10 @@ async function activateLayout(layout: AiVideoCameraApi.VideoWallLayout) {
 }
 
 async function saveLayout(slotIndex: number) {
-  if(patrol.value){message.info("请先停止轮巡，再保存固定布局");return;}
+  if (patrol.value) {
+    message.info('请先停止轮巡，再保存固定布局');
+    return;
+  }
   const existing = layouts.value.find(
     (layout) => layout.slotIndex === slotIndex,
   );
@@ -465,15 +576,27 @@ onMounted(async () => {
   if (!canPreview.value) return;
   await Promise.all([loadCamerasAndGroups(), loadNodes()]);
   await loadLayouts(true);
-  if (!disposed) capabilityTimer = setInterval(async () => {
-    if (refreshingCapabilities) return;
-    refreshingCapabilities = true;
-    try { await refreshVisibleCameras(); }
-    catch { /* Keep the last state; expired frames are hidden independently. */ }
-    finally { refreshingCapabilities = false; }
-  }, 10_000);
+  if (!disposed)
+    capabilityTimer = setInterval(async () => {
+      if (refreshingCapabilities) return;
+      refreshingCapabilities = true;
+      try {
+        await refreshVisibleCameras();
+      } catch {
+        /* Keep the last state; expired frames are hidden independently. */
+      } finally {
+        refreshingCapabilities = false;
+      }
+    }, 10_000);
 });
-onBeforeUnmount(() => { disposed = true; patrolRequest++;clearTimeout(patrolTimer); closeWebSocket(); clearTimeout(searchTimer); if (capabilityTimer) clearInterval(capabilityTimer); });
+onBeforeUnmount(() => {
+  disposed = true;
+  patrolRequest++;
+  clearTimeout(patrolTimer);
+  closeWebSocket();
+  clearTimeout(searchTimer);
+  if (capabilityTimer) clearInterval(capabilityTimer);
+});
 </script>
 
 <template>
@@ -487,7 +610,6 @@ onBeforeUnmount(() => { disposed = true; patrolRequest++;clearTimeout(patrolTime
 
     <div v-else class="wall-page">
       <AiPageHeader
-        description="按摄像头组织画面，自动选择视频来源并叠加各盒子的识别图层；仅加载当前可见通道。"
         icon="lucide:layout-grid"
         :title="$t('page.aiVideo.wall.title')"
       >
@@ -525,9 +647,11 @@ onBeforeUnmount(() => { disposed = true; patrolRequest++;clearTimeout(patrolTime
       <div class="wall-workspace">
         <aside class="device-panel">
           <div class="device-panel__title">
-            <span><IconifyIcon icon="lucide:folder" />{{
+            <span
+              ><IconifyIcon icon="lucide:folder" />{{
                 $t('page.aiVideo.wall.deviceDirectory')
-              }}</span>
+              }}</span
+            >
             <span>{{ directoryTotal }}</span>
           </div>
           <Input
@@ -572,153 +696,181 @@ onBeforeUnmount(() => { disposed = true; patrolRequest++;clearTimeout(patrolTime
               :description="$t('page.aiVideo.live.noCamera')"
             />
           </Spin>
-          <Button v-if="directoryCameras.length < directoryTotal" :loading="cameraLoading" @click="loadDirectory(true)">加载更多（{{ directoryCameras.length }}/{{ directoryTotal }}）</Button>
-          <p class="device-hint">目录按名称搜索；轮巡按当前搜索结果分批播放，每批最多 16 路，停止后恢复原布局。</p>
+          <Button
+            v-if="directoryCameras.length < directoryTotal"
+            :loading="cameraLoading"
+            @click="loadDirectory(true)"
+          >
+            加载更多（{{ directoryCameras.length }}/{{ directoryTotal }}）
+          </Button>
+          <p class="device-hint">
+            目录按名称搜索；轮巡按当前搜索结果分批播放，每批最多 16
+            路，停止后恢复原布局。
+          </p>
         </aside>
 
         <section class="wall-main">
           <div class="wall-controls">
-          <div class="wall-toolbar">
-            <Radio.Group
-              :value="splitCount"
-              button-style="solid"
-              @change="changeSplit($event.target.value)"
-            >
-              <Radio.Button :value="1">
-1{{ $t('page.aiVideo.wall.split') }}
-</Radio.Button>
-              <Radio.Button :value="4">
-4{{ $t('page.aiVideo.wall.split') }}
-</Radio.Button>
-              <Radio.Button :value="9">
-9{{ $t('page.aiVideo.wall.split') }}
-</Radio.Button>
-              <Radio.Button :value="16">
-16{{ $t('page.aiVideo.wall.split') }}
-</Radio.Button>
-            </Radio.Group>
-            <Tag color="blue">自动视频来源 · 全算法叠加</Tag>
-            <Button :type="patrol ? 'primary' : 'default'" @click="togglePatrol">{{ patrol ? '停止轮巡' : '开始轮巡' }}</Button>
-            <label class="toolbar-switch"><InputNumber v-model:value="patrolSeconds" :min="10" :max="600" size="small" style="width:66px" aria-label="轮巡间隔秒数" />秒 / 批</label>
-            <Tag v-if="patrol">第 {{ patrolPage }} 批</Tag>
-            <Button
-              :type="layoutPanelVisible ? 'primary' : 'default'"
-              @click="layoutPanelVisible = !layoutPanelVisible"
-            >
-              <IconifyIcon icon="lucide:panels-top-left" />
-              {{ $t('page.aiVideo.wall.layoutPlans') }}
-              <Tag v-if="activeLayout" color="blue">
-{{
-                activeLayout.name
-              }}
-</Tag>
-            </Button>
-            <label class="toolbar-switch">
-              <Switch v-model:checked="overlayEnabled" />
-              识别 ROI
-            </label>
-            <span class="toolbar-separator"></span>
-            <Button type="primary" @click="fullscreenWall">
-              <IconifyIcon icon="lucide:maximize" />
-              {{ $t('page.aiVideo.wall.fullscreen') }}
-            </Button>
-            <Button @click="clearAll">
-{{
-              $t('page.aiVideo.wall.clearAll')
-            }}
-</Button>
-            <span class="toolbar-loaded">
-              {{ $t('page.aiVideo.wall.loaded', [loadedCount, splitCount]) }}
-            </span>
-          </div>
-
-          <div v-if="layoutPanelVisible" class="layout-panel">
-            <div class="layout-panel__header">
-              <div>
-                <strong><IconifyIcon icon="lucide:grid-2x2" />{{
-                    $t('page.aiVideo.wall.layoutPlans')
-                  }}</strong>
-                <span>{{ $t('page.aiVideo.wall.layoutPlanHint') }}</span>
-              </div>
-              <Button
-                aria-label="close"
-                shape="circle"
-                type="text"
-                @click="layoutPanelVisible = false"
+            <div class="wall-toolbar">
+              <Radio.Group
+                :value="splitCount"
+                button-style="solid"
+                @change="changeSplit($event.target.value)"
               >
-                <IconifyIcon icon="lucide:x" />
+                <Radio.Button :value="1">
+                  1{{ $t('page.aiVideo.wall.split') }}
+                </Radio.Button>
+                <Radio.Button :value="4">
+                  4{{ $t('page.aiVideo.wall.split') }}
+                </Radio.Button>
+                <Radio.Button :value="9">
+                  9{{ $t('page.aiVideo.wall.split') }}
+                </Radio.Button>
+                <Radio.Button :value="16">
+                  16{{ $t('page.aiVideo.wall.split') }}
+                </Radio.Button>
+              </Radio.Group>
+              <Tag color="blue">自动视频来源 · 全算法叠加</Tag>
+              <label class="toolbar-switch">
+                无任务摄像头预览节点
+                <Select
+                  v-model:value="selectedNodeId"
+                  :options="previewNodeOptions"
+                  aria-label="无任务摄像头预览节点"
+                  style="min-width: 180px"
+                />
+              </label>
+              <Button
+                :type="patrol ? 'primary' : 'default'"
+                @click="togglePatrol"
+              >
+                {{ patrol ? '停止轮巡' : '开始轮巡' }}
               </Button>
+              <label class="toolbar-switch"
+                ><InputNumber
+                  v-model:value="patrolSeconds"
+                  :min="10"
+                  :max="600"
+                  size="small"
+                  style="width: 66px"
+                  aria-label="轮巡间隔秒数"
+                />秒 / 批</label
+              >
+              <Tag v-if="patrol">第 {{ patrolPage }} 批</Tag>
+              <Button
+                :type="layoutPanelVisible ? 'primary' : 'default'"
+                @click="layoutPanelVisible = !layoutPanelVisible"
+              >
+                <IconifyIcon icon="lucide:panels-top-left" />
+                {{ $t('page.aiVideo.wall.layoutPlans') }}
+                <Tag v-if="activeLayout" color="blue">
+                  {{ activeLayout.name }}
+                </Tag>
+              </Button>
+              <label class="toolbar-switch">
+                <Switch v-model:checked="overlayEnabled" />
+                识别标注
+              </label>
+              <span class="toolbar-separator"></span>
+              <Button type="primary" @click="fullscreenWall">
+                <IconifyIcon icon="lucide:maximize" />
+                {{ $t('page.aiVideo.wall.fullscreen') }}
+              </Button>
+              <Button @click="clearAll">
+                {{ $t('page.aiVideo.wall.clearAll') }}
+              </Button>
+              <span class="toolbar-loaded">
+                {{ $t('page.aiVideo.wall.loaded', [loadedCount, splitCount]) }}
+              </span>
             </div>
-            <Spin :spinning="layoutLoading">
-              <div class="layout-cards">
-                <article
-                  v-for="slot in layoutSlots"
-                  :key="slot.slotIndex"
-                  class="layout-card"
-                  :class="{
-                    active: slot.layout?.active,
-                    empty: !slot.layout,
-                  }"
+
+            <div v-if="layoutPanelVisible" class="layout-panel">
+              <div class="layout-panel__header">
+                <div>
+                  <strong
+                    ><IconifyIcon icon="lucide:grid-2x2" />{{
+                      $t('page.aiVideo.wall.layoutPlans')
+                    }}</strong
+                  >
+                  <span>{{ $t('page.aiVideo.wall.layoutPlanHint') }}</span>
+                </div>
+                <Button
+                  aria-label="close"
+                  shape="circle"
+                  type="text"
+                  @click="layoutPanelVisible = false"
                 >
-                  <template v-if="slot.layout">
-                    <div class="layout-card__title">
-                      <IconifyIcon icon="lucide:grid-2x2" />
-                      <strong>{{ slot.layout.name }}</strong>
-                      <Tag v-if="slot.layout.active" color="blue">
-{{
-                        $t('page.aiVideo.wall.inUse')
-                      }}
-</Tag>
-                    </div>
-                    <p>
-                      {{ slot.layout.splitCount
-                      }}{{ $t('page.aiVideo.wall.split') }} ·
-                      {{ slot.layout.cameraIds.filter(Boolean).length
-                      }}{{ $t('page.aiVideo.wall.channels') }}
-                    </p>
-                    <div class="layout-card__actions">
-                      <Button
-                        size="small"
-                        @click="activateLayout(slot.layout)"
-                        >
-{{ $t('page.aiVideo.wall.switch') }}
-</Button>
-                      <Button
-                        size="small"
-                        @click="saveLayout(slot.slotIndex)"
-                        >
-{{ $t('page.aiVideo.wall.overwrite') }}
-</Button>
-                      <Button
-                        danger
-                        size="small"
-                        @click="removeLayout(slot.layout)"
-                        >
-{{ $t('page.action.delete') }}
-</Button>
-                    </div>
-                  </template>
-                  <template v-else>
-                    <div class="layout-card__title">
-                      <IconifyIcon icon="lucide:grid-2x2" />
-                      <strong>{{
-                        $t('page.aiVideo.wall.defaultLayoutName', [
-                          slot.slotIndex,
-                        ])
-                      }}</strong>
-                    </div>
-                    <button
-                      type="button"
-                      class="save-empty"
-                      @click="saveLayout(slot.slotIndex)"
-                    >
-                      {{ $t('page.aiVideo.wall.saveCurrent') }}
-                    </button>
-                  </template>
-                </article>
+                  <IconifyIcon icon="lucide:x" />
+                </Button>
               </div>
-            </Spin>
-          </div>
+              <Spin :spinning="layoutLoading">
+                <div class="layout-cards">
+                  <article
+                    v-for="slot in layoutSlots"
+                    :key="slot.slotIndex"
+                    class="layout-card"
+                    :class="{
+                      active: slot.layout?.active,
+                      empty: !slot.layout,
+                    }"
+                  >
+                    <template v-if="slot.layout">
+                      <div class="layout-card__title">
+                        <IconifyIcon icon="lucide:grid-2x2" />
+                        <strong>{{ slot.layout.name }}</strong>
+                        <Tag v-if="slot.layout.active" color="blue">
+                          {{ $t('page.aiVideo.wall.inUse') }}
+                        </Tag>
+                      </div>
+                      <p>
+                        {{ slot.layout.splitCount
+                        }}{{ $t('page.aiVideo.wall.split') }} ·
+                        {{ slot.layout.cameraIds.filter(Boolean).length
+                        }}{{ $t('page.aiVideo.wall.channels') }}
+                      </p>
+                      <div class="layout-card__actions">
+                        <Button
+                          size="small"
+                          @click="activateLayout(slot.layout)"
+                        >
+                          {{ $t('page.aiVideo.wall.switch') }}
+                        </Button>
+                        <Button
+                          size="small"
+                          @click="saveLayout(slot.slotIndex)"
+                        >
+                          {{ $t('page.aiVideo.wall.overwrite') }}
+                        </Button>
+                        <Button
+                          danger
+                          size="small"
+                          @click="removeLayout(slot.layout)"
+                        >
+                          {{ $t('page.action.delete') }}
+                        </Button>
+                      </div>
+                    </template>
+                    <template v-else>
+                      <div class="layout-card__title">
+                        <IconifyIcon icon="lucide:grid-2x2" />
+                        <strong>{{
+                          $t('page.aiVideo.wall.defaultLayoutName', [
+                            slot.slotIndex,
+                          ])
+                        }}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        class="save-empty"
+                        @click="saveLayout(slot.slotIndex)"
+                      >
+                        {{ $t('page.aiVideo.wall.saveCurrent') }}
+                      </button>
+                    </template>
+                  </article>
+                </div>
+              </Spin>
+            </div>
           </div>
 
           <div ref="wallGridRef" class="wall-grid" :style="gridStyle">
@@ -744,14 +896,31 @@ onBeforeUnmount(() => { disposed = true; patrolRequest++;clearTimeout(patrolTime
                 >
                   <template #overlay="{ video, clock }">
                     <CameraRecognitionOverlay
-class="wall-recognition" :show-overlay="overlayEnabled" :camera="cell.camera"
-                      :video="video" :clock="clock"
+                      class="wall-recognition"
+                      :show-overlay="overlayEnabled"
+                      :camera="cell.camera"
+                      :video="video"
+                      :clock="clock"
                       :frames="overlayFrames[cell.index] || {}"
-/>
+                    />
                   </template>
                 </CameraPreviewPlayer>
                 <div class="cell-actions">
-                  <Tooltip title="图层显示设置"><Button shape="circle" size="small" aria-label="图层显示设置" @click.stop="router.push({path:'/ai-video/live',query:{cameraId:String(cell.cameraId)}})"><IconifyIcon icon="lucide:layers" /></Button></Tooltip>
+                  <Tooltip title="图层显示设置">
+                    <Button
+                      shape="circle"
+                      size="small"
+                      aria-label="图层显示设置"
+                      @click.stop="
+                        router.push({
+                          path: '/ai-video/live',
+                          query: { cameraId: String(cell.cameraId) },
+                        })
+                      "
+                    >
+                      <IconifyIcon icon="lucide:layers" />
+                    </Button>
+                  </Tooltip>
                   <Tooltip
                     :title="
                       cellMuted[cell.index]
@@ -814,9 +983,24 @@ class="wall-recognition" :show-overlay="overlayEnabled" :camera="cell.camera"
 </template>
 
 <style scoped>
-.wall-recognition { position: absolute; inset: 0; z-index: 1; min-height: 0; }
-.analysis-mode :deep(.camera-preview-player__statusbar) { display: none; }
-.cell-task-select { position: absolute; top: 8px; left: 8px; z-index: 5; width: 150px; }
+.wall-recognition {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  min-height: 0;
+}
+
+.analysis-mode :deep(.camera-preview-player__statusbar) {
+  display: none;
+}
+
+.cell-task-select {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 5;
+  width: 150px;
+}
 
 .wall-page {
   display: flex;

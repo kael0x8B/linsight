@@ -11,10 +11,16 @@ from test_task_manager import FakeModelPool, FakeSharedStream, request
 
 from ai_runtime.app.core.config import RuntimeSettings
 from ai_runtime.app.event.store import OfflineEventStore, PendingEvent
-from ai_runtime.app.gateway.service import GatewayChange, GatewayConflict, GatewayService
+from ai_runtime.app.gateway.service import (
+    ConfirmationLatencyConflict,
+    GatewayChange,
+    GatewayConflict,
+    GatewayService,
+)
 from ai_runtime.app.main import create_app
 from ai_runtime.app.model.contracts import DeployModelRequest
 from ai_runtime.app.model.pool import ModelPool
+from ai_runtime.app.task.contracts import TaskDisplayNames
 from ai_runtime.app.task.manager import TaskManager
 from edge_agent.app.local_console import create_app as create_console
 
@@ -36,7 +42,14 @@ def test_local_edit_conflict_replay_and_restart_without_platform(tmp_path):
         from pydantic import SecretStr
 
         config.source_url = SecretStr(config.source_url)
+        config.display_names = TaskDisplayNames(
+            task="入口安全帽识别", camera="东门摄像头", algorithm="安全帽检测"
+        )
         await gateway.platform_start(config, 0)
+        snapshot = gateway.snapshot()
+        assert snapshot["names"]["tasks"]["1"] == "入口安全帽识别"
+        assert snapshot["names"]["cameras"]["10"] == "东门摄像头"
+        assert snapshot["names"]["algorithms"]["20"] == "安全帽检测"
         change = GatewayChange(
             taskId=1,
             expectedRevision=1,
@@ -105,6 +118,91 @@ def test_concurrent_entrances_only_one_revision_wins(tmp_path):
     asyncio.run(scenario())
 
 
+def test_phone_call_edit_rejects_low_fps_but_legacy_platform_start_remains_compatible(tmp_path):
+    async def scenario():
+        settings = settings_for(tmp_path)
+        pool = FakeModelPool()
+        manager = TaskManager(settings, pool, FakeSharedStream)
+        gateway = GatewayService(settings, pool, manager)
+        base = request(22, str(uuid4())).model_dump(mode="json", by_alias=True)
+        base["pipeline"] = {
+            "schemaVersion": "1.0",
+            "nodes": [
+                {"id": "behavior", "type": "CLASSIFIER", "capabilityKey": "behavior.phone-call"},
+                {"id": "tracker", "type": "TRACKER", "capabilityKey": "tracker.iou"},
+            ],
+            "edges": [{"from": "behavior", "to": "tracker"}],
+        }
+        base["ruleId"] = 1
+        base["ruleVersionId"] = 1
+        base["rule"] = {
+            "schemaVersion": "1.0",
+            "eventType": "PHONE_CALL",
+            "severity": "MAJOR",
+            "regions": [
+                {
+                    "id": "main",
+                    "name": "全画面",
+                    "type": "POLYGON",
+                    "sourceWidth": 1920,
+                    "sourceHeight": 1080,
+                    "pointMode": "CENTROID",
+                    "overlapThreshold": 0,
+                    "points": [
+                        {"x": 0, "y": 0},
+                        {"x": 1, "y": 0},
+                        {"x": 1, "y": 1},
+                        {"x": 0, "y": 1},
+                    ],
+                }
+            ],
+            "schedule": {
+                "timezone": "Asia/Shanghai",
+                "weekly": [{"days": [1, 2, 3, 4, 5, 6, 7], "start": "00:00", "end": "23:59"}],
+            },
+            "condition": {
+                "type": "AND",
+                "children": [
+                    {"type": "ROI_ENTER", "regionId": "main", "objectClasses": ["phone_call"]},
+                    {"type": "N_OF_M", "n": 3, "m": 5},
+                    {"type": "DURATION", "seconds": 2},
+                ],
+            },
+            "cooldownSeconds": 60,
+            "recoverySeconds": 5,
+            "dedup": {"scope": "TRACK", "windowSeconds": 60},
+        }
+        base["parameters"]["sampleFps"] = 0.2
+        from ai_runtime.app.task.contracts import TaskStartRequest
+
+        config = TaskStartRequest.model_validate(base)
+        # Commands for already-stored platform tasks are not retroactively blocked.
+        await gateway.platform_start(config, 0)
+        # Unrelated edits of an existing legacy configuration remain compatible.
+        unchanged = await gateway.change(
+            GatewayChange(
+                taskId=22,
+                expectedRevision=1,
+                requestId=str(uuid4()),
+                configuration={"parameters": {**base["parameters"], "confidence": 0.72}},
+            )
+        )
+        assert unchanged["config"]["parameters"]["confidence"] == 0.72
+        with pytest.raises(ConfirmationLatencyConflict, match="30 秒"):
+            await gateway.change(
+                GatewayChange(
+                    taskId=22,
+                    expectedRevision=2,
+                    requestId=str(uuid4()),
+                    configuration={"parameters": {**base["parameters"], "sampleFps": 0.1}},
+                )
+            )
+        await gateway.close()
+        await manager.close()
+
+    asyncio.run(scenario())
+
+
 def test_runtime_restores_real_onnx_model_without_agent(tmp_path):
     async def scenario():
         settings = settings_for(tmp_path)
@@ -113,6 +211,8 @@ def test_runtime_restores_real_onnx_model_without_agent(tmp_path):
         _write_contract_model(path)
         deploy = DeployModelRequest(
             modelVersionId=40,
+            displayName="人员检测模型",
+            version="1.2.0",
             artifactPath=path,
             sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
             adapter="person_detection_v1",
@@ -122,6 +222,10 @@ def test_runtime_restores_real_onnx_model_without_agent(tmp_path):
         tasks = TaskManager(settings, pool, FakeSharedStream)
         gateway = GatewayService(settings, pool, tasks)
         gateway.models.record(deploy.model_dump(mode="json", by_alias=True, exclude_none=True))
+        assert gateway.snapshot()["names"]["models"]["40"] == {
+            "name": "人员检测模型",
+            "version": "1.2.0",
+        }
         await gateway.platform_start(request(3, str(uuid4())), 0)
         await gateway.close()
         await tasks.close()
@@ -186,19 +290,44 @@ def test_local_login_csrf_internal_api_isolation_and_password_rotation(tmp_path)
         )
         assert client.post("/gateway-api/login", json={"password": "wrong"}).status_code == 401
         assert client.post("/gateway-api/login", json={"password": password}).status_code == 200
+        connection = client.get("/gateway-api/platform-connection")
+        assert connection.json() == {
+            "platformUrl": "http://127.0.0.1:48888",
+            "source": "DEPLOYMENT",
+            "updatedAt": None,
+        }
+        assert (
+            client.post(
+                "/gateway-api/platform-connection/test", json={"platformUrl": "ftp://invalid"}
+            ).status_code
+            == 422
+        )
+        saved = client.put(
+            "/gateway-api/platform-connection", json={"platformUrl": "127.0.0.1:1"}
+        )
+        assert saved.status_code == 200
+        assert saved.json()["platformUrl"] == "http://127.0.0.1:1"
+        assert saved.json()["source"] == "LOCAL_OVERRIDE"
+        assert not saved.json()["probe"]["reachable"]
         snapshot = client.post("/gateway-api/rpc", json={"action": "snapshot"})
         assert snapshot.json()["data"]["tasks"] == []
         assert settings.api_key not in snapshot.text
         assert password not in snapshot.text
+        invalid = client.post(
+            "/gateway-api/rpc",
+            json={"action": "access.password", "payload": {"password": "12345"}},
+        )
+        assert not invalid.json()["ok"]
+        assert (tmp_path / "gateway/local-password").read_text() == password
         result = client.post(
             "/gateway-api/rpc",
-            json={"action": "access.password", "payload": {"password": "new-local-password-123"}},
+            json={"action": "access.password", "payload": {"password": "123456"}},
         )
         assert result.json()["ok"]
         assert client.post("/gateway-api/rpc", json={"action": "snapshot"}).status_code == 401
         assert (
             client.post(
-                "/gateway-api/login", json={"password": "new-local-password-123"}
+                "/gateway-api/login", json={"password": "123456"}
             ).status_code
             == 200
         )
@@ -289,3 +418,28 @@ def test_local_model_upload_executes_real_onnx_and_rejects_duplicate_version(tmp
     )
     assert repeated.json()["code"] == 409
     assert len(list((tmp_path / "models/local").glob("*.artifact"))) == 1
+
+
+def test_removal_requires_stop_and_exact_revision_and_replays(tmp_path):
+    async def scenario():
+        settings = settings_for(tmp_path)
+        pool = FakeModelPool()
+        manager = TaskManager(settings, pool, FakeSharedStream)
+        gateway = GatewayService(settings, pool, manager)
+        await gateway.platform_start(request(501, str(uuid4())), 0)
+        remove = GatewayChange(taskId=501, expectedRevision=1, requestId=str(uuid4()))
+        with pytest.raises(ValueError, match="停止"):
+            await gateway.remove(remove)
+        await gateway.change(
+            GatewayChange(taskId=501, expectedRevision=1, requestId=str(uuid4()), enabled=False)
+        )
+        with pytest.raises(GatewayConflict):
+            await gateway.remove(remove)
+        remove.expected_revision = 2
+        assert await gateway.remove(remove) == {"removed": True}
+        assert await gateway.remove(remove) == {"removed": True}
+        assert gateway.snapshot()["tasks"] == []
+        await gateway.close()
+        await manager.close()
+
+    asyncio.run(scenario())

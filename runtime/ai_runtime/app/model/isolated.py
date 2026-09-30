@@ -77,11 +77,15 @@ class IsolatedAdapter:
                 raise ValueError("模型工作进程已退出，请检查内存或重新部署") from error
 
     def infer(self, image_path: str, parameters: ModelTestParameters) -> ModelTestResult:
-        return ModelTestResult.model_validate(self._exchange({
-            "modelVersionId": self._model_version_id,
-            "imagePath": image_path,
-            "parameters": parameters.model_dump(by_alias=True),
-        }))
+        return ModelTestResult.model_validate(
+            self._exchange(
+                {
+                    "modelVersionId": self._model_version_id,
+                    "imagePath": image_path,
+                    "parameters": parameters.model_dump(by_alias=True),
+                }
+            )
+        )
 
     def infer_image(self, image: Image.Image, parameters: ModelTestParameters) -> ModelTestResult:
         source = image if image.mode == "RGB" else image.convert("RGB")
@@ -90,11 +94,20 @@ class IsolatedAdapter:
         data = source.tobytes()
         # Length-delimited binary pixels avoid a second JPEG decode or Base64 / JSON
         # expansion. The original image geometry stays attached to this request.
-        return ModelTestResult.model_validate(self._exchange({
-            "modelVersionId": self._model_version_id,
-            "imageRgb": {"width": source.width, "height": source.height, "bytes": len(data)},
-            "parameters": parameters.model_dump(by_alias=True),
-        }, data))
+        return ModelTestResult.model_validate(
+            self._exchange(
+                {
+                    "modelVersionId": self._model_version_id,
+                    "imageRgb": {
+                        "width": source.width,
+                        "height": source.height,
+                        "bytes": len(data),
+                    },
+                    "parameters": parameters.model_dump(by_alias=True),
+                },
+                data,
+            )
+        )
 
     @property
     def alive(self) -> bool:

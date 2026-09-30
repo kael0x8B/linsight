@@ -3,6 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from ai_runtime.app.model.environment import ModelEnvironment
+
 
 class ProcessMetrics(BaseModel):
     pid: int
@@ -88,3 +90,4 @@ class RuntimeObservabilitySnapshot(BaseModel):
     streams: StreamMetrics
     models: ModelMetrics
     delivery: DeliveryMetrics
+    model_environment: ModelEnvironment | None = Field(default=None, alias="modelEnvironment")

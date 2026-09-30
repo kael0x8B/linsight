@@ -73,7 +73,17 @@ async function viteMetadataPlugin(
   const { author, description, homepage, license, version } =
     await readPackageJSON(root);
 
-  const buildTime = dateUtil().format('YYYY-MM-DD HH:mm:ss');
+  const sourceDateEpoch = process.env.SOURCE_DATE_EPOCH;
+  const sourceDateMillis = sourceDateEpoch
+    ? Number.parseInt(sourceDateEpoch, 10) * 1000
+    : undefined;
+  if (sourceDateEpoch && !Number.isSafeInteger(sourceDateMillis)) {
+    throw new Error('SOURCE_DATE_EPOCH must be a Unix timestamp');
+  }
+  const buildTime =
+    sourceDateMillis === undefined
+      ? dateUtil().format('YYYY-MM-DD HH:mm:ss')
+      : new Date(sourceDateMillis).toISOString();
 
   return {
     async config() {

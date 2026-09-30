@@ -53,8 +53,64 @@ def image_digest(image: str) -> str | None:
     return value if result.returncode == 0 and "@sha256:" in value else None
 
 
+def gateway_console() -> tuple[dict[str, Any], list[str]]:
+    manifest_path = ROOT / "runtime/gateway-console/manifest.json"
+    blockers: list[str] = []
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if (
+            manifest.get("schemaVersion") != "1.0"
+            or manifest.get("artifactType") != "linsightGatewayConsole"
+        ):
+            raise ValueError("unsupported gateway console manifest")
+        artifact_meta = manifest["artifact"]
+        file_name = artifact_meta["fileName"]
+        expected_sha256 = artifact_meta["sha256"]
+        expected_size = artifact_meta["sizeBytes"]
+        if (
+            not isinstance(file_name, str)
+            or Path(file_name).name != file_name
+            or not isinstance(expected_sha256, str)
+            or len(expected_sha256) != 64
+            or file_name != f"gateway-console-{expected_sha256[:12]}.tar.gz"
+            or not isinstance(expected_size, int)
+            or expected_size < 0
+        ):
+            raise ValueError("invalid gateway console artifact metadata")
+        artifact = manifest_path.parent / file_name
+        if not artifact.is_file():
+            blockers.append("GATEWAY_CONSOLE_ARTIFACT_MISSING")
+            actual_sha256 = "MISSING"
+        else:
+            actual_sha256 = sha256(artifact)
+            if artifact.stat().st_size != expected_size:
+                blockers.append("GATEWAY_CONSOLE_SIZE_MISMATCH")
+            if actual_sha256 != expected_sha256:
+                blockers.append("GATEWAY_CONSOLE_SHA256_MISMATCH")
+        return (
+            {
+                "manifest": str(manifest_path.relative_to(ROOT)),
+                "version": manifest.get("version", "UNKNOWN"),
+                "sourceSha256": manifest.get("sourceSha256", "UNKNOWN"),
+                "artifact": str(artifact.relative_to(ROOT)),
+                "sha256": actual_sha256,
+            },
+            blockers,
+        )
+    except (OSError, KeyError, TypeError, json.JSONDecodeError, ValueError):
+        return (
+            {
+                "manifest": str(manifest_path.relative_to(ROOT)),
+                "artifact": "MISSING",
+                "sha256": "MISSING",
+            },
+            ["GATEWAY_CONSOLE_MANIFEST_INVALID"],
+        )
+
+
 def build(version: str, images: list[str]) -> dict[str, Any]:
     commit = git_commit()
+    console, console_blockers = gateway_console()
     java_jars = sorted((ROOT / "backend").glob("*/target/*.jar"))
     python_files = [
         path
@@ -76,7 +132,6 @@ def build(version: str, images: list[str]) -> dict[str, Any]:
         }
         for entry in asset_lock.get("assets", [])
     ]
-    model_files = [entry["path"] for entry in locked_models if entry["path"].is_file()]
     missing_models = [entry for entry in locked_models if not entry["path"].is_file()]
     mismatched_models = [
         entry
@@ -92,7 +147,7 @@ def build(version: str, images: list[str]) -> dict[str, Any]:
         ]
     )
     image_entries = [{"image": image, "digest": image_digest(image) or "MISSING"} for image in images]
-    blockers = []
+    blockers = list(console_blockers)
     if not commit:
         blockers.append("GIT_COMMIT_MISSING")
     if not image_entries or any(value["digest"] == "MISSING" for value in image_entries):
@@ -112,6 +167,7 @@ def build(version: str, images: list[str]) -> dict[str, Any]:
             {"path": str(path.relative_to(ROOT)), "sha256": sha256(path)} for path in java_jars
         ],
         "pythonSha256": tree_hash(python_files),
+        "gatewayConsole": console,
         "models": [
             {
                 "key": entry["key"],

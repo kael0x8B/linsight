@@ -31,10 +31,29 @@ async function generateAccess(options: GenerateMenuAndRoutesOptions) {
       const menus = convertServerMenuToRouteRecordStringComponent(accessMenus);
       function addGatewayDetail(items: typeof menus) {
         for (const item of [...items]) {
+          if (item.path === '/ai-video/task') {
+            item.meta = {
+              ...item.meta,
+              title: item.meta?.title ?? 'AI 任务',
+              fullPathKey: false,
+            };
+          }
           if (item.path === '/ai-video/node') {
-            items.push({ ...item, name: 'AiVideoGatewayDetail', path: '/ai-video/node/:id',
-              component: '/ai-video/node/detail', children: undefined,
-              meta: { ...item.meta, title: '网关详情', fullPathKey: false, hideInMenu: true, keepAlive: false, activePath: '/ai-video/node' } });
+            items.push({
+              ...item,
+              name: 'AiVideoGatewayDetail',
+              path: '/ai-video/node/:id',
+              component: '/ai-video/node/detail',
+              children: undefined,
+              meta: {
+                ...item.meta,
+                title: '网关详情',
+                fullPathKey: false,
+                hideInMenu: true,
+                keepAlive: false,
+                activePath: '/ai-video/node',
+              },
+            });
           }
           if (item.children) addGatewayDetail(item.children);
         }

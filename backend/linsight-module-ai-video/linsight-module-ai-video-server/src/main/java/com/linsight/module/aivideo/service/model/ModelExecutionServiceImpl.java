@@ -34,6 +34,29 @@ import static com.linsight.module.aivideo.enums.model.ErrorCodeConstants.*;
 @Service
 public class ModelExecutionServiceImpl implements ModelExecutionService {
     @Override
+    public Map<Long, String> getNodeDeploymentStates(Long nodeId) {
+        Map<Long, String> states = new java.util.LinkedHashMap<>();
+        getNodeDeployments(nodeId).forEach(d -> states.putIfAbsent(d.getModelVersionId(), d.getActualStatus()));
+        return states;
+    }
+
+    @Override
+    public void reconcileNodeInventory(Long nodeId, Collection<Long> installedModelVersionIds) {
+        Set<Long> installed = installedModelVersionIds == null ? Set.of() : Set.copyOf(installedModelVersionIds);
+        Map<Long, ModelDeploymentDO> latest = new java.util.LinkedHashMap<>();
+        getNodeDeployments(nodeId).forEach(deployment -> latest.putIfAbsent(
+                deployment.getModelVersionId(), deployment));
+        latest.values().stream()
+                .filter(deployment -> "READY".equals(deployment.getActualStatus()))
+                .filter(deployment -> !installed.contains(deployment.getModelVersionId()))
+                .forEach(deployment -> {
+                    deployment.setActualStatus("REMOVED");
+                    deployment.setErrorCode("DEVICE_INVENTORY_MISSING");
+                    deployment.setErrorMessage("网关实时模型清单中已不存在该模型，平台已回收安装状态");
+                    deploymentMapper.updateById(deployment);
+                });
+    }
+    @Override
     public java.util.Map<Long, Long> getNodeCounts(java.util.Collection<Long> nodeIds) {
         if (nodeIds.isEmpty()) return java.util.Map.of();
         var query = new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<ModelDeploymentDO>()
@@ -62,11 +85,15 @@ public class ModelExecutionServiceImpl implements ModelExecutionService {
 
     @Override
     public Long deployModel(Long modelVersionId, Long nodeId) {
-        requireSupportedVersion(modelVersionId);
+        SupportedVersion supported = requireSupportedVersion(modelVersionId);
         ModelDeploymentDO existing = deploymentMapper.selectByVersionAndNode(modelVersionId, nodeId);
         if (existing != null && !Set.of("FAILED", "REMOVED").contains(existing.getActualStatus())) {
             return existing.getId();
         }
+        String blocker = ModelDeploymentCompatibility.deploymentBlocker(
+                supported.version().getArtifactFormat(), supported.runtimeManifest(),
+                nodeService.getModelEnvironment(nodeId), false);
+        if (!blocker.isEmpty()) throw exception(MODEL_NODE_INCOMPATIBLE, blocker);
         int configVersion = existing == null ? INITIAL_CONFIG_VERSION : existing.getConfigVersion() + 1;
         return transactionTemplate.execute(status -> {
             String commandId = UUID.randomUUID().toString();
@@ -229,6 +256,8 @@ public class ModelExecutionServiceImpl implements ModelExecutionService {
         detail.setCommandType(command.getCommandType());
         detail.setConfigVersion(command.getConfigVersion());
         detail.setModelVersionId(versionId);
+        detail.setModelName(supported.model().getName());
+        detail.setModelVersion(version.getVersion());
         detail.setArtifactUrl(fileApi.presignGetUrl(version.getArtifactRef(), 600).getCheckedData());
         detail.setArtifactName(version.getArtifactName());
         detail.setArtifactFormat(version.getArtifactFormat());

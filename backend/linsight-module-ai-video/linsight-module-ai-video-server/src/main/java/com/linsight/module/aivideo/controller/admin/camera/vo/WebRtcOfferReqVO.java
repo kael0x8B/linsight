@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
-@Schema(description = "管理后台 - WebRTC 子码流预览 Offer Request VO")
+@Schema(description = "管理后台 - WebRTC 识别同源预览 Offer Request VO")
 @Data
 public class WebRtcOfferReqVO {
 

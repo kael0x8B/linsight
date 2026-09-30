@@ -38,7 +38,9 @@ async def preview_tunnel_loop(
                     "X-Node-Id": str(identity.node_id),
                     "X-Node-Credential": identity.credential.get_secret_value(),
                 },
-                max_size=64 * 1024,
+                # One 4 MiB test image plus base64/envelope overhead. Runtime
+                # independently validates image bytes, dimensions and concurrency.
+                max_size=6 * 1024 * 1024,
                 proxy=None,
                 ping_interval=20,
                 ping_timeout=20,
@@ -171,9 +173,12 @@ async def _send_media(
     file_name = payload.get("fileName")
     if not isinstance(file_name, str) or (
         file_name not in MEDIA_FILES
-        and not (file_name.startswith("segment-") and file_name.endswith(".ts")
-                 and len(file_name) == len("segment-000000.ts")
-                 and file_name[8:14].isdigit())
+        and not (
+            file_name.startswith("segment-")
+            and file_name.endswith(".ts")
+            and len(file_name) == len("segment-000000.ts")
+            and file_name[8:14].isdigit()
+        )
     ):
         raise PreviewTunnelError("INVALID_MEDIA_NAME", "preview media name is invalid")
     body, content_type = await runtime.get_preview_media(_session_id(payload), file_name)

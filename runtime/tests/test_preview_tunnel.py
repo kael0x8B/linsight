@@ -86,9 +86,7 @@ def test_media_uses_metadata_then_raw_binary_frame() -> None:
         runtime = AsyncMock()
         runtime.get_preview_media.return_value = (b"segment", "video/mp2t")
         session_id = uuid4().hex
-        raw = request(
-            "preview.media", {"sessionId": session_id, "fileName": "segment-000001.ts"}
-        )
+        raw = request("preview.media", {"sessionId": session_id, "fileName": "segment-000001.ts"})
         request_id = json.loads(raw)["requestId"]
         await _handle_request(
             websocket,
@@ -152,11 +150,18 @@ def test_rule_trial_forwards_to_production_rule_engine_without_starting_task() -
         websocket, runtime = AsyncMock(), AsyncMock()
         payload = {"taskId": 1, "cameraId": 2, "ast": {}, "frames": []}
         runtime.dry_run_rule.return_value = {"confirmed": False, "transitions": []}
-        await _handle_request(websocket, asyncio.Lock(), asyncio.Semaphore(1), settings(), runtime,
-                              request("rule.dry-run", payload))
+        await _handle_request(
+            websocket,
+            asyncio.Lock(),
+            asyncio.Semaphore(1),
+            settings(),
+            runtime,
+            request("rule.dry-run", payload),
+        )
         runtime.dry_run_rule.assert_awaited_once_with(payload)
         runtime.start_task.assert_not_called()
         response = json.loads(websocket.send.await_args.args[0])
         assert response["ok"] is True
         assert response["payload"]["confirmed"] is False
+
     asyncio.run(scenario())
