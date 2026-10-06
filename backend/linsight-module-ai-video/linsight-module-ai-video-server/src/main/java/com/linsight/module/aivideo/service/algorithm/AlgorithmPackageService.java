@@ -120,6 +120,8 @@ public class AlgorithmPackageService {
         if (role.get("formats") instanceof List<?> formats && !formats.contains(format)) return false;
         if (role.get("taskType") instanceof String type && !type.equals(runtime.get("taskType"))) return false;
         var decoder = runtime.get("decoder") instanceof Map<?, ?> value ? map(value) : Map.<String, Object>of();
+        if (role.get("decoderTypes") instanceof List<?> types && !types.isEmpty()
+                && !types.contains(decoder.get("type"))) return false;
         List<?> labels = decoder.get("labels") instanceof List<?> value ? value : List.of();
         return !(role.get("labels") instanceof List<?> required) || labels.containsAll(required);
     }

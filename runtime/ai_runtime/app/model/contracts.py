@@ -59,6 +59,7 @@ class ModelTestParameters(BaseModel):
     input_width: Annotated[int, Field(alias="inputWidth", ge=32, le=2048)]
     input_height: Annotated[int, Field(alias="inputHeight", ge=32, le=2048)]
     output_coordinates: Literal["NORMALIZED_XYWH"] = Field(alias="outputCoordinates")
+    ocr_evidence: bool = Field(default=False, alias="ocrEvidence")
 
 
 class ModelTestRequest(BaseModel):

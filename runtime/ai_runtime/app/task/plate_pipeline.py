@@ -16,6 +16,7 @@ from ai_runtime.app.model.contracts import (
     ModelTestResult,
 )
 from ai_runtime.app.model.plate import rectify_plate
+from ai_runtime.app.model.plate_evidence import body_agrees
 from ai_runtime.app.rule.contracts import RuleAst
 
 if TYPE_CHECKING:
@@ -566,6 +567,13 @@ async def infer_license_plates(
                                 )
                             )
                         )
+                        if (parameters.ocr_evidence and auxiliary_sidebar
+                                and alternate is not None and ocr.objects):
+                            initial = max(ocr.objects, key=lambda obj: obj.confidence)
+                            alternate_accepted = alternate_accepted or body_agrees(
+                                initial.attributes, alternate.attributes,
+                                runner.request.parameters.ocr_min_confidence,
+                            )
                         if alternate_accepted:
                             best = alternate
                             if routed_site:

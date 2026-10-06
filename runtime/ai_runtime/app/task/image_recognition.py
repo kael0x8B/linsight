@@ -16,6 +16,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from pydantic import BaseModel, ConfigDict, Field
 
 from ai_runtime.app.capability.package_runner import PackageRunner
+from ai_runtime.app.capability.plate_input import package_plate_input
 from ai_runtime.app.capability.postprocess import CapabilityPostprocessor
 from ai_runtime.app.capability.tracker import IoUTracker
 from ai_runtime.app.model.pool import ModelCapacityError, ModelUnavailableError
@@ -126,6 +127,10 @@ class TaskImageRecognizer:
                         config.model_bindings, self.pool,
                     )
                     await package.start()
+                    if package_plate_input(config.pipeline):
+                        objects = IoUTracker(motion_classes=frozenset({"license_plate"})).update(
+                            objects, millis
+                        )
                     objects = await package.run(
                         objects, image, millis, config.parameters, config.algorithm_resources
                     )

@@ -28,7 +28,9 @@ export interface AlgorithmManifest {
   eventType?: string;
   description?: string;
   entrypoint: string;
+  frameInput?: { detectorSlot: string; ocrSlot: string; type: 'PLATE_OCR' };
   models: Array<{
+    decoderTypes?: string[];
     formats?: string[];
     labels?: string[];
     name?: string;

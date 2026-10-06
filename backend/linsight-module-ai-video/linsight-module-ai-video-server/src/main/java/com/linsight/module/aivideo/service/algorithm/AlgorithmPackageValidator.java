@@ -59,8 +59,11 @@ public final class AlgorithmPackageValidator {
         for (Object value : models) {
             if (!(value instanceof Map<?, ?> role) || !(role.get("slot") instanceof String slot)
                     || !slot.matches("[a-z][a-z0-9-]{0,63}") || !slots.add(slot)) throw invalid("模型角色无效或重复");
+            if (role.containsKey("decoderTypes") && (!(role.get("decoderTypes") instanceof List<?> types)
+                    || types.stream().anyMatch(type -> !(type instanceof String)))) throw invalid("模型解码器要求必须为字符串数组");
             if (role.containsKey("labels") && !(role.get("labels") instanceof List<?>)) throw invalid("模型标签要求无效");
         }
+        if (manifest.containsKey("frameInput")) validatePlateInput(manifest);
         if (!(manifest.getOrDefault("timeoutMillis", 3000) instanceof Number)) throw invalid("算法超时必须是数字");
         int timeout = ((Number) manifest.getOrDefault("timeoutMillis", 3000)).intValue();
         if (timeout < 100 || timeout > 30000) throw invalid("算法超时必须为 100–30000 毫秒");
@@ -73,6 +76,26 @@ public final class AlgorithmPackageValidator {
             var errors = com.linsight.module.aivideo.service.rule.RuleAstValidator.validate(
                     map(manifest.get("defaultRule")), String.valueOf(manifest.getOrDefault("eventType", "ALGORITHM_EVENT")));
             if (!errors.isEmpty()) throw invalid("默认告警规则无效：" + String.join("；", errors));
+        }
+    }
+
+    private static void validatePlateInput(Map<String, Object> manifest) {
+        var input = map(manifest.get("frameInput"));
+        if (!"PLATE_OCR".equals(input.get("type"))
+                || !(manifest.get("runtimeRequirements") instanceof List<?> requirements)
+                || !requirements.contains("plate-ocr-evidence-v1")) throw invalid("车牌输入需要 plate-ocr-evidence-v1 能力");
+        var detector = input.get("detectorSlot");
+        var ocr = input.get("ocrSlot");
+        if (!(detector instanceof String) || !(ocr instanceof String) || detector.equals(ocr)) throw invalid("车牌模型角色无效");
+        var roles = ((List<?>) manifest.get("models")).stream().map(AlgorithmPackageValidator::map).toList();
+        if (roles.size() != 2) throw invalid("车牌输入需要定位与 OCR 两个模型角色");
+        for (String field : List.of("detectorSlot", "ocrSlot")) {
+            var role = roles.stream().filter(r -> input.get(field).equals(r.get("slot"))).findFirst().orElseThrow(() -> invalid("车牌模型角色不存在"));
+            boolean detection = field.equals("detectorSlot");
+            var allowed = detection ? List.of("YOLO_PLATE", "YOLO26_PLATE_POSE") : List.of("CHINESE_PLATE_CTC", "PLATE_OCR_ROUTED");
+            if (!(detection ? "OBJECT_DETECTION" : "OCR").equals(role.get("taskType"))
+                    || !(role.get("decoderTypes") instanceof List<?> types) || types.isEmpty()
+                    || !allowed.containsAll(types)) throw invalid("车牌输入必须声明兼容的模型解码器");
         }
     }
 

@@ -8,9 +8,10 @@ import tempfile
 from pathlib import Path
 
 from ai_runtime.app.capability.packages import AlgorithmPackageStore, validate_parameters
+from ai_runtime.app.capability.plate_input import PLATE_EVIDENCE_CAPABILITY
 from ai_runtime.app.model.contracts import DetectionObject, ModelTestRequest
 
-RUNTIME_CAPABILITIES = ["observation-validity-v1"]
+RUNTIME_CAPABILITIES = ["observation-validity-v1", PLATE_EVIDENCE_CAPABILITY]
 
 
 class PackageRunner:
@@ -117,7 +118,12 @@ class PackageRunner:
                         if not isinstance(validity, bool):
                             raise ValueError("算法 observationValid 必须为布尔值")
                         self.observation_valid = validity
-                        return [DetectionObject.model_validate(obj) for obj in output["objects"]]
+                        result = [DetectionObject.model_validate(obj) for obj in output["objects"]]
+                        if self.manifest.get("frameInput"):
+                            tracks = {obj.track_id for obj in objects if obj.track_id is not None}
+                            if any(obj.track_id not in tracks for obj in result):
+                                raise ValueError("车牌算法输出必须保留输入的物理轨迹")
+                        return result
                     if "error" in response:
                         raise ValueError("算法处理失败：" + str(response["error"])[:80])
                     operation, arguments = response.get("call"), response.get("arguments", {})

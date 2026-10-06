@@ -1,6 +1,7 @@
 import re
 from collections import Counter, defaultdict, deque
 
+from ai_runtime.app.capability.plate_input import package_plate_input
 from ai_runtime.app.model.contracts import BoundingBox, DetectionObject
 from ai_runtime.app.task.contracts import TaskInferenceParameters
 
@@ -20,6 +21,8 @@ class CapabilityPostprocessor:
             for node in pipeline.get("nodes", [])
             if isinstance(node, dict)
         }
+        if package_plate_input(pipeline):
+            self._capabilities.add("ocr.license-plate")
         self._parameters = parameters
         self._plate_votes: dict[str, deque[tuple[str, float, str | None, str | None]]] = {}
         self._plate_vote_times: dict[str, deque[int]] = {}

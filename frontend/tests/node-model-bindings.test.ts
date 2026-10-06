@@ -189,6 +189,29 @@ describe('gateway algorithm model roles', () => {
   });
 });
 
+describe('plate evidence package model selection', () => {
+  it('excludes OCR models that do not expose the required character observations', () => {
+    const packaged = {
+      ...config,
+      modelBindings: {},
+      pipeline: {
+        algorithmPackage: {
+          manifest: {
+            models: [
+              {
+                slot: 'ocr',
+                taskType: 'OCR',
+                decoderTypes: ['CHINESE_PLATE_CTC'],
+              },
+            ],
+          },
+        },
+      },
+    };
+    expect(options('ocr', packaged)).toEqual([137]);
+  });
+});
+
 describe('save gateway model bindings', () => {
   it('keeps an unchanged three-model configuration exactly intact', () => {
     expect(

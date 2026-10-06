@@ -54,11 +54,26 @@ class AlgorithmPackageValidatorTest {
         assertFalse(AlgorithmPackageService.compatible(role, "RKNN", Map.of("taskType", "OBJECT_DETECTION", "decoder", Map.of("labels", List.of("person")))));
     }
 
+    @Test void plateEvidenceRequiresCompatibleDecodersAndAnExplicitRuntimeCapability() {
+        var value = manifest();
+        var detector = Map.<String, Object>of("slot", "plate", "taskType", "OBJECT_DETECTION", "decoderTypes", List.of("YOLO_PLATE"));
+        var ocr = Map.<String, Object>of("slot", "ocr", "taskType", "OCR", "decoderTypes", List.of("CHINESE_PLATE_CTC"));
+        value.put("models", List.of(detector, ocr));
+        value.put("frameInput", Map.of("type", "PLATE_OCR", "detectorSlot", "plate", "ocrSlot", "ocr"));
+        assertThrows(ServiceException.class, () -> AlgorithmPackageValidator.validateManifest(value));
+        value.put("runtimeRequirements", List.of("plate-ocr-evidence-v1"));
+        assertDoesNotThrow(() -> AlgorithmPackageValidator.validateManifest(value));
+        assertFalse(AlgorithmPackageService.compatible(ocr, "ONNX", Map.of("taskType", "OCR", "decoder", Map.of("type", "LPRNET"))));
+        assertTrue(AlgorithmPackageService.compatible(ocr, "RKNN", Map.of("taskType", "OCR", "decoder", Map.of("type", "CHINESE_PLATE_CTC"))));
+        value.put("frameInput", Map.of("type", "PLATE_OCR", "detectorSlot", "plate", "ocrSlot", "plate"));
+        assertThrows(ServiceException.class, () -> AlgorithmPackageValidator.validateManifest(value));
+    }
+
     @Test void downloadablePackagesCarryValidatedRuleDefaults() throws Exception {
         var root = java.nio.file.Path.of("").toAbsolutePath();
         while (root != null && !java.nio.file.Files.isDirectory(root.resolve("runtime/algorithm_packages"))) root = root.getParent();
         assertNotNull(root, "repository examples must be available");
-        for (String name : List.of("fall", "vehicle-parking", "person-absence", "person-absence-count")) {
+        for (String name : List.of("fall", "vehicle-parking", "person-absence", "person-absence-count", "xinjiang-plate")) {
             var manifest = JsonUtils.parseMap(java.nio.file.Files.readString(root.resolve("runtime/algorithm_packages/" + name + "/algorithm.json")));
             assertDoesNotThrow(() -> AlgorithmPackageValidator.inspect(zip(manifest, "processor.py")));
             var rule = AlgorithmPackageValidator.map(manifest.get("defaultRule"));

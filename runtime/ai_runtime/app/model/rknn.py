@@ -122,7 +122,7 @@ class RknnAdapter:
         elif self._manifest.decoder.type == "CHINESE_PLATE_CTC":
             if len(outputs) != 2:
                 raise ValueError("CHINESE_PLATE_CTC requires character and colour outputs")
-            objects = decode_chinese_plate_ctc(*outputs)
+            objects = decode_chinese_plate_ctc(*outputs, evidence=parameters.ocr_evidence)
             for detected in objects:
                 detected.attributes.update(
                     {

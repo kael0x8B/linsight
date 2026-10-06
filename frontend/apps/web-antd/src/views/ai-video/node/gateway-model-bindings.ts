@@ -100,6 +100,8 @@ function matchesRole(
   const requirement = role.requirement;
   if (requirement) {
     return (
+      (!requirement.decoderTypes?.length ||
+        requirement.decoderTypes.includes(manifest?.decoder?.type ?? '')) &&
       (!requirement.formats?.length ||
         requirement.formats.includes(model.artifactFormat)) &&
       (!requirement.taskType || requirement.taskType === manifest?.taskType) &&

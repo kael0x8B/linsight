@@ -5,6 +5,7 @@ from pathlib import Path
 
 from PIL import Image
 
+from ai_runtime.app.capability.plate_input import package_plate_input, plate_capabilities
 from ai_runtime.app.model.contracts import ModelTestParameters, ModelTestRequest
 from ai_runtime.app.model.pool import ModelPool
 from ai_runtime.app.task.contracts import TaskStartRequest
@@ -24,12 +25,9 @@ class TaskFrameInference:
             inputWidth=self.request.parameters.input_width,
             inputHeight=self.request.parameters.input_height,
             outputCoordinates="NORMALIZED_XYWH",
+            ocrEvidence=package_plate_input(self.request.pipeline) is not None,
         )
-        capabilities = {
-            node["id"]: node["capabilityKey"]
-            for node in self.request.pipeline.get("nodes", [])
-            if isinstance(node, dict) and "id" in node and "capabilityKey" in node
-        }
+        capabilities = plate_capabilities(self.request.pipeline)
         crop_nodes = [
             node
             for node in self.request.pipeline.get("nodes", [])

@@ -14,6 +14,7 @@ from PIL import Image
 from pydantic import SecretStr
 
 from ai_runtime.app.capability.package_runner import PackageRunner
+from ai_runtime.app.capability.plate_input import package_plate_input, plate_capabilities
 from ai_runtime.app.capability.postprocess import CapabilityPostprocessor
 from ai_runtime.app.capability.tracker import IoUTracker
 from ai_runtime.app.core.config import RuntimeSettings
@@ -207,10 +208,8 @@ class TaskRunner:
         self._total_samples: deque[int] = deque(maxlen=512)
         self._capture_to_result_samples: deque[int] = deque(maxlen=512)
         self._decode_samples: deque[int] = deque(maxlen=512)
-        plate_tracking = any(
-            node.get("capabilityKey") == "ocr.license-plate"
-            for node in request.pipeline.get("nodes", [])
-        )
+        self._plate_package = package_plate_input(request.pipeline) is not None
+        plate_tracking = "ocr.license-plate" in plate_capabilities(request.pipeline).values()
         self._tracker = IoUTracker(
             motion_classes=frozenset({"license_plate"}) if plate_tracking else frozenset(),
             stationary_reacquire_millis=4000 if plate_tracking else 1500,
@@ -231,10 +230,7 @@ class TaskRunner:
         self._rule_engine = (
             RuleEngine(
                 request.task_id, request.camera_id, request.rule,
-                identity_deduplication=any(
-                    node.get("capabilityKey") == "ocr.license-plate"
-                    for node in request.pipeline.get("nodes", [])
-                ),
+                identity_deduplication=plate_tracking,
             )
             if request.rule is not None
             else None
@@ -329,6 +325,8 @@ class TaskRunner:
                     for result in results
                 ]
                 if self._package:
+                    if self._plate_package:
+                        merged_objects = self._tracker.update(merged_objects, timestamp_millis)
                     with Image.open(self.frame_path) as package_image:
                         normalized_objects = await self._package.run(
                             merged_objects,
@@ -339,7 +337,10 @@ class TaskRunner:
                         )
                 else:
                     normalized_objects = self._postprocessor.before_tracking(merged_objects)
-                tracked_objects = self._tracker.update(normalized_objects, timestamp_millis)
+                tracked_objects = (
+                    normalized_objects if self._plate_package
+                    else self._tracker.update(normalized_objects, timestamp_millis)
+                )
                 processed_objects = (
                     tracked_objects
                     if self._package
@@ -379,7 +380,7 @@ class TaskRunner:
                                 for obj in processed_objects
                                 if obj.attributes.get("eventCandidate") is True
                             ]
-                            if self._package
+                            if self._package and not self._plate_package
                             else self._postprocessor.rule_observations(
                                 processed_objects, timestamp_millis
                             )

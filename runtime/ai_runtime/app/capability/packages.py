@@ -11,6 +11,8 @@ import tempfile
 import zipfile
 from pathlib import Path, PurePosixPath
 
+from ai_runtime.app.capability.plate_input import PLATE_EVIDENCE_CAPABILITY
+
 MAX_PACKAGE_BYTES = 8 * 1024 * 1024
 MAX_EXPANDED_BYTES = 32 * 1024 * 1024
 SDK_VERSION = "1.0"
@@ -42,8 +44,36 @@ def validate_manifest(value: dict) -> dict:
         if not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", slot) or slot in slots:
             raise ValueError("模型角色无效或重复")
         slots.add(slot)
+        decoders = model.get("decoderTypes", [])
+        if not isinstance(decoders, list) or any(not isinstance(d, str) for d in decoders):
+            raise ValueError("模型解码器要求必须为字符串数组")
         if not isinstance(model.get("labels", []), list):
             raise ValueError("模型类别要求无效")
+    if "frameInput" in value:
+        inputs = value["frameInput"]
+        roles = {role["slot"]: role for role in value["models"]}
+        if (
+            not isinstance(inputs, dict)
+            or inputs.get("type") != "PLATE_OCR"
+            or PLATE_EVIDENCE_CAPABILITY not in requirements
+            or not isinstance(inputs.get("detectorSlot"), str)
+            or not isinstance(inputs.get("ocrSlot"), str)
+            or inputs.get("detectorSlot") == inputs.get("ocrSlot")
+            or set(roles) != {inputs.get("detectorSlot"), inputs.get("ocrSlot")}
+            or roles.get(inputs.get("detectorSlot"), {}).get("taskType") != "OBJECT_DETECTION"
+            or roles.get(inputs.get("ocrSlot"), {}).get("taskType") != "OCR"
+        ):
+            raise ValueError("车牌输入需要明确的定位/OCR角色及 plate-ocr-evidence-v1 能力")
+        supported = {
+            "detectorSlot": {"YOLO_PLATE", "YOLO26_PLATE_POSE"},
+            "ocrSlot": {"CHINESE_PLATE_CTC", "PLATE_OCR_ROUTED"},
+        }
+        for key, allowed in supported.items():
+            decoders = roles[inputs[key]].get("decoderTypes")
+            if not isinstance(decoders, list) or not decoders or any(
+                decoder not in allowed for decoder in decoders
+            ):
+                raise ValueError("车牌输入必须声明兼容的模型解码器")
     schema = value.get("parameterSchema", {"type": "object", "properties": {}})
     if schema.get("type") != "object" or not isinstance(schema.get("properties", {}), dict):
         raise ValueError("参数必须使用对象 JSON Schema")
@@ -138,6 +168,8 @@ def validate_bindings(manifest, bindings, models):
         if (
             (role.get("formats") and model["artifactFormat"] not in role["formats"])
             or (role.get("taskType") and role["taskType"] != contract.get("taskType"))
+            or (role.get("decoderTypes") and contract.get("decoder", {}).get("type")
+                not in role["decoderTypes"])
             or not set(role.get("labels", [])).issubset(
                 contract.get("decoder", {}).get("labels", [])
             )

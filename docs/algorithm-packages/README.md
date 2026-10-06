@@ -127,3 +127,11 @@ SDK 调用：
 `person-absence-package` 2.0.0 选择授权库内一位指定人员，其他人不能代替本人。包组合 Person 与 FACE_VERIFICATION，不新增离岗模型；含低清/遮挡待确认、身份短时保留和替岗回归。人数版 1.0.0 仅保留为历史版本。参数、部署限制与实际验证见 [指定人员离岗记录](../PERSON_ABSENCE_20260910.md)。
 
 SDK 1.0 可在结果对象中返回 `observationValid: false`，表示当前帧不具备业务判断条件。Runtime 暂停该帧规则确认与恢复，并保留已确认活动；省略时默认为 true，非布尔值被拒绝。需要此能力的包声明 `runtimeRequirements: ["observation-validity-v1"]`，并核对输入 `runtimeCapabilities`。未知状态不等于空场景，也不能当作返岗证据。当前网关能力由 snapshot 返回，平台在配置时验证；旧网关须升级。
+
+## 车牌字符观测输入（可选能力）
+
+[新疆车牌独立包](XINJIANG_PLATE.md)使用 `runtimeRequirements: ["plate-ocr-evidence-v1"]`，SDK 版本仍为 1.0。包声明 `frameInput: {"type":"PLATE_OCR","detectorSlot":"plate","ocrSlot":"ocr"}`，两个模型角色分别声明 `taskType` 和允许的 `decoderTypes`。控制面、Runtime、本地模型选择同时检查解码器，防止把同为 OCR 的不兼容模型自动绑定。
+
+主程序为此输入类型复用原车牌定位/透视裁剪/上下文重试，按需返回 `ocrEvidenceJson` 标量 JSON 字符串，再完成物理跟踪后调用包。字符串为版本 1.0，包含 `characters:[{char,score}]` 和 `provinceScores:{省份:原始分数}`；只有首个实际发射的省份字符带候选，缺失时为空。分数是按既有 CTC 路径对齐的发射分数，不是序列概率或地区加权分数。原文字与分数保持不变，旧任务默认不请求此属性。
+
+包只可输出输入中的 trackId；号码确认由包实现，结果保留 `plateNumber`、`ocrStatus`、`eventCandidate` 及省份来源。主程序沿用车牌身份去重/短时在场观察。没有声明 `frameInput` 的旧算法包继续先执行包再跟踪，不改变历史契约。新能力只提供通用车牌观测，主程序不包含新疆选择规则。
