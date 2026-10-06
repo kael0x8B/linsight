@@ -26,11 +26,18 @@ cd frontend && corepack pnpm@11.7.0 install --frozen-lockfile && cd ..
 `make gateway-console`，生成已校验的网页制品。随后分别在独立终端启动：
 
 ```bash
-make infra
+make model-assets-init
 make runtime
 make backend
 make frontend
 ```
+
+首次部署使用 `make model-assets-init`：启动 MySQL/Redis/MinIO、执行增量 SQL，并把随仓库交付的
+15 个当前发布模型的权重、执行契约和版本导入 MinIO/MySQL，无需访问外部模型下载站。
+模型中心默认展示模型资产；新环境的执行状态需在目标节点部署和单图测试后确认。
+已运行基础设施的环境可执行 `make model-assets-sync` 补齐模型。
+跨机器部署节点时，先在 `.env` 配置 `LINSIGHT_MODEL_PUBLIC_ENDPOINT` 为节点可访问的 MinIO 地址。
+步骤和硬件格式说明见 [模型资产初始化说明](deploy/model-assets/README.md)。
 
 `make infra` 会在 MySQL 健康后自动以 `utf8mb4` 执行并登记尚未应用的 AI 视频增量迁移；也可以在
 基础设施已运行时单独执行 `make migrate`。请勿使用未指定字符集的 `mysql < migration.sql` 导入。

@@ -1,4 +1,4 @@
-.PHONY: init infra migrate model-assets-download model-assets-sync backend runtime frontend gateway-console status dependency-audit runtime-source-fingerprint field-preflight-verify production-evidence-verify model-inventory algorithm-benchmark edge-capacity-benchmark offline-chaos-test security-release-report release-manifest rollback-test-report production-readiness-refresh production-readiness-report release-check stop
+.PHONY: init infra migrate model-assets-init model-assets-download model-assets-sync backend runtime frontend gateway-console status dependency-audit runtime-source-fingerprint field-preflight-verify production-evidence-verify model-inventory algorithm-benchmark edge-capacity-benchmark offline-chaos-test security-release-report release-manifest rollback-test-report production-readiness-refresh production-readiness-report release-check stop
 
 VERSION ?= 1.0.0-candidate
 
@@ -15,6 +15,9 @@ model-assets-download:
 	python3 scripts/sync-builtin-model-assets.py --download-only
 
 model-assets-sync: migrate
+	python3 scripts/sync-builtin-model-assets.py --register
+
+model-assets-init: infra
 	python3 scripts/sync-builtin-model-assets.py --register
 
 backend:

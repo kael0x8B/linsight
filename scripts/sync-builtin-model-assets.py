@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Download, verify, bundle and optionally register LInsight built-in model assets.
+"""Verify packaged weights and optionally register LInsight deployment model assets.
 
 The catalog deliberately separates physical assets from logical models. One verified
 file can therefore back several model entries without being downloaded repeatedly.
-Registration targets the local development MySQL and MinIO containers and is
-idempotent for an unchanged catalog version.
+Registration targets the configured MySQL and MinIO containers and is idempotent
+for unchanged versions. Legacy upstream catalogs still support URL downloads.
 """
 
 from __future__ import annotations
@@ -23,8 +23,9 @@ from typing import Any
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
-DEFAULT_CATALOG = PROJECT_DIR / "runtime/model_assets/builtin-model-assets-v1.json"
-DEFAULT_MANIFESTS = PROJECT_DIR / "runtime/model_assets/runtime-manifests-v1.json"
+DEFAULT_CATALOG = PROJECT_DIR / "deploy/model-assets/catalog.json"
+DEFAULT_MANIFESTS = PROJECT_DIR / "deploy/model-assets/runtime-manifests.json"
+DEFAULT_ASSET_SOURCE = PROJECT_DIR / "deploy/model-assets/files"
 DEFAULT_OUTPUT = PROJECT_DIR / "var/model-assets/v1"
 DEFAULT_ENV = PROJECT_DIR / ".env"
 MINIO_CONFIG_ID = 71000
@@ -39,6 +40,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--catalog", type=Path, default=DEFAULT_CATALOG)
     parser.add_argument("--manifests", type=Path, default=DEFAULT_MANIFESTS)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--asset-source", type=Path, default=DEFAULT_ASSET_SOURCE,
+                        help="优先使用已随仓库交付的权重目录，无需联网下载")
     parser.add_argument("--env-file", type=Path, default=DEFAULT_ENV)
     parser.add_argument("--tenant-id", type=int, default=1)
     parser.add_argument(
@@ -160,7 +163,9 @@ def validate_asset_content(asset: dict[str, Any], path: Path) -> None:
         raise ValueError(f"{asset['key']}: invalid ONNX artifact ({error})") from error
 
 
-def download_asset(asset: dict[str, Any], output: Path) -> dict[str, Any]:
+def download_asset(
+    asset: dict[str, Any], output: Path, asset_source: Path | None = None
+) -> dict[str, Any]:
     path = output / asset["fileName"]
     expected = asset.get("expectedSha256")
     if path.exists():
@@ -174,12 +179,19 @@ def download_asset(asset: dict[str, Any], output: Path) -> dict[str, Any]:
         print(f"[warn] 校验不一致，原文件保留为 {quarantine.name}")
 
     partial = path.with_suffix(path.suffix + ".part")
-    print(f"[download] {asset['key']} -> {path.name}")
-    run([
-        "curl", "--fail", "--location", "--retry", "8", "--retry-all-errors",
-        "--retry-delay", "2", "--connect-timeout", "20",
-        "--continue-at", "-", "--output", str(partial), asset["url"],
-    ])
+    source = asset_source / asset["fileName"] if asset_source else None
+    if source is not None and source.is_file():
+        print(f"[copy] {asset['key']} -> {path.name}")
+        shutil.copyfile(source, partial)
+    elif asset.get("url"):
+        print(f"[download] {asset['key']} -> {path.name}")
+        run([
+            "curl", "--fail", "--location", "--retry", "8", "--retry-all-errors",
+            "--retry-delay", "2", "--connect-timeout", "20",
+            "--continue-at", "-", "--output", str(partial), asset["url"],
+        ])
+    else:
+        raise RuntimeError(f"缺少交付权重 {asset['fileName']}，请完整拉取 deploy/model-assets/files")
     partial.replace(path)
     actual = sha256_file(path)
     if expected and actual != expected:
@@ -256,7 +268,8 @@ class LocalRegistry:
         self.minio_password = env.get("MINIO_ROOT_PASSWORD", "linsight_minio_dev")
         self.minio_port = env.get("MINIO_API_PORT", "29000")
         self.tenant_id = tenant_id
-        external_endpoint = public_endpoint or f"http://127.0.0.1:{self.minio_port}"
+        external_endpoint = (public_endpoint or env.get("LINSIGHT_MODEL_PUBLIC_ENDPOINT")
+                             or f"http://127.0.0.1:{self.minio_port}")
         if not external_endpoint.startswith(("http://", "https://")):
             raise ValueError("--public-endpoint 必须是 http:// 或 https:// URL")
         self.domain = f"{external_endpoint.rstrip('/')}/{MINIO_BUCKET}"
@@ -265,7 +278,7 @@ class LocalRegistry:
         command = [
             "docker", "exec", "-i", "-e", f"MYSQL_PWD={self.mysql_password}",
             self.mysql_container, "mysql", "--default-character-set=utf8mb4", "--batch",
-            "--skip-column-names", "-uroot", self.database,
+            "--skip-column-names", "--raw", "-uroot", self.database,
         ]
         return run(command, input_text=sql, quiet=True).strip()
 
@@ -357,11 +370,22 @@ WHERE NOT EXISTS (SELECT 1 FROM infra_file WHERE config_id={MINIO_CONFIG_ID}
         )
         if not model_id:
             raise RuntimeError(f"数据库缺少逻辑模型: {model_code}; 请先运行 make migrate")
+        existing = self.mysql(
+            "SELECT JSON_OBJECT('sha256',sha256,'runtimeManifest',runtime_manifest) "
+            f"FROM ai_model_version WHERE model_id={model_id} "
+            f"AND version={sql_quote(version['version'])} AND tenant_id={self.tenant_id} "
+            "AND deleted=b'0' LIMIT 1;\n"
+        )
+        if existing:
+            current = json.loads(existing)
+            if current["sha256"] != artifact["sha256"] or current["runtimeManifest"] != runtime_manifest:
+                raise RuntimeError(f"{model_code} / {version['version']} 已存在且权重或执行契约不同；请使用新版本号")
         manifest_sql = (
             sql_quote(json.dumps(runtime_manifest, ensure_ascii=False, separators=(",", ":")))
             if runtime_manifest
             else "NULL"
         )
+        artifact_name = artifact.get("artifactName", artifact["fileName"])
         sql = f"""
 UPDATE ai_model_version
 SET artifact_ref={sql_quote(url)},
@@ -375,11 +399,25 @@ INSERT IGNORE INTO ai_model_version
  creator,updater,deleted,tenant_id)
 VALUES
 ({model_id},{sql_quote(version['version'])},{sql_quote(artifact['sourceRepository'])},
- {sql_quote(artifact['sourceRevision'])},{sql_quote(url)},{sql_quote(artifact['fileName'])},
+ {sql_quote(artifact['sourceRevision'])},{sql_quote(url)},{sql_quote(artifact_name)},
  {sql_quote(artifact['format'])},
  {manifest_sql},
  {artifact['size']},{sql_quote(artifact['sha256'])},
  {sql_quote(artifact['licenseSpdx'])},'VERIFIED','DRAFT','system','system',b'0',{self.tenant_id});
+"""
+        self.mysql(sql)
+
+    def register_model(self, model: dict[str, Any]) -> None:
+        """Restore logical assets by code; deployment IDs and execution evidence are not portable."""
+        if not model.get("name"):
+            return  # Legacy download catalogs rely on migration-created logical assets.
+        sql = f"""
+INSERT INTO ai_model (name,code,source_type,description,status,creator,updater,tenant_id)
+VALUES ({sql_quote(model['name'])},{sql_quote(model['code'])},
+        {sql_quote(model.get('sourceType', 'PRESET'))},
+        {sql_quote(model.get('description', ''))},0,'system','system',{self.tenant_id})
+ON DUPLICATE KEY UPDATE name=VALUES(name),description=VALUES(description),status=0,
+  updater='system';
 """
         self.mysql(sql)
 
@@ -407,6 +445,10 @@ def main() -> int:
     manifests = manifest_document.get("manifests", {})
     validate_catalog(catalog)
     args.output.mkdir(parents=True, exist_ok=True)
+    registry = None
+    if args.register:
+        registry = LocalRegistry(load_env(args.env_file), args.tenant_id, args.public_endpoint)
+        registry.preflight()
 
     used_keys = {
         version["artifact"]
@@ -423,7 +465,7 @@ def main() -> int:
     for asset in catalog["assets"]:
         if asset["key"] not in required_asset_keys:
             continue
-        downloaded[asset["key"]] = download_asset(asset, args.output)
+        downloaded[asset["key"]] = download_asset(asset, args.output, args.asset_source)
 
     artifacts = dict(downloaded)
     for bundle in selected_bundles:
@@ -456,8 +498,6 @@ def main() -> int:
     if not args.register:
         return 0
 
-    registry = LocalRegistry(load_env(args.env_file), args.tenant_id, args.public_endpoint)
-    registry.preflight()
     registry.configure_storage()
     urls: dict[str, str] = {}
     for key in sorted(used_keys):
@@ -466,6 +506,7 @@ def main() -> int:
         object_path = registry.upload(artifact)
         urls[key] = registry.register_file(artifact, object_path)
     for model in catalog["models"]:
+        registry.register_model(model)
         for version in model["versions"]:
             artifact = artifacts[version["artifact"]]
             registry.register_version(
@@ -473,7 +514,7 @@ def main() -> int:
                 version,
                 artifact,
                 urls[version["artifact"]],
-                manifests.get(version["artifact"]),
+                manifests.get(version.get("manifestKey", version["artifact"])),
             )
             if version.get("production") is True:
                 registry.promote_version(model["code"], version["version"])

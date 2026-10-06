@@ -1,0 +1,384 @@
+{
+  "schemaVersion": "1.0",
+  "catalogVersion": "2026.10.06.1",
+  "description": "Current published model weights for offline initialization. Target-node execution evidence is not copied.",
+  "assets": [
+    {
+      "key": "0311f8492240c7a7b6fd2ab124120e1dc6f8e899dc97494fe6de28340171b8ba",
+      "fileName": "0311f8492240-entry-face-rk3566-fp16.zip",
+      "artifactName": "entry-face-rk3566-fp16.zip",
+      "format": "ARCHIVE",
+      "expectedSha256": "0311f8492240c7a7b6fd2ab124120e1dc6f8e899dc97494fe6de28340171b8ba",
+      "size": 18025521,
+      "sourceRepository": "https://github.com/opencv/opencv_zoo",
+      "sourceRevision": "47534e27c9851bb1128ccc0102f1145e27f23f98",
+      "licenseSpdx": "MIT AND Apache-2.0"
+    },
+    {
+      "key": "87c8e9596781705d627acae2e3f4669f8abf1f1ad3c0640ba3d017c311659437",
+      "fileName": "87c8e9596781-plate_ocr_lowres_v2_fp16.rknn",
+      "artifactName": "plate_ocr_lowres_v2_fp16.rknn",
+      "format": "RKNN",
+      "expectedSha256": "87c8e9596781705d627acae2e3f4669f8abf1f1ad3c0640ba3d017c311659437",
+      "size": 412886,
+      "sourceRepository": "https://github.com/we0091234/Chinese_license_plate_detection_recognition",
+      "sourceRevision": "670b765c09fff11850a7b1c542787ad66c24ae50",
+      "licenseSpdx": "GPL-3.0"
+    },
+    {
+      "key": "43744781689a22f251d68b78af48849140c2defec54fc3f44e5f69ec2c1bab7f",
+      "fileName": "43744781689a-plate_ocr_lowres_v2_fp16_rk3588.rknn",
+      "artifactName": "plate_ocr_lowres_v2_fp16_rk3588.rknn",
+      "format": "RKNN",
+      "expectedSha256": "43744781689a22f251d68b78af48849140c2defec54fc3f44e5f69ec2c1bab7f",
+      "size": 496918,
+      "sourceRepository": "https://github.com/we0091234/Chinese_license_plate_detection_recognition",
+      "sourceRevision": "670b765c09fff11850a7b1c542787ad66c24ae50",
+      "licenseSpdx": "GPL-3.0"
+    },
+    {
+      "key": "ba1f907fb20e61bc97c24d54944f27c1cafbd6d4edd76e1f5cac86925337a8b2",
+      "fileName": "ba1f907fb20e-plate_detect_fp16.rknn",
+      "artifactName": "plate_detect_fp16.rknn",
+      "format": "RKNN",
+      "expectedSha256": "ba1f907fb20e61bc97c24d54944f27c1cafbd6d4edd76e1f5cac86925337a8b2",
+      "size": 3333626,
+      "sourceRepository": "https://github.com/we0091234/Chinese_license_plate_detection_recognition",
+      "sourceRevision": "670b765c09fff11850a7b1c542787ad66c24ae50",
+      "licenseSpdx": "GPL-3.0"
+    },
+    {
+      "key": "c71f8c0c968fa7914318378e8070add7d06069a1a2aaee284494512072ecacd2",
+      "fileName": "c71f8c0c968f-plate_detect_fp16_rk3588.rknn",
+      "artifactName": "plate_detect_fp16_rk3588.rknn",
+      "format": "RKNN",
+      "expectedSha256": "c71f8c0c968fa7914318378e8070add7d06069a1a2aaee284494512072ecacd2",
+      "size": 4332410,
+      "sourceRepository": "https://github.com/we0091234/Chinese_license_plate_detection_recognition",
+      "sourceRevision": "670b765c09fff11850a7b1c542787ad66c24ae50",
+      "licenseSpdx": "GPL-3.0"
+    },
+    {
+      "key": "07cf81b9a793918fca981b3f40a2e87f91d2a1c478366fde0f798472cfd8c177",
+      "fileName": "07cf81b9a793-hardhat-320.onnx",
+      "artifactName": "hardhat-320.onnx",
+      "format": "ONNX",
+      "expectedSha256": "07cf81b9a793918fca981b3f40a2e87f91d2a1c478366fde0f798472cfd8c177",
+      "size": 12113575,
+      "sourceRepository": "https://huggingface.co/keremberke/yolov8n-hard-hat-detection",
+      "sourceRevision": "287bafa2feb311ee45d21f9e9b33315ff6ff955d",
+      "licenseSpdx": "LicenseRef-Upstream-Unspecified"
+    },
+    {
+      "key": "ba78a0e101b5c8133ad1ed729da8a05429425f20308045555b10ba51fa54bf40",
+      "fileName": "ba78a0e101b5-fire-smoke-fp16.rknn",
+      "artifactName": "fire-smoke-fp16.rknn",
+      "format": "RKNN",
+      "expectedSha256": "ba78a0e101b5c8133ad1ed729da8a05429425f20308045555b10ba51fa54bf40",
+      "size": 7410357,
+      "sourceRepository": "https://huggingface.co/rabahdev/fire-smoke-yolov8n",
+      "sourceRevision": "13017fe8af477c25f5298d168e2dfede4b000753",
+      "licenseSpdx": "AGPL-3.0"
+    },
+    {
+      "key": "62a3751662e06c678debb54b113c211d918f245ea6d3aea0b09fc418b8fc7705",
+      "fileName": "62a3751662e0-yolo11n.onnx",
+      "artifactName": "yolo11n.onnx",
+      "format": "ONNX",
+      "expectedSha256": "62a3751662e06c678debb54b113c211d918f245ea6d3aea0b09fc418b8fc7705",
+      "size": 10527859,
+      "sourceRepository": "https://github.com/airockchip/rknn_model_zoo",
+      "sourceRevision": "bad6c7334531becaf90a561988519b7bec34d0ab",
+      "licenseSpdx": "AGPL-3.0-only"
+    },
+    {
+      "key": "6d4978a7b6d25514d5e24811b82bfb511d166bdd8ca3b03aa63c1623d4d039c7",
+      "fileName": "6d4978a7b6d2-license-plate-yunet.onnx",
+      "artifactName": "license-plate-yunet.onnx",
+      "format": "ONNX",
+      "expectedSha256": "6d4978a7b6d25514d5e24811b82bfb511d166bdd8ca3b03aa63c1623d4d039c7",
+      "size": 4146213,
+      "sourceRepository": "https://huggingface.co/opencv/license_plate_detection_yunet",
+      "sourceRevision": "962e8d8849878106cb84039dab61cf97bb683b31",
+      "licenseSpdx": "Apache-2.0"
+    },
+    {
+      "key": "c78e54070d0e2b8a6f8d548feb52b75321d5f464bcaadb679ec7ee31433cffa4",
+      "fileName": "c78e54070d0e-lprnet.onnx",
+      "artifactName": "lprnet.onnx",
+      "format": "ONNX",
+      "expectedSha256": "c78e54070d0e2b8a6f8d548feb52b75321d5f464bcaadb679ec7ee31433cffa4",
+      "size": 1785792,
+      "sourceRepository": "https://github.com/airockchip/rknn_model_zoo",
+      "sourceRevision": "bad6c7334531becaf90a561988519b7bec34d0ab",
+      "licenseSpdx": "MIT"
+    },
+    {
+      "key": "cabd2ca2358eba7eb0e739c3642e07b9cc99d0897d6e71b74689cab3368b2700",
+      "fileName": "cabd2ca2358e-safetyvision-v2-rk3566-int8.rknn",
+      "artifactName": "safetyvision-v2-rk3566-int8.rknn",
+      "format": "RKNN",
+      "expectedSha256": "cabd2ca2358eba7eb0e739c3642e07b9cc99d0897d6e71b74689cab3368b2700",
+      "size": 12730064,
+      "sourceRepository": "https://huggingface.co/ayushgupta7777/safetyvision-yolov8",
+      "sourceRevision": "56a71758b55f0e9f2b4b2d6b51a779a1f882da10:v2/best_640.onnx; opset19; RKNN Toolkit2 2.3.2; int8",
+      "licenseSpdx": "AGPL-3.0-only"
+    },
+    {
+      "key": "7894acfb1a62438010c706199c7e87f510c19723fcae0d0d0d2538516b77496e",
+      "fileName": "7894acfb1a62-human-action-vit-int8.onnx",
+      "artifactName": "human-action-vit-int8.onnx",
+      "format": "ONNX",
+      "expectedSha256": "7894acfb1a62438010c706199c7e87f510c19723fcae0d0d0d2538516b77496e",
+      "size": 87356195,
+      "sourceRepository": "https://huggingface.co/onnx-community/Human-Action-Recognition-VIT-Base-patch16-224-ONNX",
+      "sourceRevision": "43fb98d467b91ad92528249af8276608b64eacfb",
+      "licenseSpdx": "LicenseRef-Upstream-Unspecified"
+    },
+    {
+      "key": "8aea7f8bf410dbb78d984eed750be3b881a9a4059099fa0d7b93cd127a0ea9db",
+      "fileName": "8aea7f8bf410-person-int8.rknn",
+      "artifactName": "person-int8.rknn",
+      "format": "RKNN",
+      "expectedSha256": "8aea7f8bf410dbb78d984eed750be3b881a9a4059099fa0d7b93cd127a0ea9db",
+      "size": 4619147,
+      "sourceRepository": "https://github.com/airockchip/rknn_model_zoo",
+      "sourceRevision": "bad6c7334531becaf90a561988519b7bec34d0ab",
+      "licenseSpdx": "AGPL-3.0-only"
+    },
+    {
+      "key": "9fe1e40e094ae851a874b6cf2a79108d988065f77460928d976471eaeeca3204",
+      "fileName": "9fe1e40e094a-yolo11n_vehicle_int8_rk3588.rknn",
+      "artifactName": "yolo11n_vehicle_int8_rk3588.rknn",
+      "format": "RKNN",
+      "expectedSha256": "9fe1e40e094ae851a874b6cf2a79108d988065f77460928d976471eaeeca3204",
+      "size": 4247883,
+      "sourceRepository": "https://github.com/airockchip/rknn_model_zoo",
+      "sourceRevision": "bad6c7334531becaf90a561988519b7bec34d0ab",
+      "licenseSpdx": "AGPL-3.0-only"
+    },
+    {
+      "key": "8cccc00f40bc27370f5efaa08ad88424be72aaad6a7bf7e67bed88d94c798131",
+      "fileName": "8cccc00f40bc-helmet-fp16.rknn",
+      "artifactName": "helmet-fp16.rknn",
+      "format": "RKNN",
+      "expectedSha256": "8cccc00f40bc27370f5efaa08ad88424be72aaad6a7bf7e67bed88d94c798131",
+      "size": 7008501,
+      "sourceRepository": "https://huggingface.co/keremberke/yolov8n-hard-hat-detection",
+      "sourceRevision": "287bafa2feb311ee45d21f9e9b33315ff6ff955d",
+      "licenseSpdx": "LicenseRef-Upstream-Unspecified"
+    }
+  ],
+  "models": [
+    {
+      "code": "active-entry-face-yunet-sface",
+      "name": "入口主动人脸核验 · YuNet/SFace",
+      "sourceType": "CUSTOM",
+      "description": "本人主动参与的 1:1 开发核验；YuNet 检测、SFace 128维特征。边缘网关 ONNX CPU 执行；尚未验证活体及现场误受率，不可作为自动放行依据。",
+      "versions": [
+        {
+          "version": "yunet-sface-rk3566-fp16-20260908",
+          "artifact": "0311f8492240c7a7b6fd2ab124120e1dc6f8e899dc97494fe6de28340171b8ba",
+          "manifestKey": "active-entry-face-yunet-sface@yunet-sface-rk3566-fp16-20260908",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "chinese-plate-ocr",
+      "name": "中文车牌文字识别 · 专用 OCR",
+      "sourceType": "PRESET",
+      "description": "中文车牌专用 CNN/CTC 字符识别与颜色分类，78 字符表，168×48 BGR。现场准确率待验收。",
+      "versions": [
+        {
+          "version": "site-lowres-20260922-rk3566-fp16-v2",
+          "artifact": "87c8e9596781705d627acae2e3f4669f8abf1f1ad3c0640ba3d017c311659437",
+          "manifestKey": "chinese-plate-ocr@site-lowres-20260922-rk3566-fp16-v2",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "chinese-plate-ocr-rk3588",
+      "name": "现场低清车牌 OCR · RK3588 NPU",
+      "sourceType": "PRESET",
+      "description": "现场低清车牌微调 v2 的 RK3588 FP16 制品；与车牌透视裁剪和置信度重试 Runtime 配套。",
+      "versions": [
+        {
+          "version": "site-lowres-20260922-rk3588-fp16-v2",
+          "artifact": "43744781689a22f251d68b78af48849140c2defec54fc3f44e5f69ec2c1bab7f",
+          "manifestKey": "chinese-plate-ocr-rk3588@site-lowres-20260922-rk3588-fp16-v2",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "chinese-plate-yolo",
+      "name": "中文车牌检测 · 四角定位",
+      "sourceType": "PRESET",
+      "description": "中文车牌专用轻量 YOLO 四角定位，区分单双层；配合原图透视裁剪。现场准确率待验收。",
+      "versions": [
+        {
+          "version": "specialist-670b765-rk3566-fp16-v1",
+          "artifact": "ba1f907fb20e61bc97c24d54944f27c1cafbd6d4edd76e1f5cac86925337a8b2",
+          "manifestKey": "chinese-plate-yolo@specialist-670b765-rk3566-fp16-v1",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "chinese-plate-yolo-rk3588",
+      "name": "中文车牌检测 · RK3588 NPU",
+      "sourceType": "PRESET",
+      "description": "中文车牌四角定位模型的 RK3588 FP16 制品，区分单双层并支持透视矫正。",
+      "versions": [
+        {
+          "version": "specialist-670b765-rk3588-fp16-v1",
+          "artifact": "c71f8c0c968fa7914318378e8070add7d06069a1a2aaee284494512072ecacd2",
+          "manifestKey": "chinese-plate-yolo-rk3588@specialist-670b765-rk3588-fp16-v1",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "field-hardhat-detection",
+      "name": "现场安全帽佩戴检测模型",
+      "sourceType": "CUSTOM",
+      "description": "固定来源两类 helmet/no_helmet ONNX 模型，与独立人员检测模型组合使用。",
+      "versions": [
+        {
+          "version": "yolov8n-hardhat-287b-onnx320-v1",
+          "artifact": "07cf81b9a793918fca981b3f40a2e87f91d2a1c478366fde0f798472cfd8c177",
+          "manifestKey": "field-hardhat-detection@yolov8n-hardhat-287b-onnx320-v1",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "flame-smoke-detection",
+      "name": "火焰烟雾联合检测模型",
+      "sourceType": "PRESET",
+      "description": "统一输出 flame/smoke/dense_smoke，避免火焰与烟雾重复推理",
+      "versions": [
+        {
+          "version": "yolov8n-dfire-rk3566-fp16-20260908",
+          "artifact": "ba78a0e101b5c8133ad1ed729da8a05429425f20308045555b10ba51fa54bf40",
+          "manifestKey": "flame-smoke-detection@yolov8n-dfire-rk3566-fp16-20260908",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "generic-coco-object-detection",
+      "name": "通用目标检测模型",
+      "sourceType": "PRESET",
+      "description": "统一承载 COCO 80 类；候选版本包括 YOLO11、YOLOv8、DAMO-YOLO，导入时必须固定来源、revision、权重许可证与 SHA256",
+      "versions": [
+        {
+          "version": "yolo11n-coco-rknn-zoo-bad6",
+          "artifact": "62a3751662e06c678debb54b113c211d918f245ea6d3aea0b09fc418b8fc7705",
+          "manifestKey": "generic-coco-object-detection@yolo11n-coco-rknn-zoo-bad6",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "license-plate",
+      "name": "车牌检测模型",
+      "sourceType": "PRESET",
+      "description": "车牌检测预置资产；版本文件与许可证待供应链确认",
+      "versions": [
+        {
+          "version": "yunet-plate-fp32-962e",
+          "artifact": "6d4978a7b6d25514d5e24811b82bfb511d166bdd8ca3b03aa63c1623d4d039c7",
+          "manifestKey": "license-plate@yunet-plate-fp32-962e",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "license-plate-ocr",
+      "name": "车牌文字识别模型",
+      "sourceType": "PRESET",
+      "description": "车牌字符与颜色识别；需与车辆/车牌检测及多帧投票关联",
+      "versions": [
+        {
+          "version": "lprnet-rknn-zoo-bad6",
+          "artifact": "c78e54070d0e2b8a6f8d548feb52b75321d5f464bcaadb679ec7ee31433cffa4",
+          "manifestKey": "license-plate-ocr@lprnet-rknn-zoo-bad6",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "unified-ppe-detection",
+      "name": "统一个人防护装备检测模型",
+      "sourceType": "PRESET",
+      "description": "统一输出 person/helmet/vest/mask/workwear 及缺失状态，减少重复模型实例",
+      "versions": [
+        {
+          "version": "safetyvision-v2-rk3566-int8-20260914",
+          "artifact": "cabd2ca2358eba7eb0e739c3642e07b9cc99d0897d6e71b74689cab3368b2700",
+          "manifestKey": "unified-ppe-detection@safetyvision-v2-rk3566-int8-20260914",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "video-action-recognition",
+      "name": "通用视频行为识别模型",
+      "sourceType": "PRESET",
+      "description": "候选 MMAction2 TSM/SlowFast/VideoSwin；必须使用视频时序 Adapter",
+      "versions": [
+        {
+          "version": "human-action-vit-int8-43fb",
+          "artifact": "7894acfb1a62438010c706199c7e87f510c19723fcae0d0d0d2538516b77496e",
+          "manifestKey": "video-action-recognition@human-action-vit-int8-43fb",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "yolo11n-person-rk3566",
+      "name": "通用目标检测 · RK3566 NPU",
+      "sourceType": "CUSTOM",
+      "description": "由现有 ONNX 模型版本 18 转换的 RK3566 专用制品，使用 RKNN 2.3.2；沿用原模型标签和预处理，来源及实机对比见 npu-preview-sync-20260907。",
+      "versions": [
+        {
+          "version": "person-int8-rk3566-2.3.2-20260907",
+          "artifact": "8aea7f8bf410dbb78d984eed750be3b881a9a4059099fa0d7b93cd127a0ea9db",
+          "manifestKey": "yolo11n-person-rk3566@person-int8-rk3566-2.3.2-20260907",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "yolo11n-vehicle-rk3588",
+      "name": "通用车辆检测 · RK3588 NPU",
+      "sourceType": "CUSTOM",
+      "description": "由已登记 YOLO11n COCO ONNX 权重转换的 RK3588 INT8 制品；支持 person/car/bus/truck 等 80 类，供 RK3588 算法按能力匹配。",
+      "versions": [
+        {
+          "version": "vehicle-int8-rk3588-2.3.2-20260923",
+          "artifact": "9fe1e40e094ae851a874b6cf2a79108d988065f77460928d976471eaeeca3204",
+          "manifestKey": "yolo11n-vehicle-rk3588@vehicle-int8-rk3588-2.3.2-20260923",
+          "production": true
+        }
+      ]
+    },
+    {
+      "code": "yolov8n-hardhat-rk3566",
+      "name": "安全帽检测 · RK3566 NPU",
+      "sourceType": "CUSTOM",
+      "description": "由现有 ONNX 模型版本 120 转换的 RK3566 专用制品，使用 RKNN 2.3.2；沿用原模型标签和预处理，来源及实机对比见 npu-preview-sync-20260907。",
+      "versions": [
+        {
+          "version": "helmet-fp16-rk3566-2.3.2-20260907",
+          "artifact": "8cccc00f40bc27370f5efaa08ad88424be72aaad6a7bf7e67bed88d94c798131",
+          "manifestKey": "yolov8n-hardhat-rk3566@helmet-fp16-rk3566-2.3.2-20260907",
+          "production": true
+        }
+      ]
+    }
+  ]
+}

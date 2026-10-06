@@ -18,7 +18,7 @@ import { useModelGridColumns, useModelGridFormSchema } from './data';
 import DeployableCatalog from './modules/deployable-catalog.vue';
 import ModelForm from './modules/model-form.vue';
 import VersionDrawer from './modules/version-drawer.vue';
-const deployableView = ref(true);
+const deployableView = ref(false);
 async function openDeployable(modelId: number, versionId: number) {
   const model = await getModel(modelId);
   modelVersionDrawerApi
@@ -135,7 +135,7 @@ function publishStatusColor(status?: string) {
     </div>
     <div v-else class="ai-page ai-page-stack">
       <Button class="self-start" @click="deployableView = true">
-        返回可部署模型
+        查看可部署模型
       </Button>
       <AiPageHeader
         title="模型中心"

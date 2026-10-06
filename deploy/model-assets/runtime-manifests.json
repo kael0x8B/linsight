@@ -1,0 +1,695 @@
+{
+  "schemaVersion": "1.0",
+  "manifests": {
+    "active-entry-face-yunet-sface@yunet-sface-rk3566-fp16-20260908": {
+      "decoder": {
+        "type": "FACE_PAIR_SFACE_RKNN"
+      },
+      "taskType": "FACE_VERIFICATION",
+      "preprocess": {
+        "color": "RGB",
+        "dtype": "UINT8",
+        "scale": 1.0,
+        "layout": "NHWC",
+        "resize": "STRETCH"
+      },
+      "schemaVersion": "1.0"
+    },
+    "chinese-plate-ocr@site-lowres-20260922-rk3566-fp16-v2": {
+      "decoder": {
+        "type": "CHINESE_PLATE_CTC"
+      },
+      "taskType": "OCR",
+      "preprocess": {
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "color": "BGR",
+        "dtype": "UINT8",
+        "scale": 1.0,
+        "layout": "NHWC",
+        "resize": "STRETCH",
+        "inputWidth": 168,
+        "inputHeight": 48
+      },
+      "schemaVersion": "1.0",
+      "targetPlatform": "rk3566"
+    },
+    "chinese-plate-ocr-rk3588@site-lowres-20260922-rk3588-fp16-v2": {
+      "decoder": {
+        "type": "CHINESE_PLATE_CTC"
+      },
+      "taskType": "OCR",
+      "execution": {
+        "target": "rk3588",
+        "runtime": "rknn-toolkit-lite2",
+        "provider": "rknpu2",
+        "minRuntimeVersion": "2.3.2"
+      },
+      "preprocess": {
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "color": "BGR",
+        "dtype": "UINT8",
+        "scale": 1.0,
+        "layout": "NHWC",
+        "resize": "STRETCH",
+        "inputWidth": 168,
+        "inputHeight": 48
+      },
+      "schemaVersion": "1.0",
+      "targetPlatform": "rk3588"
+    },
+    "chinese-plate-yolo@specialist-670b765-rk3566-fp16-v1": {
+      "decoder": {
+        "type": "YOLO_PLATE"
+      },
+      "taskType": "OBJECT_DETECTION",
+      "preprocess": {
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "color": "RGB",
+        "dtype": "UINT8",
+        "scale": 1.0,
+        "layout": "NHWC",
+        "resize": "LETTERBOX",
+        "inputWidth": 640,
+        "inputHeight": 640
+      },
+      "schemaVersion": "1.0"
+    },
+    "chinese-plate-yolo-rk3588@specialist-670b765-rk3588-fp16-v1": {
+      "decoder": {
+        "type": "YOLO_PLATE"
+      },
+      "taskType": "OBJECT_DETECTION",
+      "execution": {
+        "target": "rk3588",
+        "runtime": "rknn-toolkit-lite2",
+        "provider": "rknpu2",
+        "minRuntimeVersion": "2.3.2"
+      },
+      "preprocess": {
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "color": "RGB",
+        "dtype": "UINT8",
+        "scale": 1.0,
+        "layout": "NHWC",
+        "resize": "LETTERBOX",
+        "inputWidth": 640,
+        "inputHeight": 640
+      },
+      "schemaVersion": "1.0",
+      "targetPlatform": "rk3588"
+    },
+    "field-hardhat-detection@yolov8n-hardhat-287b-onnx320-v1": {
+      "decoder": {
+        "type": "AUTO_DETECTION",
+        "labels": [
+          "helmet",
+          "no_helmet"
+        ]
+      },
+      "taskType": "OBJECT_DETECTION",
+      "preprocess": {
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "color": "RGB",
+        "dtype": "FLOAT32",
+        "scale": 0.00392156862745098,
+        "layout": "NCHW",
+        "resize": "STRETCH",
+        "inputWidth": 320,
+        "inputHeight": 320
+      },
+      "schemaVersion": "1.0"
+    },
+    "flame-smoke-detection@yolov8n-dfire-rk3566-fp16-20260908": {
+      "decoder": {
+        "type": "AUTO_DETECTION",
+        "labels": [
+          "smoke",
+          "flame"
+        ]
+      },
+      "taskType": "OBJECT_DETECTION",
+      "preprocess": {
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "color": "RGB",
+        "dtype": "UINT8",
+        "scale": 1.0,
+        "layout": "NHWC",
+        "resize": "STRETCH",
+        "inputWidth": 640,
+        "inputHeight": 640
+      },
+      "schemaVersion": "1.0"
+    },
+    "generic-coco-object-detection@yolo11n-coco-rknn-zoo-bad6": {
+      "decoder": {
+        "type": "AUTO_DETECTION",
+        "labels": [
+          "person",
+          "bicycle",
+          "car",
+          "motorcycle",
+          "airplane",
+          "bus",
+          "train",
+          "truck",
+          "boat",
+          "traffic_light",
+          "fire_hydrant",
+          "stop_sign",
+          "parking_meter",
+          "bench",
+          "bird",
+          "cat",
+          "dog",
+          "horse",
+          "sheep",
+          "cow",
+          "elephant",
+          "bear",
+          "zebra",
+          "giraffe",
+          "backpack",
+          "umbrella",
+          "handbag",
+          "tie",
+          "suitcase",
+          "frisbee",
+          "skis",
+          "snowboard",
+          "sports_ball",
+          "kite",
+          "baseball_bat",
+          "baseball_glove",
+          "skateboard",
+          "surfboard",
+          "tennis_racket",
+          "bottle",
+          "wine_glass",
+          "cup",
+          "fork",
+          "knife",
+          "spoon",
+          "bowl",
+          "banana",
+          "apple",
+          "sandwich",
+          "orange",
+          "broccoli",
+          "carrot",
+          "hot_dog",
+          "pizza",
+          "donut",
+          "cake",
+          "chair",
+          "couch",
+          "potted_plant",
+          "bed",
+          "dining_table",
+          "toilet",
+          "tv",
+          "laptop",
+          "mouse",
+          "remote",
+          "keyboard",
+          "cell_phone",
+          "microwave",
+          "oven",
+          "toaster",
+          "sink",
+          "refrigerator",
+          "book",
+          "clock",
+          "vase",
+          "scissors",
+          "teddy_bear",
+          "hair_drier",
+          "toothbrush"
+        ]
+      },
+      "taskType": "OBJECT_DETECTION",
+      "preprocess": {
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "color": "RGB",
+        "dtype": "FLOAT32",
+        "scale": 0.00392156862745098,
+        "layout": "NCHW",
+        "resize": "STRETCH",
+        "inputWidth": 640,
+        "inputHeight": 640
+      },
+      "schemaVersion": "1.0"
+    },
+    "license-plate@yunet-plate-fp32-962e": {
+      "decoder": {
+        "type": "LPD_YUNET"
+      },
+      "taskType": "OBJECT_DETECTION",
+      "preprocess": {
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "color": "BGR",
+        "dtype": "FLOAT32",
+        "scale": 1,
+        "layout": "NCHW",
+        "resize": "STRETCH",
+        "inputWidth": 320,
+        "inputHeight": 240
+      },
+      "schemaVersion": "1.0"
+    },
+    "license-plate-ocr@lprnet-rknn-zoo-bad6": {
+      "decoder": {
+        "type": "LPRNET"
+      },
+      "taskType": "OCR",
+      "preprocess": {
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "mean": [
+          1,
+          1,
+          1
+        ],
+        "color": "BGR",
+        "dtype": "FLOAT32",
+        "scale": 0.00784313725490196,
+        "layout": "NCHW",
+        "resize": "STRETCH",
+        "inputWidth": 94,
+        "inputHeight": 24
+      },
+      "schemaVersion": "1.0"
+    },
+    "unified-ppe-detection@safetyvision-v2-rk3566-int8-20260914": {
+      "decoder": {
+        "type": "AUTO_DETECTION",
+        "labels": [
+          "fall",
+          "gloves",
+          "goggles",
+          "helmet",
+          "face_mask",
+          "no_gloves",
+          "no_goggles",
+          "no_helmet",
+          "no_face_mask",
+          "no_vest",
+          "no_harness",
+          "person",
+          "vest"
+        ]
+      },
+      "taskType": "OBJECT_DETECTION",
+      "preprocess": {
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "color": "RGB",
+        "dtype": "UINT8",
+        "scale": 1.0,
+        "layout": "NHWC",
+        "resize": "STRETCH",
+        "inputWidth": 640,
+        "inputHeight": 640
+      },
+      "schemaVersion": "1.0"
+    },
+    "video-action-recognition@human-action-vit-int8-43fb": {
+      "decoder": {
+        "type": "CLASSIFICATION",
+        "labels": [
+          "calling",
+          "clapping",
+          "cycling",
+          "dancing",
+          "drinking",
+          "eating",
+          "fighting",
+          "hugging",
+          "laughing",
+          "listening_music",
+          "running",
+          "sitting",
+          "sleeping",
+          "texting",
+          "using_laptop"
+        ]
+      },
+      "taskType": "CLASSIFICATION",
+      "preprocess": {
+        "std": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "mean": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "color": "RGB",
+        "dtype": "FLOAT32",
+        "scale": 0.00392156862745098,
+        "layout": "NCHW",
+        "resize": "STRETCH",
+        "inputWidth": 224,
+        "inputHeight": 224
+      },
+      "schemaVersion": "1.0"
+    },
+    "yolo11n-person-rk3566@person-int8-rk3566-2.3.2-20260907": {
+      "decoder": {
+        "type": "AUTO_DETECTION",
+        "labels": [
+          "person",
+          "bicycle",
+          "car",
+          "motorcycle",
+          "airplane",
+          "bus",
+          "train",
+          "truck",
+          "boat",
+          "traffic_light",
+          "fire_hydrant",
+          "stop_sign",
+          "parking_meter",
+          "bench",
+          "bird",
+          "cat",
+          "dog",
+          "horse",
+          "sheep",
+          "cow",
+          "elephant",
+          "bear",
+          "zebra",
+          "giraffe",
+          "backpack",
+          "umbrella",
+          "handbag",
+          "tie",
+          "suitcase",
+          "frisbee",
+          "skis",
+          "snowboard",
+          "sports_ball",
+          "kite",
+          "baseball_bat",
+          "baseball_glove",
+          "skateboard",
+          "surfboard",
+          "tennis_racket",
+          "bottle",
+          "wine_glass",
+          "cup",
+          "fork",
+          "knife",
+          "spoon",
+          "bowl",
+          "banana",
+          "apple",
+          "sandwich",
+          "orange",
+          "broccoli",
+          "carrot",
+          "hot_dog",
+          "pizza",
+          "donut",
+          "cake",
+          "chair",
+          "couch",
+          "potted_plant",
+          "bed",
+          "dining_table",
+          "toilet",
+          "tv",
+          "laptop",
+          "mouse",
+          "remote",
+          "keyboard",
+          "cell_phone",
+          "microwave",
+          "oven",
+          "toaster",
+          "sink",
+          "refrigerator",
+          "book",
+          "clock",
+          "vase",
+          "scissors",
+          "teddy_bear",
+          "hair_drier",
+          "toothbrush"
+        ]
+      },
+      "taskType": "OBJECT_DETECTION",
+      "preprocess": {
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "color": "RGB",
+        "dtype": "UINT8",
+        "scale": 1.0,
+        "layout": "NHWC",
+        "resize": "STRETCH",
+        "inputWidth": 640,
+        "inputHeight": 640
+      },
+      "schemaVersion": "1.0"
+    },
+    "yolo11n-vehicle-rk3588@vehicle-int8-rk3588-2.3.2-20260923": {
+      "decoder": {
+        "type": "AUTO_DETECTION",
+        "labels": [
+          "person",
+          "bicycle",
+          "car",
+          "motorcycle",
+          "airplane",
+          "bus",
+          "train",
+          "truck",
+          "boat",
+          "traffic_light",
+          "fire_hydrant",
+          "stop_sign",
+          "parking_meter",
+          "bench",
+          "bird",
+          "cat",
+          "dog",
+          "horse",
+          "sheep",
+          "cow",
+          "elephant",
+          "bear",
+          "zebra",
+          "giraffe",
+          "backpack",
+          "umbrella",
+          "handbag",
+          "tie",
+          "suitcase",
+          "frisbee",
+          "skis",
+          "snowboard",
+          "sports_ball",
+          "kite",
+          "baseball_bat",
+          "baseball_glove",
+          "skateboard",
+          "surfboard",
+          "tennis_racket",
+          "bottle",
+          "wine_glass",
+          "cup",
+          "fork",
+          "knife",
+          "spoon",
+          "bowl",
+          "banana",
+          "apple",
+          "sandwich",
+          "orange",
+          "broccoli",
+          "carrot",
+          "hot_dog",
+          "pizza",
+          "donut",
+          "cake",
+          "chair",
+          "couch",
+          "potted_plant",
+          "bed",
+          "dining_table",
+          "toilet",
+          "tv",
+          "laptop",
+          "mouse",
+          "remote",
+          "keyboard",
+          "cell_phone",
+          "microwave",
+          "oven",
+          "toaster",
+          "sink",
+          "refrigerator",
+          "book",
+          "clock",
+          "vase",
+          "scissors",
+          "teddy_bear",
+          "hair_drier",
+          "toothbrush"
+        ]
+      },
+      "taskType": "OBJECT_DETECTION",
+      "execution": {
+        "target": "rk3588",
+        "runtime": "rknn-toolkit-lite2",
+        "provider": "rknpu2",
+        "minRuntimeVersion": "2.3.2"
+      },
+      "preprocess": {
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "color": "RGB",
+        "dtype": "UINT8",
+        "scale": 1.0,
+        "layout": "NHWC",
+        "resize": "STRETCH",
+        "inputWidth": 640,
+        "inputHeight": 640
+      },
+      "schemaVersion": "1.0",
+      "targetPlatform": "rk3588"
+    },
+    "yolov8n-hardhat-rk3566@helmet-fp16-rk3566-2.3.2-20260907": {
+      "decoder": {
+        "type": "AUTO_DETECTION",
+        "labels": [
+          "helmet",
+          "no_helmet"
+        ]
+      },
+      "taskType": "OBJECT_DETECTION",
+      "preprocess": {
+        "std": [
+          1,
+          1,
+          1
+        ],
+        "mean": [
+          0,
+          0,
+          0
+        ],
+        "color": "RGB",
+        "dtype": "UINT8",
+        "scale": 1.0,
+        "layout": "NHWC",
+        "resize": "STRETCH",
+        "inputWidth": 320,
+        "inputHeight": 320
+      },
+      "schemaVersion": "1.0"
+    }
+  }
+}
