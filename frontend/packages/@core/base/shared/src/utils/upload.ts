@@ -186,7 +186,18 @@ export function checkFileType(file: File, accepts: string[]) {
  * @param bytes 文件大小（字节）
  * @returns 格式化后的文件大小字符串
  */
-export function formatFileSize(bytes: number, digits = 2): string {
+export function formatFileSize(
+  bytes: null | number | undefined,
+  digits = 2,
+): string {
+  if (
+    bytes === null ||
+    bytes === undefined ||
+    !Number.isFinite(bytes) ||
+    bytes < 0
+  ) {
+    return '-';
+  }
   if (bytes === 0) {
     return '0 B';
   }

@@ -267,6 +267,7 @@ class LocalRegistry:
         self.minio_user = env.get("MINIO_ROOT_USER", "linsight")
         self.minio_password = env.get("MINIO_ROOT_PASSWORD", "linsight_minio_dev")
         self.minio_port = env.get("MINIO_API_PORT", "29000")
+        self.storage_endpoint = f"http://127.0.0.1:{self.minio_port}"
         self.tenant_id = tenant_id
         external_endpoint = (public_endpoint or env.get("LINSIGHT_MODEL_PUBLIC_ENDPOINT")
                              or f"http://127.0.0.1:{self.minio_port}")
@@ -298,7 +299,7 @@ class LocalRegistry:
     def configure_storage(self) -> None:
         config = {
             "@class": "com.linsight.module.infra.framework.file.core.client.s3.S3FileClientConfig",
-            "endpoint": f"http://127.0.0.1:{self.minio_port}",
+            "endpoint": self.storage_endpoint,
             "domain": self.domain,
             "bucket": MINIO_BUCKET,
             "accessKey": self.minio_user,
@@ -333,6 +334,10 @@ ON DUPLICATE KEY UPDATE name=VALUES(name),storage=VALUES(storage),remark=VALUES(
             f"{temp_dir}/{artifact['fileName']}", f"linsight-local/{MINIO_BUCKET}/{object_path}",
         ], quiet=True)
         return object_path
+
+    def cleanup(self) -> None:
+        run(["docker", "exec", self.minio_container, "rm", "-rf",
+             "/tmp/linsight-model-import-v1"], quiet=True)
 
     def register_file(self, artifact: dict[str, Any], object_path: str) -> str:
         url = f"{self.domain}/{object_path}"
@@ -438,16 +443,15 @@ UPDATE ai_model SET current_version_id=@version_id,updater='system' WHERE id=@mo
         self.mysql(sql)
 
 
-def main() -> int:
-    args = parse_args()
+def main(args: argparse.Namespace | None = None, registry: LocalRegistry | None = None) -> int:
+    args = args or parse_args()
     catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
     manifest_document = json.loads(args.manifests.read_text(encoding="utf-8"))
     manifests = manifest_document.get("manifests", {})
     validate_catalog(catalog)
     args.output.mkdir(parents=True, exist_ok=True)
-    registry = None
     if args.register:
-        registry = LocalRegistry(load_env(args.env_file), args.tenant_id, args.public_endpoint)
+        registry = registry or LocalRegistry(load_env(args.env_file), args.tenant_id, args.public_endpoint)
         registry.preflight()
 
     used_keys = {
@@ -519,7 +523,7 @@ def main() -> int:
             if version.get("production") is True:
                 registry.promote_version(model["code"], version["version"])
             print(f"[register] {model['code']} / {version['version']}")
-    run(["docker", "exec", registry.minio_container, "rm", "-rf", "/tmp/linsight-model-import-v1"], quiet=True)
+    registry.cleanup()
     count = registry.mysql(
         f"SELECT COUNT(*) FROM ai_model_version WHERE tenant_id={args.tenant_id} AND deleted=b'0';\n"
     )

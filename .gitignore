@@ -2,6 +2,7 @@
 .idea/
 .vscode/
 .env
+.env.native
 *.log
 logs/
 backend/**/target/
