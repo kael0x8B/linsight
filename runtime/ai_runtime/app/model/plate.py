@@ -19,6 +19,7 @@ from ai_runtime.app.model.contracts import (
     ModelTestResult,
 )
 from ai_runtime.app.model.person import _elapsed_ms
+from ai_runtime.app.model.plate_evidence import ctc_evidence
 
 PLATE_CHARACTERS = tuple(
     "#京沪津渝冀晋蒙辽吉黑苏浙皖闽赣鲁豫鄂湘粤桂琼川贵云藏陕甘青宁新"
@@ -242,7 +243,6 @@ class ChinesePlateOcrAdapter:
             return self.infer_image(source, parameters)
 
     def infer_image(self, source: Image.Image, parameters: ModelTestParameters) -> ModelTestResult:
-        del parameters
         started = perf_counter()
         number_region, offset = plate_number_region(source)
         image = number_region.resize((168, 48), Image.Resampling.BILINEAR)
@@ -253,7 +253,7 @@ class ChinesePlateOcrAdapter:
         outputs = self._session.run(None, {self._input_name: tensor})
         inference_ms = _elapsed_ms(started)
         started = perf_counter()
-        objects = decode_chinese_plate_ctc(*outputs)
+        objects = decode_chinese_plate_ctc(*outputs, evidence=parameters.ocr_evidence)
         for detected in objects:
             detected.attributes.update(
                 {
@@ -374,7 +374,9 @@ def _probabilities(logits: np.ndarray) -> np.ndarray:
     return values / values.sum(axis=-1, keepdims=True)
 
 
-def decode_chinese_plate_ctc(characters: np.ndarray, color: np.ndarray) -> list[DetectionObject]:
+def decode_chinese_plate_ctc(
+    characters: np.ndarray, color: np.ndarray, *, evidence: bool = False
+) -> list[DetectionObject]:
     characters, color = np.asarray(characters), np.asarray(color)
     if (
         characters.ndim != 3
@@ -395,6 +397,8 @@ def decode_chinese_plate_ctc(characters: np.ndarray, color: np.ndarray) -> list[
     if not text:
         return []
     detected = _to_license_plate_object("".join(text), sum(confidences) / len(confidences))
+    if evidence:
+        detected.attributes["ocrEvidenceJson"] = ctc_evidence(probabilities, PLATE_CHARACTERS)
     colors = _probabilities(color)[0]
     color_index = int(colors.argmax())
     detected.attributes.update(

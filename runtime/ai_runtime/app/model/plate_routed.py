@@ -19,6 +19,7 @@ from ai_runtime.app.model.contracts import (
     ModelTestResult,
 )
 from ai_runtime.app.model.plate import ChinesePlateOcrAdapter, plate_number_region
+from ai_runtime.app.model.plate_evidence import ctc_evidence
 
 
 class RoutedPlateOcrAdapter:
@@ -77,6 +78,10 @@ class RoutedPlateOcrAdapter:
                     }
                 )
             ]
+            if parameters.ocr_evidence:
+                objects[0].attributes["ocrEvidenceJson"] = ctc_evidence(
+                    np.asarray(output[0])[0], self._site.characters, " ·.-"
+                )
             return ModelTestResult(
                 sourceWidth=source.width,
                 sourceHeight=source.height,

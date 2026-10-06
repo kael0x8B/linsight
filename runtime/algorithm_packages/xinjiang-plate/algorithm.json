@@ -1,0 +1,224 @@
+{
+  "schemaVersion": "1.0",
+  "sdkVersion": "1.0",
+  "code": "xinjiang-plate-package",
+  "version": "1.0.0",
+  "name": "厂区车辆识别（新疆优化）",
+  "category": "OCR",
+  "eventType": "VEHICLE_PLATE_RECOGNIZED",
+  "description": "独立新疆车牌候选比较与同车多帧确认；保留清晰外省牌。缺字补全默认关闭。现场准确率待验收。",
+  "entrypoint": "processor.py",
+  "timeoutMillis": 3000,
+  "runtimeRequirements": [
+    "plate-ocr-evidence-v1"
+  ],
+  "frameInput": {
+    "type": "PLATE_OCR",
+    "detectorSlot": "plate",
+    "ocrSlot": "ocr"
+  },
+  "models": [
+    {
+      "slot": "plate",
+      "name": "车牌定位模型",
+      "taskType": "OBJECT_DETECTION",
+      "formats": [
+        "ONNX",
+        "RKNN"
+      ],
+      "decoderTypes": [
+        "YOLO_PLATE",
+        "YOLO26_PLATE_POSE"
+      ]
+    },
+    {
+      "slot": "ocr",
+      "name": "车牌文字识别模型",
+      "taskType": "OCR",
+      "formats": [
+        "ONNX",
+        "RKNN",
+        "ARCHIVE"
+      ],
+      "decoderTypes": [
+        "CHINESE_PLATE_CTC",
+        "PLATE_OCR_ROUTED"
+      ]
+    }
+  ],
+  "parameterSchema": {
+    "type": "object",
+    "properties": {
+      "bodyMinConfidence": {
+        "type": "number",
+        "title": "号码主体最低字符分数",
+        "minimum": 0.5,
+        "maximum": 1,
+        "description": "省份以外的字母、数字仍须逐字达到门槛。"
+      },
+      "provinceMinConfidence": {
+        "type": "number",
+        "title": "省份直接确认分数",
+        "minimum": 0.5,
+        "maximum": 1,
+        "description": "清晰外省结果优先保留；矛盾省份证据继续待确认。"
+      },
+      "xinMinScore": {
+        "type": "number",
+        "title": "新字最低候选分数",
+        "minimum": 0.05,
+        "maximum": 1,
+        "description": "仅在模型确实给出新字候选时参与比较，默认值待现场校准。"
+      },
+      "maxProvinceGap": {
+        "type": "number",
+        "title": "省份候选最大分差",
+        "minimum": 0,
+        "maximum": 0.3,
+        "description": "新与最高省份候选分数的最大允许差。"
+      },
+      "provinceBonus": {
+        "type": "number",
+        "title": "新疆排序加分",
+        "minimum": 0,
+        "maximum": 0.3,
+        "description": "只影响候选排序，不提高原始识别置信度。"
+      },
+      "minVotes": {
+        "type": "integer",
+        "title": "一致识别帧数",
+        "minimum": 2,
+        "maximum": 30,
+        "description": ""
+      },
+      "voteFrames": {
+        "type": "integer",
+        "title": "投票窗口帧数",
+        "minimum": 2,
+        "maximum": 30,
+        "description": ""
+      },
+      "maxAgeSeconds": {
+        "type": "number",
+        "title": "投票有效时间（秒）",
+        "minimum": 1,
+        "maximum": 60,
+        "description": ""
+      },
+      "allowMissingProvince": {
+        "type": "boolean",
+        "title": "首字完全缺失时补新",
+        "description": "默认关闭。启用后标记省份推断，不能视为模型看清首字。"
+      },
+      "allowInferredEvents": {
+        "type": "boolean",
+        "title": "允许省份推断结果产生事件",
+        "description": "默认关闭。仅影响缺字补全，不改变新疆候选比较。"
+      }
+    },
+    "required": [
+      "bodyMinConfidence",
+      "provinceMinConfidence",
+      "xinMinScore",
+      "maxProvinceGap",
+      "provinceBonus",
+      "minVotes",
+      "voteFrames",
+      "maxAgeSeconds",
+      "allowMissingProvince",
+      "allowInferredEvents"
+    ],
+    "additionalProperties": false
+  },
+  "defaultParameters": {
+    "bodyMinConfidence": 0.75,
+    "provinceMinConfidence": 0.75,
+    "xinMinScore": 0.2,
+    "maxProvinceGap": 0.1,
+    "provinceBonus": 0.12,
+    "minVotes": 3,
+    "voteFrames": 5,
+    "maxAgeSeconds": 10,
+    "allowMissingProvince": false,
+    "allowInferredEvents": false
+  },
+  "defaultRule": {
+    "schemaVersion": "1.0",
+    "eventType": "VEHICLE_PLATE_RECOGNIZED",
+    "severity": "INFO",
+    "regions": [
+      {
+        "id": "plate-area",
+        "name": "车牌识别区域",
+        "type": "POLYGON",
+        "sourceWidth": 1920,
+        "sourceHeight": 1080,
+        "pointMode": "CENTROID",
+        "overlapThreshold": 0,
+        "points": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 0
+          },
+          {
+            "x": 1,
+            "y": 1
+          },
+          {
+            "x": 0,
+            "y": 1
+          }
+        ]
+      }
+    ],
+    "schedule": {
+      "timezone": "Asia/Shanghai",
+      "weekly": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "start": "00:00",
+          "end": "23:59"
+        }
+      ]
+    },
+    "condition": {
+      "type": "AND",
+      "children": [
+        {
+          "type": "ROI_ENTER",
+          "regionId": "plate-area",
+          "objectClasses": [
+            "license_plate"
+          ]
+        },
+        {
+          "type": "N_OF_M",
+          "n": 1,
+          "m": 1
+        },
+        {
+          "type": "DURATION",
+          "seconds": 0
+        }
+      ]
+    },
+    "cooldownSeconds": 0,
+    "recoverySeconds": 5,
+    "dedup": {
+      "scope": "TRACK",
+      "windowSeconds": 60
+    }
+  }
+}
