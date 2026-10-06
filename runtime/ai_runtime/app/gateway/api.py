@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ai_runtime.app.capability.packages import MAX_PACKAGE_BYTES, AlgorithmPackageStore
+from ai_runtime.app.gateway.application_upgrade import invoke as invoke_application_upgrade
 from ai_runtime.app.gateway.event_delivery import DeliveryConflict
 from ai_runtime.app.gateway.service import (
     ConfirmationLatencyConflict,
@@ -20,6 +21,7 @@ from ai_runtime.app.gateway.service import (
 from ai_runtime.app.model.contracts import DeployModelRequest
 from ai_runtime.app.stream.webrtc import WebRtcUnavailableError
 from ai_runtime.app.task.image_recognition import ImageRecognitionError, TaskImageRequest
+from edge_agent.app.upgrade.maintenance import mutation_lease
 
 
 class GatewayRpc(BaseModel):
@@ -35,6 +37,33 @@ def build_gateway_router(service, authenticate):
     async def rpc(
         request: GatewayRpc, gateway_origin: str = Header(default="LOCAL", alias="X-Gateway-Origin")
     ):
+        if request.action.startswith("app-upgrade."):
+            try:
+                return {
+                    "ok": True,
+                    "data": await invoke_application_upgrade(request.action, request.payload),
+                }
+            except ValueError as error:
+                return {"ok": False, "code": 422, "message": str(error)}
+        mutations = {
+            "task.save",
+            "task.remove",
+            "model.uninstall",
+            "algorithm.install",
+            "algorithm.uninstall",
+            "algorithm.resource",
+            "access.password",
+            "event-stream.configure",
+        }
+        try:
+            if request.action in mutations or request.action.startswith("validation."):
+                with mutation_lease():
+                    return await dispatch(request, gateway_origin)
+            return await dispatch(request, gateway_origin)
+        except ValueError as error:
+            return {"ok": False, "code": 409, "message": str(error)}
+
+    async def dispatch(request: GatewayRpc, gateway_origin: str):
         try:
             payload = request.payload
             if request.action == "snapshot":
@@ -60,7 +89,8 @@ def build_gateway_router(service, authenticate):
                 result = service.event_stream.status()
             elif request.action == "event-stream.configure":
                 result = service.event_stream.configure(
-                    payload["enabled"], payload.get("rotateKey", False),
+                    payload["enabled"],
+                    payload.get("rotateKey", False),
                     int(payload["expectedRevision"]),
                 )
             elif request.action == "algorithm.list":

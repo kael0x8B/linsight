@@ -26,6 +26,22 @@ import static com.linsight.framework.common.pojo.CommonResult.success;
 public class NodeGatewayController {
     @Resource private NodeGatewayService service;
 
+    @PostMapping("/application-upgrade")
+    @Operation(summary = "完整盒子应用升级：分块传输、预检、安装、回滚与持久进度")
+    @PreAuthorize("@ss.hasPermission('ai-video:node:upgrade')")
+    @ApiAccessLog(requestEnable = false, responseEnable = false)
+    public CommonResult<Map<String, Object>> applicationUpgrade(@Valid @RequestBody RequestVO request) {
+        if (!Set.of("app-upgrade.status", "app-upgrade.upload.begin", "app-upgrade.upload.chunk",
+                "app-upgrade.upload.finish", "app-upgrade.install", "app-upgrade.rollback")
+                .contains(request.getAction())) {
+            return success(Map.of("ok", false, "code", 400, "message", "不支持的应用升级操作"));
+        }
+        if (request.getPayload().get("data") instanceof String data && data.length() > 349_528) {
+            return success(Map.of("ok", false, "code", 413, "message", "升级分块不能超过 256 KiB"));
+        }
+        return success(service.invoke(request.getNodeId(), request.getAction(), request.getPayload()));
+    }
+
     @Data
     public static class RequestVO {
         @NotNull @Positive private Long nodeId;

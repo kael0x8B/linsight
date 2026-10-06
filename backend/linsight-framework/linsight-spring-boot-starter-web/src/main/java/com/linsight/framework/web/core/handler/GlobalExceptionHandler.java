@@ -455,11 +455,18 @@ public class GlobalExceptionHandler {
             return CommonResult.error(NOT_IMPLEMENTED.getCode(),
                     "[支付模块 linsight-module-pay - 表结构未导入][当前基座未启用]");
         }
-        // 11. AI 大模型
-        if (message.contains("ai_")) {
-            log.error("[AI 大模型 linsight-module-ai - 表结构未导入][当前基座未启用]");
-            return CommonResult.error(NOT_IMPLEMENTED.getCode(),
-                    "[AI 大模型 linsight-module-ai - 表结构未导入][当前基座未启用]");
+        // ai_ is shared by multiple business modules; a missing table does not identify
+        // an optional LLM module. Match the table itself, not the database name or SQL.
+        var missingTable = java.util.regex.Pattern.compile(
+                "(?i)\\bTable\\s+['`]([A-Za-z0-9_$.-]+)['`]\\s+doesn't exist").matcher(message);
+        if (missingTable.find()) {
+            String qualifiedName = missingTable.group(1);
+            String tableName = qualifiedName.substring(qualifiedName.lastIndexOf('.') + 1);
+            if (tableName.toLowerCase(java.util.Locale.ROOT).startsWith("ai_")) {
+                log.error("[handleTableNotExists][AI 业务表缺失({})，请执行当前版本数据库迁移]", tableName);
+                return CommonResult.error(INTERNAL_SERVER_ERROR.getCode(),
+                        "AI 业务数据结构尚未更新，请联系管理员执行当前版本数据库迁移后重试");
+            }
         }
         // 12. IoT 物联网
         if (message.contains("iot_")) {

@@ -104,6 +104,31 @@ public class FileServiceImpl implements FileService {
         return url;
     }
 
+    @Override
+    public Long createFileFromPath(java.nio.file.Path source, String name, String directory, String type) {
+        return createFileFromPath(source, name, directory, type, null);
+    }
+
+    @Override
+    @SneakyThrows
+    public Long createFileFromPath(java.nio.file.Path source, String name, String directory, String type, Long configId) {
+        long size = java.nio.file.Files.size(source);
+        if (!java.nio.file.Files.isRegularFile(source) || java.nio.file.Files.isSymbolicLink(source)
+                || size < 1 || size > 2L * 1024 * 1024 * 1024) {
+            throw new IllegalArgumentException("Invalid build artifact");
+        }
+        name = FilePathUtils.validateFileName(name);
+        String path = generateUploadPath(name, directory);
+        FileClient client = configId == null ? fileConfigService.getMasterFileClient() : fileConfigService.getFileClient(configId);
+        Assert.notNull(client, "Storage is not configured");
+        String url = client.upload(source, path, type);
+        var record = new FileCreateReqVO();
+        record.setConfigId(client.getId()); record.setPath(path);
+        record.setName(name); record.setUrl(HttpUtils.removeUrlQuery(url));
+        record.setType(type); record.setSize(size);
+        return createFile(record);
+    }
+
     @VisibleForTesting
     String generateUploadPath(String name, String directory) {
         // 1.1 处理 name 和 directory 的合法性

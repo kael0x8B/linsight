@@ -63,6 +63,10 @@ public interface FileService {
     Long createFile(FileCreateReqVO createReqVO);
     FileDO getFile(Long id);
 
+    Long createFileFromPath(java.nio.file.Path source, String name, String directory, String type);
+
+    Long createFileFromPath(java.nio.file.Path source, String name, String directory, String type, Long configId);
+
     /**
      * 删除文件
      *

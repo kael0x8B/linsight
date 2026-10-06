@@ -32,11 +32,13 @@ import {
   shutdownNode,
 } from '#/api/ai-video/node';
 import { platformGateway } from '#/api/ai-video/node/gateway';
+import { $t } from '#/locales';
 import { AiResourceGauge } from '#/components/ai-video';
 import NodeLogs from '#/views/ai-video/node-logs/index.vue';
 
 import GatewayWorkbench from './gateway-workbench.vue';
 import AlgorithmsPanel from './modules/algorithms-panel.vue';
+import ApplicationUpgrade from './modules/application-upgrade.vue';
 import DeploymentDrawerComponent from './modules/deployment-drawer.vue';
 import DeploymentHistory from './modules/deployment-history-drawer.vue';
 import HistoryPanel from './modules/history-drawer.vue';
@@ -382,6 +384,9 @@ onBeforeUnmount(() => {
                 embedded
                 :gateway-id="node.id"
               /><Empty v-else description="暂无网关日志查询权限" />
+            </TabPane>
+            <TabPane v-if="can(['ai-video:node:upgrade'])" key="application-upgrade" :tab="$t('application-upgrade.title')">
+              <ApplicationUpgrade v-if="activeTab === 'application-upgrade'" :transport="transport" />
             </TabPane>
             <TabPane key="deployments" tab="部署记录">
               <DeploymentHistory

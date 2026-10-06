@@ -181,7 +181,7 @@ com.linsight.module.aivideo
 | `rule` | ROI、时间、N/M 帧、持续、数量、冷却、组合规则及 Schema 校验 | 拉流、保存事件主记录 | `ai_rule`、规则版本表 |
 | `task` | 组合 Camera/Algorithm/Model/Rule/Node，管理期望状态、命令、运行摘要与指标 | 拥有模型文件、修改事件处置状态 | `ai_task`、任务版本/运行记录 |
 | `event` | 事件状态机、去重主键、证据元数据、处置、误报、通知结果 | 定义模型版本、控制节点升级 | `ai_event`、`ai_event_media`、`ai_event_action` |
-| `node` | Agent 身份、认证、心跳、资源、命令执行状态、日志、升级/回滚 | 解释算法语义、修改任务业务配置 | `ai_edge_node`、`ai_node_command` |
+| `node` | Agent 身份、认证、心跳、资源、命令执行状态、日志、应用升级包构建、升级/回滚 | 解释算法语义、修改任务业务配置 | `ai_edge_node`、`ai_node_command`、`ai_node_application_release` |
 | `integration` | WebSocket、Webhook、开放 API、签名、投递重试和外部错误映射 | 成为事件或任务的第二真值库 | `ai_webhook`、投递记录 |
 
 ### 5.1 跨域协作规则

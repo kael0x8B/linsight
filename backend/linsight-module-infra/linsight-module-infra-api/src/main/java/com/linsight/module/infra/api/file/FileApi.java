@@ -23,6 +23,22 @@ public interface FileApi {
         throw new UnsupportedOperationException("Registered image reads require the embedded storage service");
     }
 
+    /** Embedded-only streaming upload. Path never crosses an HTTP/RPC boundary. */
+    default Long createFileFromPath(java.nio.file.Path source, String name, String directory, String type) {
+        throw new UnsupportedOperationException("Streaming uploads require embedded storage");
+    }
+
+    /** Optional storage configuration is selected by trusted server configuration, never a browser path. */
+    default Long createFileFromPath(java.nio.file.Path source, String name, String directory, String type, Long configId) {
+        if (configId == null) return createFileFromPath(source, name, directory, type);
+        throw new UnsupportedOperationException("Configured streaming uploads require embedded storage");
+    }
+
+    /** Caller must authorize ownership of the file id before invoking this embedded contract. */
+    default String presignRegisteredFile(Long id, int seconds) {
+        throw new UnsupportedOperationException("Registered file reads require embedded storage");
+    }
+
     String PREFIX = ApiConstants.PREFIX + "/file";
 
     /**

@@ -67,6 +67,7 @@ import {
   mergeGatewayParameters,
 } from './gateway-task-parameters';
 import GatewayEventDelivery from './modules/gateway-event-delivery.vue';
+import ApplicationUpgrade from './modules/application-upgrade.vue';
 import GatewayRecognitionPreview from './modules/gateway-recognition-preview.vue';
 import GatewayRuleEditor from './modules/gateway-rule-editor.vue';
 import ImageRecognitionModal from './modules/image-recognition-modal.vue';
@@ -1773,6 +1774,9 @@ onBeforeUnmount(() => {
           "
           :description="$t('ai-video-delivery.upgradeRequired')"
         />
+      </TabPane>
+      <TabPane v-if="local && canEdit" key="application-upgrade" :tab="$t('application-upgrade.title')">
+        <ApplicationUpgrade v-if="activeTab === 'application-upgrade'" :transport="transport" />
       </TabPane>
     </Tabs>
     <PackageModal

@@ -1,6 +1,7 @@
 from contextlib import AsyncExitStack, asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 
 from ai_runtime.app.api.http import build_router
 from ai_runtime.app.core.config import RuntimeSettings
@@ -14,6 +15,7 @@ from ai_runtime.app.stream.probe import StreamProbeService
 from ai_runtime.app.stream.shared import CameraMediaHub
 from ai_runtime.app.stream.webrtc import WebRtcManager
 from ai_runtime.app.task.manager import TaskManager
+from edge_agent.app.upgrade.maintenance import mutation_lease
 
 
 def create_app(
@@ -56,6 +58,18 @@ def create_app(
             yield
 
     app = FastAPI(title="LInsight AI Runtime", version="0.1.0", lifespan=lifespan)
+
+    @app.middleware("http")
+    async def protect_application_switch(request, call_next):
+        # Gateway RPC decides by action; snapshot/upgrade polling must remain available.
+        if request.method in {"GET", "HEAD", "OPTIONS"} or request.url.path == "/v1/gateway/rpc":
+            return await call_next(request)
+        try:
+            with mutation_lease():
+                return await call_next(request)
+        except ValueError as error:
+            return JSONResponse({"detail": str(error)}, status_code=409)
+
     app.include_router(
         build_router(
             runtime_settings,

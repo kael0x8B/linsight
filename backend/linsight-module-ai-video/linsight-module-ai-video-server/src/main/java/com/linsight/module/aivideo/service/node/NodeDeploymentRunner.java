@@ -489,6 +489,7 @@ public class NodeDeploymentRunner {
         String recovery = "/var/lib/linsight-deployments/" + id + "/restore.sh";
         return "#!/usr/bin/env bash\nset -euo pipefail\numask 077\n"
                 + "exec 9>/run/linsight-deploy.lock\nflock -n 9 || { echo 'Another deployment is running'; exit 75; }\n"
+                + "[ ! -f /var/lib/linsight-updater/config.json ] || { echo 'LINSIGHT_ERROR=该设备已启用完整应用升级，请使用应用升级包入口；保留原部署目录用于回滚'; exit 64; }\n"
                 + "trap 'code=$?; if [ \"$code\" != 0 ] && [ -f " + recovery
                 + " ]; then LINSIGHT_DEPLOY_LOCK_HELD=1 bash " + recovery + " restore " + id + " || true; fi' EXIT\n"
                 + "echo 'LINSIGHT_PROGRESS=56 正在校验并解压 Runtime 包'\n"

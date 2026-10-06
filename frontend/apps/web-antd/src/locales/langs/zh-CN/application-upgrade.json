@@ -1,0 +1,31 @@
+{
+  "title": "应用升级",
+  "current": "当前版本",
+  "target": "目标版本",
+  "status": "升级状态",
+  "result": "执行结果",
+  "notes": "更新说明",
+  "upload": "上传升级包 / 继续上传",
+  "install": "安装新版本",
+  "rollback": "回退上一版本",
+  "loading": "正在读取设备升级状态…",
+  "migrationRequired": "该设备尚未完成首次迁移，请先通过受信终端安装应用升级器。",
+  "invalidPackage": "请选择不超过 2 GiB 的 .lup 升级包。",
+  "impact": "安装期间，本设备的识别任务和预览会短暂中断。设备会检查新版本，失败时自动尝试恢复旧版本。确认现在安装？",
+  "rollbackImpact": "将恢复上一版本的程序和依赖，识别和预览会短暂中断。确认现在回退？",
+  "reconnecting": "暂时无法连接设备，正在重新读取升级状态。",
+  "retryHint": "上传中断后可重新选择同一文件续传。已提交的安装由设备独立执行，请等待连接恢复；旧设备需先完成首次迁移。",
+  "phase": {
+    "VERIFYING": "验证升级包",
+    "PREPARING": "准备新版本",
+    "READY": "准备完成，等待安装",
+    "SWITCHING": "切换程序",
+    "CHECKING": "检查服务与任务恢复",
+    "SUCCEEDED": "升级完成",
+    "FAILED": "升级失败，原版本未切换",
+    "ROLLING_BACK": "正在恢复旧版本",
+    "ROLLED_BACK": "已恢复旧版本",
+    "RECOVERY_PENDING": "等待旧版本恢复检查",
+    "RECOVERY_FAILED": "自动恢复未通过检查，需要维护人员处理"
+  }
+}

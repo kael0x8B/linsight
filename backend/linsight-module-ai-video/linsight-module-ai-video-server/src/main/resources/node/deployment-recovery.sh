@@ -13,6 +13,7 @@ if [ "${LINSIGHT_DEPLOY_LOCK_HELD:-}" != 1 ]; then
   exec 9>/run/linsight-deploy.lock
   flock -w 30 9 || exit 75
 fi
+[ ! -f /var/lib/linsight-updater/config.json ] || { echo 'LINSIGHT_ERROR=设备已迁移，请使用完整应用版本回滚'; exit 64; }
 paths=(
   /opt/linsight/runtime /opt/linsight/venv
   /etc/linsight/runtime.env /etc/linsight/agent.env /etc/linsight/agent-upgrade.env

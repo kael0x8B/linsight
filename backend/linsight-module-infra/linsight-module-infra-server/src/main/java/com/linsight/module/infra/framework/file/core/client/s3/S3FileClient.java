@@ -97,6 +97,20 @@ public class S3FileClient extends AbstractFileClient<S3FileClientConfig> {
     }
 
     @Override
+    public String upload(java.nio.file.Path source, String path, String type) throws java.io.IOException {
+        if (!Boolean.FALSE.equals(config.getEnablePublicAccess())) {
+            throw new IllegalStateException("Build artifacts require private S3 storage");
+        }
+        var request = PutObjectRequest.builder().bucket(config.getBucket()).key(path)
+                .contentType(type).contentLength(java.nio.file.Files.size(source))
+                .overrideConfiguration(c -> c.apiCallTimeout(Duration.ofMinutes(15))
+                        .apiCallAttemptTimeout(Duration.ofMinutes(10))).build();
+        // Use the internal storage endpoint, which may differ from the browser download domain.
+        client.putObject(request, RequestBody.fromFile(source));
+        return presignGetUrl(path, 60);
+    }
+
+    @Override
     public void delete(String path) {
         DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
                 .bucket(config.getBucket())

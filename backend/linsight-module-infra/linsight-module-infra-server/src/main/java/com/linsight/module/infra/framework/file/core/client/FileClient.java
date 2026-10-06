@@ -24,6 +24,11 @@ public interface FileClient {
      */
     String upload(byte[] content, String path, String type) throws Exception;
 
+    /** Stream a local build artifact through the configured private storage endpoint. */
+    default String upload(java.nio.file.Path source, String path, String type) throws Exception {
+        throw new UnsupportedOperationException("Private streaming storage is required");
+    }
+
     /**
      * 删除文件
      *

@@ -35,4 +35,5 @@ public interface ErrorCodeConstants {
     ErrorCode NODE_TASK_CAPACITY_PREFLIGHT_FAILED = new ErrorCode(1_020_006_054, "网关任务容量预检失败：{}");
     ErrorCode NODE_DELETE_REFERENCED = new ErrorCode(1_020_006_052, "节点仍有关联任务，请先迁移或删除任务");
 
+    ErrorCode NODE_APPLICATION_RELEASE_ERROR = new ErrorCode(1_020_006_060, "{}");
 }

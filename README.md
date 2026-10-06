@@ -62,6 +62,14 @@ make status
 控制面按依赖契约、CPU 架构和 Python 小版本匹配与校验制品，预检显示是否离线就绪。
 制品准备、发布和现场验证说明见 [边缘节点部署说明](docs/EDGE_DEPLOYMENT_GUIDE.md)。
 
+完整应用离线升级、既有设备首次迁移、网页安装与自动回退见
+[盒子应用升级说明](docs/BOX_APPLICATION_UPGRADE.md)；电脑上的 Linux/systemd 演练见
+[模拟盒子说明](deploy/box-simulator/README.md)。已迁移设备统一使用 `.lup` 应用包。
+平台“边缘节点 → 盒子升级包”填写版本和说明即可生成统一 ARM64 应用包，支持 RK3566 / RK3568 / RK3588。
+部署人员维护统一发布制品和密钥，模板见
+[`application-release.example.yaml`](deploy/application-release/application-release.example.yaml)。
+本机 `local` profile 自动加载忽略文件 `var/application-release-local.yaml`，修改后重启后端生效。
+
 ## 访问地址
 
 | 服务 | 地址 | 本地凭据 |

@@ -1,0 +1,30 @@
+# Publish trusted runtime sources + gateway-console + pinned wheels alongside the platform.
+# Import the configured copy with SPRING_CONFIG_ADDITIONAL_LOCATION=file:/etc/linsight/application-release.yaml
+# Local development: merge into <repository>/var/application-release-local.yaml (loaded by local profile).
+# Keep this disabled until all absolute paths and the production key have been configured.
+linsight:
+  ai-video:
+    node-deployment:
+      runtime-source-dir: /opt/linsight-publisher/runtime
+    node-application-release:
+      enabled: false
+      python-executable: /opt/linsight-publisher/venv/bin/python
+      builder-script: /opt/linsight-publisher/scripts/build-box-release.py
+      output-directory: /var/lib/linsight/application-release-work
+      # Optional: an existing private S3/MinIO file configuration ID, not a bucket name.
+      # Omit to use the default file configuration. A missing configured ID fails without fallback.
+      # storage-config-id: 123
+      # One shared application/dependency set. Retain any old profiles while their jobs need retry.
+      default-profile: arm64
+      profiles:
+        arm64:
+          label: ARM64 统一应用升级包
+          architecture: aarch64
+          devices: [rk3566, rk3568, rk3588]
+          # Verify the Python/wheel baseline against each supported device's actual glibc.
+          min-glibc: '2.34'
+          python-archive: /opt/linsight-publisher/python/cpython-3.12-linux-aarch64.tar.gz
+          python-sha256: REPLACE_WITH_VERIFIED_64_CHARACTER_SHA256
+          wheels-directory: /opt/linsight-publisher/wheels/aarch64-cp312
+          signing-key: /etc/linsight/release-keys/production-2026.key
+          key-id: production-2026

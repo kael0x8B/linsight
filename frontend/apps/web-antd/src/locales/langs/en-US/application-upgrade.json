@@ -1,0 +1,31 @@
+{
+  "title": "Application upgrade",
+  "current": "Current version",
+  "target": "Target version",
+  "status": "Upgrade status",
+  "result": "Result",
+  "notes": "Release notes",
+  "upload": "Upload / resume package",
+  "install": "Install version",
+  "rollback": "Restore previous version",
+  "loading": "Reading device upgrade status…",
+  "migrationRequired": "Install the application updater through a trusted terminal before using this feature.",
+  "invalidPackage": "Choose a .lup package no larger than 2 GiB.",
+  "impact": "Recognition and preview will pause briefly. The device will verify the new version and attempt recovery on failure. Install now?",
+  "rollbackImpact": "Restore the previous application and dependencies? Recognition and preview will pause briefly.",
+  "reconnecting": "Device connection interrupted. Waiting for upgrade status.",
+  "retryHint": "Select the same file to resume an interrupted upload. Submitted installations continue on the device. Older devices require initial migration.",
+  "phase": {
+    "VERIFYING": "Verifying package",
+    "PREPARING": "Preparing version",
+    "READY": "Ready to install",
+    "SWITCHING": "Switching application",
+    "CHECKING": "Checking services and tasks",
+    "SUCCEEDED": "Upgrade complete",
+    "FAILED": "Failed before switching",
+    "ROLLING_BACK": "Restoring previous version",
+    "ROLLED_BACK": "Previous version restored",
+    "RECOVERY_PENDING": "Waiting for recovery verification",
+    "RECOVERY_FAILED": "Recovery needs operator attention"
+  }
+}

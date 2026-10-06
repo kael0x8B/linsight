@@ -28,7 +28,9 @@ import {
 
 import { getNodeList } from '#/api/ai-video/node';
 import { AiPageHeader, AiResourceGauge } from '#/components/ai-video';
+import { $t } from '#/locales';
 
+import ApplicationReleaseDrawer from './modules/application-release-drawer.vue';
 import DeploymentDrawerComponent from './modules/deployment-drawer.vue';
 import DeploymentHistoryDrawerComponent from './modules/deployment-history-drawer.vue';
 import TokenModalComponent from './modules/token-modal.vue';
@@ -46,6 +48,10 @@ const [DeploymentDrawer, deploymentApi] = useVbenDrawer({
 });
 const [HistoryDrawer, historyApi] = useVbenDrawer({
   connectedComponent: DeploymentHistoryDrawerComponent,
+  destroyOnClose: true,
+});
+const [ReleaseDrawer, releaseApi] = useVbenDrawer({
+  connectedComponent: ApplicationReleaseDrawer,
   destroyOnClose: true,
 });
 const error = ref('');
@@ -112,6 +118,7 @@ onBeforeUnmount(stop);
 </script>
 <template>
   <Page>
+    <ReleaseDrawer />
     <TokenModal /><DeploymentDrawer @success="refresh()" /><HistoryDrawer />
     <div class="ai-page ai-page-stack">
       <AiPageHeader
@@ -121,6 +128,11 @@ onBeforeUnmount(stop);
       >
         <template #extra>
           <div class="flex flex-wrap gap-2">
+            <Button
+              v-if="hasAccessByCodes(['ai-video:node:upgrade'])"
+              @click="releaseApi.open()"
+              >{{ $t('box-release.title') }}</Button
+            >
             <Button
               v-if="hasAccessByCodes(['ai-video:node:create'])"
               @click="tokenApi.open()"

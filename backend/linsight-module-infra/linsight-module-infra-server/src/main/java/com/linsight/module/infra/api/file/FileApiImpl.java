@@ -18,6 +18,21 @@ public class FileApiImpl implements FileApi {
     private FileService fileService;
 
     @Override
+    public Long createFileFromPath(java.nio.file.Path source, String name, String directory, String type) {
+        return fileService.createFileFromPath(source, name, directory, type);
+    }
+
+    @Override
+    public Long createFileFromPath(java.nio.file.Path source, String name, String directory, String type, Long configId) {
+        return fileService.createFileFromPath(source, name, directory, type, configId);
+    }
+
+    @Override
+    public String presignRegisteredFile(Long id, int seconds) {
+        return fileService.presignGetUrl(fileService.getFile(id).getUrl(), seconds);
+    }
+
+    @Override
     public CommonResult<byte[]> readRegisteredImage(String url) {
         return success(fileService.readRegisteredImage(url));
     }

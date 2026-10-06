@@ -301,6 +301,8 @@ class ModelCommandExecutor:
         await self._report(command, "SUCCEEDED", stage, diagnostic_id, result=result)
 
     async def _execute_upgrade(self, command: NodeCommandAssignment, diagnostic_id: str) -> None:
+        if os.environ.get("LINSIGHT_APP_RELEASE"):
+            raise ValueError("该设备已迁移完整应用升级，请使用节点应用升级入口")
         if self._upgrade_manager is None:
             raise RuntimeError("upgrade manager is not configured")
         detail = await self._control_plane.get_upgrade_command(self._identity, command.command_id)

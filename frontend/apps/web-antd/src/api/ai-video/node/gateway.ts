@@ -227,7 +227,8 @@ export async function platformGateway<T>(
 ): Promise<T> {
   const { requestClient } = await import('#/api/request');
   let operation = 'query';
-  if (action.startsWith('preview.')) operation = 'preview';
+  if (action.startsWith('app-upgrade.')) operation = 'application-upgrade';
+  else if (action.startsWith('preview.')) operation = 'preview';
   else if (action.startsWith('validation.')) operation = 'image-validation';
   else if (action === 'task.recognize-image') operation = 'image-test';
   else if (action === 'model.uninstall') operation = 'model-update';

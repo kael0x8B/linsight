@@ -3,6 +3,13 @@ server:
   port: ${BACKEND_PORT:48888}
 
 spring:
+  config:
+    # Trusted local publisher configuration for repository, backend and Maven module working directories.
+    # Optional and local-profile-only: ordinary development still starts before publisher setup.
+    import:
+      - optional:file:./var/application-release-local.yaml
+      - optional:file:../var/application-release-local.yaml
+      - optional:file:../../var/application-release-local.yaml
   autoconfigure:
     exclude:
       - org.springframework.ai.vectorstore.qdrant.autoconfigure.QdrantVectorStoreAutoConfiguration

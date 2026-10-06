@@ -1,0 +1,18 @@
+name: linsight-box-simulator
+services:
+  box:
+    build: .
+    container_name: linsight-box-simulator
+    # systemd manages cgroups inside Docker's Linux VM; no host directories/devices are mounted.
+    privileged: true
+    cgroup: private
+    tmpfs:
+      - /run
+      - /run/lock
+      - /tmp
+    ports:
+      - "127.0.0.1:48911:48901"
+    networks:
+      - simulator
+networks:
+  simulator: {}
