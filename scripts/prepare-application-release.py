@@ -25,15 +25,16 @@ def prepare(root=ROOT, *, replace_config=False):
     if hashlib.sha256((root / "runtime/pyproject.toml").read_bytes()).hexdigest() != manifest["pyprojectSha256"]:
         raise ValueError("Runtime 依赖已变更，请重新生成发布依赖基线")
     for item in manifest["files"]:
-        source, destination = baseline / item["path"], root / item["path"]
-        if not destination.resolve().is_relative_to((root / "runtime").resolve()):
+        source, destination = baseline / item["source"], root / item["path"]
+        if (not destination.resolve().is_relative_to((root / "runtime").resolve())
+                or not source.resolve().is_relative_to(baseline.resolve())):
             raise ValueError("发布基线路径无效")
         if source.stat().st_size != item["size"] or hashlib.sha256(source.read_bytes()).hexdigest() != item["sha256"]:
             raise ValueError("发布依赖校验失败: " + item["path"])
     for item in manifest["files"]:
         destination = root / item["path"]
         destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(baseline / item["path"], destination)
+        shutil.copyfile(baseline / item["source"], destination)
     configuration = root / "var/application-release-local.yaml"
     if configuration.exists() and not replace_config:
         print(f"[ok] 发布依赖已就绪；保留已有发布配置: {configuration}")

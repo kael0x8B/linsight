@@ -23,12 +23,18 @@ for name, sha in wheel_manifest["files"].items():
 files = []
 for path in paths:
     relative = path.relative_to(ROOT)
-    destination = target / relative
+    checksum = hashlib.sha256(path.read_bytes()).hexdigest()
+    # Avoid long wheel names plus nested hashes exceeding Git for Windows MAX_PATH.
+    source = f"files/{checksum}"
+    destination = target / source
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(path, destination)
-    files.append({"path": relative.as_posix(), "sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "size": path.stat().st_size})
+    files.append({"source": source, "path": relative.as_posix(), "sha256": checksum, "size": path.stat().st_size})
 manifest = {"schemaVersion": 1, "architecture": "aarch64", "pythonVersion": "3.12", "minGlibc": "2.34",
             "pyprojectSha256": contract, "pythonArchive": python.relative_to(ROOT).as_posix(),
             "pythonSha256": python_sha, "wheelsDirectory": wheels.relative_to(ROOT).as_posix(), "files": files}
 (target / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+# Retire the previous generated layout after the complete replacement is written.
+if (target / "runtime").is_dir():
+    shutil.rmtree(target / "runtime")
 print(f"[ok] 发布依赖 {len(files)} 个文件 / {sum(item['size'] for item in files)} bytes")
