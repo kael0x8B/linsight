@@ -5,3 +5,4 @@ deploy/platform-snapshot/resources/* binary
 deploy/application-release/baseline/** binary
 deploy/**/*.json text eol=lf
 runtime/pyproject.toml text eol=lf
+*.sh text eol=lf

@@ -197,21 +197,21 @@ public class NodeDeploymentRunner {
     private static byte[] recoveryScript() throws java.io.IOException {
         try (var stream = NodeDeploymentRunner.class.getResourceAsStream("/node/deployment-recovery.sh")) {
             if (stream == null) throw new IllegalStateException("部署恢复脚本缺失");
-            return stream.readAllBytes();
+            return normalizeShellScript(stream.readAllBytes());
         }
     }
 
     static byte[] dependencyScript() throws java.io.IOException {
         try (var stream = NodeDeploymentRunner.class.getResourceAsStream("/node/deployment-dependencies.sh")) {
             if (stream == null) throw new IllegalStateException("部署依赖检查脚本缺失");
-            return stream.readAllBytes();
+            return normalizeShellScript(stream.readAllBytes());
         }
     }
 
     static byte[] pythonScript() throws java.io.IOException {
         try (var stream = NodeDeploymentRunner.class.getResourceAsStream("/node/deployment-python.sh")) {
             if (stream == null) throw new IllegalStateException("独立 Python 安装脚本缺失");
-            return stream.readAllBytes();
+            return normalizeShellScript(stream.readAllBytes());
         }
     }
 
@@ -223,8 +223,15 @@ public class NodeDeploymentRunner {
     static byte[] diskPressureCleanupScript() throws java.io.IOException {
         try (var stream = NodeDeploymentRunner.class.getResourceAsStream("/node/disk-pressure-cleanup.sh")) {
             if (stream == null) throw new IllegalStateException("磁盘压力处置脚本缺失");
-            return stream.readAllBytes();
+            return normalizeShellScript(stream.readAllBytes());
         }
+    }
+
+    /** Shell resources may arrive from a Windows checkout or an older CRLF-packaged JAR. */
+    static byte[] normalizeShellScript(byte[] content) {
+        String script = new String(content, StandardCharsets.UTF_8);
+        if (script.startsWith("\uFEFF")) script = script.substring(1);
+        return script.replace("\r\n", "\n").replace('\r', '\n').getBytes(StandardCharsets.UTF_8);
     }
 
     private void runSourceRollback(Long id, Long tenantId, NodeDeploymentCreateReqVO request) throws Exception {

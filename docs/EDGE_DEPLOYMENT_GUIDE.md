@@ -105,4 +105,41 @@ Edge Agent 从 Rockchip 内核只读接口采集加速器负载：GPU 使用 dev
 
 先区分 SSH 连接、系统依赖、pip 安装、模型准备和服务切换阶段，读取对应部署日志。PyPI 不稳定时在构建机准备匹配离线依赖，不在现场反复执行全量系统升级。
 
+### Windows 平台发起部署时提示 `set: pipefail: 无效的选项名`
+
+若失败位置是 `disk-pressure-cleanup.sh` 第 3 行，优先检查脚本的 CRLF 换行：行尾回车会被 Bash
+读进 `pipefail` 选项名。此调用已经显式使用 Bash；保留 `set -euo pipefail` 的失败保护。
+
+平台后端会在上传清理、恢复、Python 安装和依赖检查脚本前统一转换为 LF，并去除文件开头的
+UTF-8 BOM；仓库 `.gitattributes` 同时约束 `*.sh` 使用 LF。修复生效步骤：
+
+1. 在 Windows 平台更新包含此修复的源码，使用 JDK 17 从项目根目录构建：
+   `mvn -f backend/pom.xml -pl linsight-server -am package -DskipTests`。
+2. 按原有启动方式更新并重启平台后端，保留原有运行配置。JAR 运行方式使用新构建的
+   `backend/linsight-server/target/linsight-server.jar`；IDE 运行方式重新编译并重启后端。
+3. 从平台重新预检并重试部署。失败任务的 `/tmp/linsight-deploy-*` 目录会被清理，直接修改这个
+   临时目录不能修复平台下一次生成的部署任务。
+
+清理脚本在新 Runtime 解压、依赖安装、旧服务停止和版本切换前执行；若在该脚本第 3 行失败，
+本次尚未进入这些步骤。失败详情收集的 Agent 日志可能来自盒子上原有的服务。
+
+### Agent 持续报告 `ConnectError`
+
+心跳、命令、日志上报同时出现此错误，说明 Agent 未能建立到平台的连接。需要检查它实际使用的
+控制面地址，以及盒子到该地址的网络、平台监听端口和 Windows 防火墙规则。先在盒子上只读取地址：
+
+```bash
+sudo sed -n 's/^LINSIGHT_AGENT_CONTROL_PLANE_URL=//p' /etc/linsight/agent.env
+```
+
+再用输出的实际地址替换下例地址，在盒子上测试（Agent 不使用系统 HTTP 代理）：
+
+```bash
+curl --noproxy '*' --connect-timeout 5 --max-time 10 \
+  http://平台服务器IP:48888/node-api/ai-video/node/ping
+```
+
+应返回包含 `"data":"linsight-control-plane"` 的 JSON。平台部署在另一台服务器时，地址必须从盒子
+可达；`127.0.0.1` 或 `localhost` 会指向盒子自身。脚本换行修复和平台连接恢复应分别验证。
+
 恢复时沿用部署快照和既有回滚流程，保留节点身份、设备配置密钥和运行数据。发布、签名升级及回滚步骤见 [发布手册](V1_RELEASE_RUNBOOK.md)，日常故障处置见 [运维 SOP](OPERATIONS_SOP.md)。
