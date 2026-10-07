@@ -1,26 +1,21 @@
-"""Encrypted, restorable business configuration and its referenced object resources."""
+"""Restorable business configuration and resources, delivered without a separate key."""
 from __future__ import annotations
 
-import base64
 import datetime
 import gzip
 import hashlib
 import importlib.util
 import json
 import mimetypes
-import os
 import re
 import tempfile
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 import pymysql
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 ROOT = Path(__file__).resolve().parents[1]
 DIRECTORY = ROOT / "deploy/platform-snapshot"
-KEY_FILE = ROOT / "var/platform-snapshot/deployment.key"
-AAD = b"linsight-platform-snapshot-v1"
 TABLES = (
     "ai_camera_group", "ai_camera", "ai_edge_node", "ai_model", "ai_model_version",
     "ai_model_test", "ai_model_deployment", "ai_algorithm", "ai_pipeline_version",
@@ -45,20 +40,30 @@ def encode(value) -> bytes:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
-def key_bytes(path: Path) -> bytes:
-    key = base64.b64decode(path.read_text(encoding="ascii").strip(), validate=True)
-    if len(key) != 32:
-        raise ValueError("部署密钥必须为 32 字节")
-    return key
+def load_backup(path: Path, legacy_key_file: Path | None = None):
+    content = path.read_bytes()
+    if path.suffix == ".enc":
+        # Compatibility only for backups made before keyless delivery.
+        if legacy_key_file is None:
+            raise ValueError("旧版 .enc 备份需要 --key-file；当前快照及 .json.gz 备份不需要密钥")
+        import base64
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        key = base64.b64decode(legacy_key_file.read_text(encoding="ascii").strip(), validate=True)
+        content = AESGCM(key).decrypt(content[:12], content[12:], b"linsight-platform-snapshot-v1")
+    return json.loads(gzip.decompress(content))
 
 
-def seal(content: bytes, key: bytes) -> bytes:
-    nonce = os.urandom(12)
-    return nonce + AESGCM(key).encrypt(nonce, gzip.compress(content, mtime=0), AAD)
-
-
-def unseal(content: bytes, key: bytes) -> bytes:
-    return gzip.decompress(AESGCM(key).decrypt(content[:12], content[12:], AAD))
+def load_snapshot(directory: Path):
+    manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
+    if manifest.get("schemaVersion") != 2:
+        raise ValueError("快照格式不匹配，请拉取最新代码和交付资源")
+    content = (directory / "configuration.json.gz").read_bytes()
+    if digest(content) != manifest["configurationSha256"]:
+        raise ValueError("业务配置快照校验失败")
+    payload = json.loads(gzip.decompress(content))
+    if payload.get("schemaVersion") != 2 or set(payload["tables"]) != set(TABLES):
+        raise ValueError("快照版本或表清单不匹配")
+    return manifest, payload
 
 
 def table_rows(connection, table: str, tenant_id: int = 1) -> tuple[list, list]:
@@ -87,14 +92,8 @@ def visit(value, transform):
     return transform(value) if isinstance(value, str) else value
 
 
-def export_snapshot(registry, output: Path = DIRECTORY, key_file: Path = KEY_FILE):
+def export_snapshot(registry, output: Path = DIRECTORY):
     output.mkdir(parents=True, exist_ok=True)
-    key_file.parent.mkdir(parents=True, exist_ok=True)
-    if not key_file.exists():
-        with key_file.open("x", encoding="ascii") as stream:
-            stream.write(base64.b64encode(os.urandom(32)).decode("ascii") + "\n")
-        key_file.chmod(0o600)
-    key = key_bytes(key_file)
     tables, types = {}, {}
     for table in TABLES:
         tables[table], types[table] = table_rows(registry.connection, table, registry.tenant_id)
@@ -116,7 +115,7 @@ def export_snapshot(registry, output: Path = DIRECTORY, key_file: Path = KEY_FIL
     for table in ("ai_model_test", "ai_model_deployment"):
         tables[table] = [row for row in tables[table] if row["model_version_id"] in versions]
 
-    # References and credentials remain inside the encrypted payload, never the Git-visible manifest.
+    # Preserve stored application values; deployment packaging adds no extra encryption.
     source_domains = {registry.domain}
     with registry.connection.cursor() as cursor:
         cursor.execute("SELECT config FROM infra_file_config WHERE storage=20 AND deleted=0")
@@ -163,17 +162,17 @@ def export_snapshot(registry, output: Path = DIRECTORY, key_file: Path = KEY_FIL
         record = {"sha256": checksum, "size": len(content),
                   "contentType": mimetypes.guess_type(path)[0] or "application/octet-stream"}
         if checksum in reused:
-            record.update(source=reused[checksum], encrypted=False)
+            record.update(source=reused[checksum])
         else:
-            encrypted = seal(content, key)
+            compressed = gzip.compress(content, mtime=0)
             parts = []
-            for index, start in enumerate(range(0, len(encrypted), 32 * 1024 * 1024)):
-                name = f"resources/{checksum}.{index:03d}.enc"
+            for index, start in enumerate(range(0, len(compressed), 32 * 1024 * 1024)):
+                name = f"resources/{checksum}.{index:03d}.gz.part"
                 target = output / name
                 target.parent.mkdir(exist_ok=True)
-                target.write_bytes(encrypted[start:start + 32 * 1024 * 1024])
+                target.write_bytes(compressed[start:start + 32 * 1024 * 1024])
                 parts.append({"path": name, "sha256": digest(target.read_bytes())})
-            record.update(parts=parts, encrypted=True)
+            record.update(parts=parts)
         resources[checksum] = record
     for row in tables["ai_model_version"]:
         if row["sha256"] != aliases[row["artifact_ref"]]:
@@ -188,23 +187,23 @@ def export_snapshot(registry, output: Path = DIRECTORY, key_file: Path = KEY_FIL
               "rules": sum(not row["deleted"] for row in tables["ai_rule"]), "tasks": len(tables["ai_task"]),
               "cameras": sum(not row["deleted"] for row in tables["ai_camera"]),
               "nodes": sum(not row["deleted"] for row in tables["ai_edge_node"])}
-    payload = {"schemaVersion": 1, "tenantId": registry.tenant_id, "tables": tables,
+    payload = {"schemaVersion": 2, "tenantId": registry.tenant_id, "tables": tables,
                "jsonColumns": types, "resources": aliases}
-    encrypted = seal(encode(payload), key)
-    (output / "configuration.enc").write_bytes(encrypted)
-    manifest = {"schemaVersion": 1, "snapshotVersion": "2026.10.07.1", "counts": counts,
-                "configurationSha256": digest(encrypted), "resources": list(resources.values())}
+    compressed = gzip.compress(encode(payload), mtime=0)
+    (output / "configuration.json.gz").write_bytes(compressed)
+    manifest = {"schemaVersion": 2, "snapshotVersion": "2026.10.07.2", "counts": counts,
+                "configurationSha256": digest(compressed), "resources": list(resources.values())}
     (output / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     referenced_parts = {part["path"] for record in resources.values() for part in record.get("parts", [])}
-    for path in (output / "resources").glob("*.enc"):
+    for path in (output / "resources").glob("*"):
         if path.relative_to(output).as_posix() not in referenced_parts:
             path.unlink()
+    (output / "configuration.enc").unlink(missing_ok=True)
     print(f"[ok] 业务快照: {counts}; 资源 {len(resources)} 个 / {sum(r['size'] for r in resources.values())} bytes")
-    print(f"[key] 部署密钥单独交付: {key_file}")
 
 
-def resource_content(record, directory, key):
-    if record["encrypted"]:
+def resource_content(record, directory):
+    if "parts" in record:
         pieces = []
         for part in record["parts"]:
             path = (directory / part["path"]).resolve()
@@ -214,7 +213,7 @@ def resource_content(record, directory, key):
             if digest(content) != part["sha256"]:
                 raise ValueError("资源分片校验失败")
             pieces.append(content)
-        content = unseal(b"".join(pieces), key)
+        content = gzip.decompress(b"".join(pieces))
     else:
         path = (ROOT / record["source"]).resolve()
         if not path.is_relative_to((ROOT / "deploy").resolve()):
@@ -225,20 +224,15 @@ def resource_content(record, directory, key):
     return content
 
 
-def restore_snapshot(registry, directory: Path, key_file: Path):
-    manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
-    key = key_bytes(key_file)
-    encrypted = (directory / "configuration.enc").read_bytes()
-    if digest(encrypted) != manifest["configurationSha256"]:
-        raise ValueError("业务配置快照校验失败")
-    payload = json.loads(unseal(encrypted, key))
+def restore_snapshot(registry, directory: Path):
+    manifest, payload = load_snapshot(directory)
     if payload["tenantId"] != registry.tenant_id or set(payload["tables"]) != set(TABLES):
         raise ValueError("目标租户或快照表清单不匹配")
     # Verify and stage all resources before changing target business data.
     with tempfile.TemporaryDirectory(prefix="linsight-snapshot-") as temporary:
         staging = Path(temporary)
         for record in manifest["resources"]:
-            (staging / record["sha256"]).write_bytes(resource_content(record, directory, key))
+            (staging / record["sha256"]).write_bytes(resource_content(record, directory))
         registry.preflight()
         for record in manifest["resources"]:
             registry.storage.fput_object("linsight-models", f"deployment-snapshot/{record['sha256']}",
@@ -260,9 +254,9 @@ def restore_snapshot(registry, directory: Path, key_file: Path):
     with registry.connection.cursor(pymysql.cursors.DictCursor) as cursor:
         cursor.execute("SELECT id, config, master+0 AS master FROM infra_file_config")
         backup["fileConfigs"] = list(cursor.fetchall())
-    backup_path = ROOT / "var/platform-snapshot" / (datetime.datetime.now().strftime("before-restore-%Y%m%d-%H%M%S-%f") + ".enc")
+    backup_path = ROOT / "var/platform-snapshot" / (datetime.datetime.now().strftime("before-restore-%Y%m%d-%H%M%S-%f") + ".json.gz")
     backup_path.parent.mkdir(parents=True, exist_ok=True)
-    backup_path.write_bytes(seal(encode(backup), key))
+    backup_path.write_bytes(gzip.compress(encode(backup), mtime=0))
     backup_path.chmod(0o600)
     try:
         registry.connection.begin()
@@ -294,8 +288,8 @@ def restore_snapshot(registry, directory: Path, key_file: Path):
     return backup_path
 
 
-def rollback_snapshot(registry, backup_file: Path, key_file: Path):
-    backup = json.loads(unseal(backup_file.read_bytes(), key_bytes(key_file)))
+def rollback_snapshot(registry, backup_file: Path, legacy_key_file: Path | None = None):
+    backup = load_backup(backup_file, legacy_key_file)
     if backup["tenantId"] != registry.tenant_id or set(backup["tables"]) != set(TABLES):
         raise ValueError("备份租户或表清单不匹配")
     try:

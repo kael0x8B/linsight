@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture local business configuration and required resources, encrypted for Git delivery."""
+"""Capture local business configuration and required resources for keyless Git delivery."""
 from platform_snapshot import export_snapshot, native_module
 
 native = native_module()

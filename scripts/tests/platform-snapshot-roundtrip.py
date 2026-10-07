@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Restore the delivered snapshot twice into isolated MySQL/MinIO; verify real resources."""
 import argparse
-import base64
 import hashlib
 import json
-import os
 import secrets
+import shutil
 import subprocess
 import sys
 import time
@@ -13,7 +12,6 @@ import uuid
 from pathlib import Path
 
 import pymysql
-from cryptography.exceptions import InvalidTag
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -26,7 +24,6 @@ def run(command, **kwargs):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--key-file", type=Path, default=snapshot.KEY_FILE)
     parser.add_argument("--keep", action="store_true", help="保留隔离环境供 API/浏览器验证；连接信息写入忽略目录")
     args = parser.parse_args()
     native = snapshot.native_module()
@@ -62,7 +59,7 @@ def main():
         baseline_count = registry.mysql("SELECT COUNT(*) FROM ai_algorithm WHERE status=0 AND deleted=0")
         first_backup = None
         for attempt in (1, 2):
-            backup = snapshot.restore_snapshot(registry, snapshot.DIRECTORY, args.key_file)
+            backup = snapshot.restore_snapshot(registry, snapshot.DIRECTORY)
             first_backup = first_backup or backup
             assert registry.mysql("SELECT COUNT(*), COUNT(DISTINCT name) FROM ai_algorithm WHERE status=0 AND deleted=0") == "27\t24"
             assert registry.mysql("SELECT COUNT(*) FROM ai_rule WHERE deleted=0") == "18"
@@ -92,20 +89,21 @@ def main():
             finally:
                 response.close(); response.release_conn()
             assert len(content) == item["size"] and hashlib.sha256(content).hexdigest() == item["sha256"]
-        wrong = workspace / "wrong.key"
-        wrong.write_text(base64.b64encode(os.urandom(32)).decode("ascii"), encoding="ascii")
+        damaged = workspace / "damaged"
+        damaged.mkdir()
+        shutil.copyfile(snapshot.DIRECTORY / "manifest.json", damaged / "manifest.json")
+        (damaged / "configuration.json.gz").write_bytes(b"damaged snapshot")
         try:
-            snapshot.restore_snapshot(registry, snapshot.DIRECTORY, wrong)
-        except InvalidTag:
-            pass
+            snapshot.restore_snapshot(registry, damaged)
+        except ValueError as error:
+            assert str(error) == "业务配置快照校验失败"
         else:
-            raise AssertionError("Wrong key must fail")
+            raise AssertionError("Corrupted configuration must fail before changing data")
         assert registry.mysql("SELECT COUNT(*) FROM ai_task WHERE deleted=0") == "9"
-        wrong.unlink()
-        snapshot.rollback_snapshot(registry, first_backup, args.key_file)
+        snapshot.rollback_snapshot(registry, first_backup)
         assert registry.mysql("SELECT COUNT(*) FROM ai_algorithm WHERE status=0 AND deleted=0") == baseline_count
-        snapshot.restore_snapshot(registry, snapshot.DIRECTORY, args.key_file)
-        print(f"[ok] {len(manifest['resources'])} 个资源逐字节 SHA256 一致；错误密钥未改变业务数据")
+        snapshot.restore_snapshot(registry, snapshot.DIRECTORY)
+        print(f"[ok] 无密钥恢复/回退通过；{len(manifest['resources'])} 个资源 SHA256 一致；损坏快照未改变业务数据")
         (workspace / "environment.json").write_text(json.dumps({"database": database, "container": container, "envFile": str(config)}), encoding="utf-8")
         succeeded = True
         if args.keep:

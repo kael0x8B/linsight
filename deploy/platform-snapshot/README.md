@@ -2,12 +2,13 @@
 
 这是交付给同事的恢复入口。只导入 `backend/sql/mysql/linsight.sql` 得到的是基础结构和历史种子，不能得到开发机已配置的任务、规则、上传的算法包和已验证模型。
 
-## Windows + IDEA：只配置两个文件
+## Windows + IDEA：只配置一个文件
 
 先拉取最新代码并停止目标环境的后端。安装 Python 3.12（或 3.13），在项目根目录操作：
 
-1. **部署密钥**：由交付人员单独提供 `deployment.key`，复制到项目根目录并命名为 **`.deployment-key`**。交付人员原文件在 `var/platform-snapshot/deployment.key`，不要提交 Git。它用于解密摄像头凭据、人员库及业务配置。
-2. **连接配置**：复制 `deploy/model-assets/native.env.example` 为项目根目录 **`.env.native`**，用 IDEA 打开编辑即可。填写同事实际使用的服务：
+快照和必需资源已经完整随仓库交付，使用普通 gzip 压缩，不需要部署密钥或单独传文件。
+
+**连接配置**：复制 `deploy/model-assets/native.env.example` 为项目根目录 **`.env.native`**，用 IDEA 打开编辑即可。填写同事实际使用的服务：
 
 ```dotenv
 MYSQL_HOST=127.0.0.1
@@ -68,12 +69,12 @@ py -3.12 scripts/restore-platform-snapshot.py
 
 ## 重复恢复与回退
 
-同一快照重复恢复不会新增重复业务记录。恢复前加密备份位置会打印为 `var/platform-snapshot/before-restore-*.enc`；对象文件按摘要存放，旧文件不删除。停止目标后端后可回退业务配置：
+同一快照重复恢复不会新增重复业务记录。恢复前备份位置会打印为 `var/platform-snapshot/before-restore-*.json.gz`；对象文件按摘要存放，旧文件不删除。停止目标后端后可回退业务配置：
 
 ```powershell
-py -3.12 scripts/restore-platform-snapshot.py --rollback-backup var/platform-snapshot/before-restore-实际时间.enc
+py -3.12 scripts/restore-platform-snapshot.py --rollback-backup var/platform-snapshot/before-restore-实际时间.json.gz
 ```
 
-回退不撤销 SQL 结构升级；数据库/Redis 本机连接配置和发布密钥保持现状。解密密钥错误、资源校验失败会终止恢复，业务数据写入与文件元数据在一个数据库事务内提交。
+回退不撤销 SQL 结构升级；数据库/Redis 本机连接配置和发布密钥保持现状。配置文件或资源校验失败会终止恢复，业务数据写入与文件元数据在一个数据库事务内提交。
 
 交付人员更新快照使用 `scripts/export-platform-snapshot.py`，更新可公开初始化的算法目录使用 `scripts/export-deployment-algorithms.py`，更新发布基线使用 `scripts/export-release-baseline.py`。这些导出器只读取源数据库和对象文件，不修改本机业务配置。

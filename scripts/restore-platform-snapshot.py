@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from urllib.parse import quote
 
-from platform_snapshot import DIRECTORY, ROOT, key_bytes, native_module, restore_snapshot, rollback_snapshot, unseal
+from platform_snapshot import DIRECTORY, ROOT, load_backup, load_snapshot, native_module, restore_snapshot, rollback_snapshot
 
 
 def write_backend_configuration(env):
@@ -31,13 +31,14 @@ def write_backend_configuration(env):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--env-file", type=Path, default=ROOT / ".env.native")
-    parser.add_argument("--key-file", type=Path, default=ROOT / ".deployment-key")
-    parser.add_argument("--rollback-backup", type=Path, help="还原指定的 before-restore 加密备份")
+    parser.add_argument("--key-file", type=Path, help="仅用于回退旧版 .enc 备份；当前恢复不需要")
+    parser.add_argument("--rollback-backup", type=Path, help="还原指定的 before-restore 备份")
     args = parser.parse_args()
-    if not args.key_file.is_file():
-        raise ValueError("请将单独交付的部署密钥放到项目根目录 .deployment-key")
-    # Reject the wrong key before opening or migrating the target database.
-    unseal((args.rollback_backup or DIRECTORY / "configuration.enc").read_bytes(), key_bytes(args.key_file))
+    # Validate the package before opening or migrating the target database.
+    if args.rollback_backup:
+        load_backup(args.rollback_backup, args.key_file)
+    else:
+        load_snapshot(DIRECTORY)
     native = native_module()
     env = native.sync.load_env(args.env_file)
     registry = native.NativeRegistry(env, 1, create_database=True)
@@ -50,7 +51,7 @@ def main():
         if exists == "0":
             registry.mysql((ROOT / "backend/sql/mysql/linsight.sql").read_text(encoding="utf-8"))
         native.apply_migrations(registry, ROOT / "backend/sql/mysql/migrations/ai-video")
-        restore_snapshot(registry, DIRECTORY, args.key_file)
+        restore_snapshot(registry, DIRECTORY)
         write_backend_configuration(env)
         spec = importlib.util.spec_from_file_location("publisher", ROOT / "scripts/prepare-application-release.py")
         publisher = importlib.util.module_from_spec(spec)
