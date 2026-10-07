@@ -1,13 +1,14 @@
 import asyncio
 import json
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
 
 import pytest
 from pydantic import SecretStr
 
 from edge_agent.app.core.config import AgentSettings
-from edge_agent.app.preview_tunnel import _handle_request, _tunnel_uri
+from edge_agent.app.core.identity import NodeIdentity
+from edge_agent.app.preview_tunnel import _handle_request, _tunnel_uri, preview_tunnel_loop
 
 
 def settings(control_plane_url: str = "http://192.168.2.10:48888") -> AgentSettings:
@@ -34,9 +35,49 @@ def test_private_control_plane_uses_outbound_websocket() -> None:
     assert _tunnel_uri(settings()) == "ws://192.168.2.10:48888/node-api/ai-video/preview/tunnel"
 
 
-def test_public_plaintext_control_plane_is_rejected() -> None:
+def test_explicit_strict_transport_policy_rejects_public_plaintext() -> None:
     with pytest.raises(ValueError, match="private network"):
-        _tunnel_uri(settings("http://8.8.8.8:48888"))
+        _tunnel_uri(settings("http://8.8.8.8:48888").model_copy(
+            update={"preview_tunnel_allow_insecure": False}
+        ))
+
+
+@pytest.mark.parametrize("url", ["http://169.139.10.99:48888", "ftp://example.com"])
+def test_rejected_tunnel_does_not_cancel_other_agent_workers(
+    url: str, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    connect = Mock()
+    monkeypatch.setattr("edge_agent.app.preview_tunnel.connect", connect)
+    identity = NodeIdentity(node_id=7, tenant_id=1, credential=SecretStr("node-secret"))
+    completed = []
+
+    async def heartbeat_worker() -> None:
+        await asyncio.sleep(0)
+        completed.append("heartbeat")
+
+    async def scenario() -> None:
+        strict_settings = settings(url).model_copy(
+            update={"preview_tunnel_allow_insecure": False}
+        )
+        async with asyncio.TaskGroup() as tasks:
+            tasks.create_task(preview_tunnel_loop(strict_settings, identity, AsyncMock()))
+            tasks.create_task(heartbeat_worker())
+
+    asyncio.run(scenario())
+    assert completed == ["heartbeat"]
+    connect.assert_not_called()
+    assert "Preview tunnel configuration rejected nodeId=7" in caplog.text
+    assert "HTTPS" in caplog.text
+    assert "node-secret" not in caplog.text
+
+
+def test_default_transport_supports_http_and_https_control_planes() -> None:
+    assert _tunnel_uri(settings("https://example.com")) == (
+        "wss://example.com/node-api/ai-video/preview/tunnel"
+    )
+    assert _tunnel_uri(settings("http://169.139.10.99:48888")) == (
+        "ws://169.139.10.99:48888/node-api/ai-video/preview/tunnel"
+    )
 
 
 def test_create_preview_is_forwarded_only_to_local_runtime() -> None:

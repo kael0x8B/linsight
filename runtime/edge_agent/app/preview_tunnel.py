@@ -27,7 +27,17 @@ async def preview_tunnel_loop(
     if not settings.preview_tunnel_enabled:
         LOGGER.info("Preview tunnel disabled nodeId=%s", identity.node_id)
         return
-    uri = _tunnel_uri(settings)
+    try:
+        uri = _tunnel_uri(settings)
+    except ValueError:
+        # A rejected optional tunnel must not cancel heartbeat and command workers
+        # in the Agent's shared TaskGroup. Keep the transport policy enforced.
+        LOGGER.error(
+            "Preview tunnel configuration rejected nodeId=%s; check control plane URL "
+            "and use HTTPS for public addresses. Other Agent workers will continue.",
+            identity.node_id,
+        )
+        return
     retry_seconds = 1.0
     while True:
         try:

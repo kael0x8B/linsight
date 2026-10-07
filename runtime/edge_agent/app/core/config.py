@@ -23,7 +23,7 @@ class AgentSettings(BaseSettings):
     runtime_url: str = "http://127.0.0.1:48900"
     runtime_api_key: SecretStr
     preview_tunnel_enabled: bool = True
-    preview_tunnel_allow_insecure: bool = False
+    preview_tunnel_allow_insecure: bool = True
     preview_tunnel_max_media_bytes: int = Field(
         default=8 * 1024 * 1024, ge=1024 * 1024, le=32 * 1024 * 1024
     )

@@ -142,4 +142,14 @@ curl --noproxy '*' --connect-timeout 5 --max-time 10 \
 应返回包含 `"data":"linsight-control-plane"` 的 JSON。平台部署在另一台服务器时，地址必须从盒子
 可达；`127.0.0.1` 或 `localhost` 会指向盒子自身。脚本换行修复和平台连接恢复应分别验证。
 
+### 预览通道提示 `Insecure preview tunnel is allowed only for private network addresses`
+
+旧版本默认明文 WS 只允许回环或私网地址；例如 `169.139.10.99` 属于公网地址段，即使现场将它用作
+局域网地址，也不会被识别为私网。当前版本按部署地址长期支持 HTTP/WS 和 HTTPS/WSS，无需单独添加
+临时配置，后续升级沿用这一默认行为。HTTP/WS 会明文传输节点凭据和预览数据，适用于已确认可信的网络。
+
+如某个环境需要保留严格限制，可显式设置 `LINSIGHT_AGENT_PREVIEW_TUNNEL_ALLOW_INSECURE=false`。
+启用该限制后，公网地址须使用 HTTPS/WSS。预览配置被拒绝时，Agent 会记录可定位的错误并停止该通道，
+心跳、命令及其他工作循环继续运行；远程预览和通过该通道调用的网关管理功能仍不可用。
+
 恢复时沿用部署快照和既有回滚流程，保留节点身份、设备配置密钥和运行数据。发布、签名升级及回滚步骤见 [发布手册](V1_RELEASE_RUNBOOK.md)，日常故障处置见 [运维 SOP](OPERATIONS_SOP.md)。
