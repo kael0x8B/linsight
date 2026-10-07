@@ -7,6 +7,9 @@ spring:
     # Trusted local publisher configuration for repository, backend and Maven module working directories.
     # Optional and local-profile-only: ordinary development still starts before publisher setup.
     import:
+      - optional:file:./var/application-native-local.yaml
+      - optional:file:../var/application-native-local.yaml
+      - optional:file:../../var/application-native-local.yaml
       - optional:file:./var/application-release-local.yaml
       - optional:file:../var/application-release-local.yaml
       - optional:file:../../var/application-release-local.yaml

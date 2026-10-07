@@ -1,0 +1,4703 @@
+{
+  "schemaVersion": "1.0",
+  "catalogVersion": "2026.10.07.1",
+  "visibleAlgorithmCount": 24,
+  "retiredSeedCodes": [
+    "abnormal-behavior",
+    "abnormal-meter-reading",
+    "abnormal-posture",
+    "abnormal-vehicle-stop",
+    "absence-during-work-hours",
+    "after-hours-person",
+    "animal-detection",
+    "backpack-detection",
+    "barrel-detection",
+    "behavior-climbing",
+    "behavior-playing-phone",
+    "behavior-running",
+    "behavior-vaulting",
+    "bending-detection",
+    "bicycle-detection",
+    "bidirectional-line-crossing",
+    "black-screen",
+    "bottle-detection",
+    "box-detection",
+    "bus-detection",
+    "camera-occlusion",
+    "camera-offline-algorithm",
+    "camera-shift",
+    "car-detection",
+    "cargo-truck-recognition",
+    "chair-detection",
+    "change-object-appearance",
+    "change-object-disappearance",
+    "chinese-text-recognition",
+    "cigarette-detection",
+    "coach-recognition",
+    "coco-cell-phone-detection",
+    "coco-person-detection",
+    "color-cast",
+    "continuous-object-tracking",
+    "custom-object-detection",
+    "debris-accumulation",
+    "debris-detection",
+    "dense-smoke-detection",
+    "deny-list-person-enter-region",
+    "deny-list-vehicle-enter-region",
+    "device-id-recognition",
+    "digit-recognition",
+    "digital-meter-reading",
+    "document-region-text",
+    "english-text-recognition",
+    "face-allow-list",
+    "face-capture",
+    "face-comparison",
+    "face-counting",
+    "face-deny-list",
+    "face-detection-algorithm",
+    "face-liveness",
+    "face-mask-detection",
+    "face-quality-assessment",
+    "face-recognition",
+    "fall-detection",
+    "fight-pose-assist",
+    "fighting-detection",
+    "fire-extinguisher-detection",
+    "flame-detection",
+    "flame-segmentation",
+    "flame-smoke-composite",
+    "garbage-accumulation",
+    "garbage-detection",
+    "general-object-detection",
+    "general-object-segmentation",
+    "general-text-recognition",
+    "hand-raising",
+    "handbag-detection",
+    "helmet-vest-joint-check",
+    "helmet-wearing-statistics",
+    "helmet-workwear-joint-check",
+    "human-pose-detection",
+    "illegal-parking",
+    "image-blur",
+    "image-too-bright",
+    "image-too-dark",
+    "incomplete-ppe-enter-danger-zone",
+    "intrusion-after-hours",
+    "job-overstaffed",
+    "job-understaffed",
+    "job-unmanned",
+    "label-text-recognition",
+    "ladder-detection",
+    "large-area-waterlogging",
+    "lcd-screen-reading",
+    "license-plate-capture",
+    "license-plate-deduplication",
+    "license-plate-detection",
+    "liquid-segmentation",
+    "long-person-dwell",
+    "long-time-fallen",
+    "long-time-left-object",
+    "long-time-static",
+    "lying-detection",
+    "mask-wearing-statistics",
+    "material-pile-segmentation",
+    "meter-digit-recognition",
+    "meter-status-recognition",
+    "mixed-person-vehicle-traffic",
+    "motorcycle-detection",
+    "motorcycle-type-recognition",
+    "multi-person-helmet-check",
+    "multi-point-flame",
+    "multiple-ppe-missing",
+    "no-face-detection",
+    "no-face-mask",
+    "no-helmet-enter-region",
+    "no-reflective-vest",
+    "no-safety-helmet",
+    "no-smoking-zone",
+    "no-vest-enter-region",
+    "no-workwear",
+    "object-appearance",
+    "object-area-calculation",
+    "object-counting",
+    "object-deduplication",
+    "object-disappearance",
+    "object-dwell-time",
+    "object-enter-region",
+    "object-leave-region",
+    "object-left-behind",
+    "object-ratio-calculation",
+    "object-removed",
+    "open-flame-detection",
+    "pallet-detection",
+    "parking-duration",
+    "passage-obstruction",
+    "people-counting",
+    "people-flow",
+    "people-gathering",
+    "person-absence",
+    "person-dwell",
+    "person-dwell-duration",
+    "person-enter",
+    "person-identity-confirmation",
+    "person-in-vehicle-work-zone",
+    "person-leave",
+    "person-line-crossing",
+    "person-loitering",
+    "person-on-ground",
+    "person-trajectory",
+    "person-vehicle-too-close",
+    "phone-object-detection",
+    "phone-use-enter-restricted-zone",
+    "photo-attack-detection",
+    "plate-color-recognition",
+    "plate-number-recognition",
+    "playing-phone",
+    "pointer-meter-reading",
+    "pose-climbing",
+    "pose-running",
+    "pose-sleeping-on-duty",
+    "pose-vaulting",
+    "ppe-completeness",
+    "prohibited-area-parking",
+    "pushing-detection",
+    "region-flame-detection",
+    "region-no-reflective-vest",
+    "region-no-safety-helmet",
+    "region-object-statistics",
+    "region-people-counting",
+    "region-phone-use",
+    "region-segmentation",
+    "region-smoke-detection",
+    "region-smoking",
+    "region-waterlogging",
+    "restricted-area-person",
+    "restricted-area-piling",
+    "restricted-phone-use",
+    "safety-cone-detection",
+    "screen-replay-attack",
+    "screen-text-recognition",
+    "sedan-recognition",
+    "sitting-posture",
+    "sleeping-on-duty-detection",
+    "smoke-segmentation",
+    "smoking-detection",
+    "smoking-enter-no-smoking-zone",
+    "smoking-person-count",
+    "specified-object-detection",
+    "squatting-detection",
+    "standing-posture",
+    "stranger-detection",
+    "strong-light",
+    "sustained-flame-detection",
+    "sustained-people-gathering",
+    "sustained-vehicle-congestion",
+    "suv-recognition",
+    "temporary-object-detection",
+    "text-prompt-object-detection",
+    "tool-detection",
+    "truck-detection",
+    "truck-type-recognition",
+    "umbrella-detection",
+    "unattended-fall",
+    "unclaimed-object",
+    "unidirectional-line-crossing",
+    "unlicensed-vehicle",
+    "unrecovered-fall",
+    "van-recognition",
+    "vehicle-access-record",
+    "vehicle-allow-deny-list",
+    "vehicle-area-intrusion",
+    "vehicle-congestion",
+    "vehicle-counting",
+    "vehicle-detection",
+    "vehicle-dwell",
+    "vehicle-enter",
+    "vehicle-entry-exit-statistics",
+    "vehicle-in-person-zone",
+    "vehicle-leave",
+    "vehicle-line-crossing",
+    "vehicle-plate-association",
+    "vehicle-trajectory",
+    "vehicle-type-statistics",
+    "vehicle-wrong-way",
+    "vest-wearing-statistics",
+    "video-freeze",
+    "video-signal-loss",
+    "waterlogging-area-change",
+    "waterlogging-detection",
+    "waterlogging-segmentation",
+    "white-screen",
+    "workwear-detection"
+  ],
+  "algorithms": [
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "primary",
+            "type": "DETECTOR",
+            "capabilityKey": "model.primary"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "algorithmPackage": {
+          "sha256": "ede44d1ca26662027cca3fffaa1934964d1fa84a0160b48a9a75c952e721de05",
+          "manifest": {
+            "code": "animal-intrusion-package",
+            "name": "动物闯入",
+            "models": [
+              {
+                "name": "通用目标检测模型",
+                "slot": "primary",
+                "labels": [
+                  "dog",
+                  "cat"
+                ],
+                "formats": [
+                  "ONNX",
+                  "RKNN"
+                ],
+                "taskType": "OBJECT_DETECTION"
+              }
+            ],
+            "version": "1.0.0",
+            "category": "REGION",
+            "eventType": "ANIMAL_INTRUSION",
+            "entrypoint": "processor.py",
+            "sdkVersion": "1.0",
+            "defaultRule": {
+              "dedup": {
+                "scope": "TRACK",
+                "windowSeconds": 60
+              },
+              "regions": [
+                {
+                  "id": "main",
+                  "name": "检测区域",
+                  "type": "POLYGON",
+                  "points": [
+                    {
+                      "x": 0,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 1
+                    },
+                    {
+                      "x": 0,
+                      "y": 1
+                    }
+                  ],
+                  "pointMode": "CENTROID",
+                  "sourceWidth": 1920,
+                  "sourceHeight": 1080,
+                  "overlapThreshold": 0.2
+                }
+              ],
+              "schedule": {
+                "weekly": [
+                  {
+                    "end": "23:59",
+                    "days": [
+                      1,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      7
+                    ],
+                    "start": "00:00"
+                  }
+                ],
+                "timezone": "Asia/Shanghai"
+              },
+              "severity": "MAJOR",
+              "condition": {
+                "type": "AND",
+                "children": [
+                  {
+                    "type": "ROI_ENTER",
+                    "regionId": "main",
+                    "objectClasses": [
+                      "dog",
+                      "cat"
+                    ]
+                  },
+                  {
+                    "m": 5,
+                    "n": 3,
+                    "type": "N_OF_M"
+                  },
+                  {
+                    "type": "DURATION",
+                    "seconds": 3
+                  }
+                ]
+              },
+              "eventType": "ANIMAL_INTRUSION",
+              "schemaVersion": "1.0",
+              "cooldownSeconds": 60,
+              "recoverySeconds": 5
+            },
+            "description": "检测犬猫进入设备区、仓储区等指定区域，持续确认后告警。",
+            "schemaVersion": "1.0",
+            "timeoutMillis": 5000,
+            "parameterSchema": {
+              "type": "object",
+              "required": [
+                "confidence"
+              ],
+              "properties": {
+                "confidence": {
+                  "type": "number",
+                  "title": "目标置信度",
+                  "maximum": 1,
+                  "minimum": 0.01
+                }
+              },
+              "additionalProperties": false
+            },
+            "defaultParameters": {
+              "confidence": 0.5
+            }
+          }
+        },
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "animal-intrusion-package",
+      "name": "动物闯入",
+      "category": "CUSTOM",
+      "eventType": "ANIMAL_INTRUSION",
+      "sceneGroup": "REGION",
+      "description": "检测犬猫进入设备区、仓储区等指定区域，持续确认后告警。",
+      "capabilityKey": "package.animal-intrusion-package",
+      "parameterSchema": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "object",
+            "required": [
+              "confidence"
+            ],
+            "properties": {
+              "confidence": {
+                "type": "number",
+                "title": "目标置信度",
+                "maximum": 1,
+                "minimum": 0.01
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "algorithm": {
+          "confidence": 0.5
+        },
+        "sampleFps": 1,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "package.animal-intrusion-package"
+      ],
+      "defaultModelCode": null,
+      "artifact": {
+        "fileName": "ede44d1ca266-animal-intrusion-package.zip",
+        "sha256": "ede44d1ca26662027cca3fffaa1934964d1fa84a0160b48a9a75c952e721de05",
+        "size": 1858
+      }
+    },
+    {
+      "dag": {
+        "edges": [
+          {
+            "to": "iou-tracker",
+            "from": "person-detector"
+          },
+          {
+            "to": "area-rule",
+            "from": "iou-tracker"
+          }
+        ],
+        "nodes": [
+          {
+            "id": "person-detector",
+            "type": "DETECTOR",
+            "input": "VIDEO_FRAME",
+            "output": "DETECTIONS",
+            "capabilityKey": "detector.person"
+          },
+          {
+            "id": "iou-tracker",
+            "type": "TRACKER",
+            "input": "DETECTIONS",
+            "output": "TRACKS",
+            "capabilityKey": "tracker.iou"
+          },
+          {
+            "id": "area-rule",
+            "type": "RULE",
+            "input": "TRACKS",
+            "output": "EVENT_TRANSITIONS",
+            "capabilityKey": "rule.area-intrusion"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "area-intrusion",
+      "name": "区域入侵",
+      "category": "CORE",
+      "eventType": "AREA_INTRUSION",
+      "sceneGroup": "PERSON",
+      "description": "Person Detection → IoU Tracker → Polygon ROI Rule；3/5 帧且持续 2 秒确认，输出事件证据与处置闭环",
+      "capabilityKey": "rule.area-intrusion",
+      "parameterSchema": {
+        "type": "object",
+        "required": [
+          "schemaVersion",
+          "confidence",
+          "nmsThreshold",
+          "sampleFps"
+        ],
+        "properties": {
+          "sampleFps": {
+            "type": "number",
+            "maximum": 10,
+            "minimum": 0.1
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1,
+            "minimum": 0.01
+          },
+          "nmsThreshold": {
+            "type": "number",
+            "maximum": 1,
+            "minimum": 0.01
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "sampleFps": 5.0,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "TRACK_RULE",
+      "requiredCapabilities": [
+        "rule.area-intrusion"
+      ],
+      "defaultModelCode": "generic-coco-object-detection"
+    },
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "primary",
+            "type": "DETECTOR",
+            "capabilityKey": "model.primary"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "algorithmPackage": {
+          "sha256": "e6a5a22c0b3ce2202caa57ca8c51835c86d5b5fdb0638f9aa28058572e487f46",
+          "manifest": {
+            "code": "bag-stationary-package",
+            "name": "箱包滞留",
+            "models": [
+              {
+                "name": "通用目标检测模型",
+                "slot": "primary",
+                "labels": [
+                  "backpack",
+                  "handbag",
+                  "suitcase"
+                ],
+                "formats": [
+                  "ONNX",
+                  "RKNN"
+                ],
+                "taskType": "OBJECT_DETECTION"
+              }
+            ],
+            "version": "1.0.0",
+            "category": "REGION",
+            "eventType": "BAG_STATIONARY",
+            "entrypoint": "processor.py",
+            "sdkVersion": "1.0",
+            "defaultRule": {
+              "dedup": {
+                "scope": "TRACK",
+                "windowSeconds": 60
+              },
+              "regions": [
+                {
+                  "id": "main",
+                  "name": "检测区域",
+                  "type": "POLYGON",
+                  "points": [
+                    {
+                      "x": 0,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 1
+                    },
+                    {
+                      "x": 0,
+                      "y": 1
+                    }
+                  ],
+                  "pointMode": "CENTROID",
+                  "sourceWidth": 1920,
+                  "sourceHeight": 1080,
+                  "overlapThreshold": 0.2
+                }
+              ],
+              "schedule": {
+                "weekly": [
+                  {
+                    "end": "23:59",
+                    "days": [
+                      1,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      7
+                    ],
+                    "start": "00:00"
+                  }
+                ],
+                "timezone": "Asia/Shanghai"
+              },
+              "severity": "MAJOR",
+              "condition": {
+                "type": "AND",
+                "children": [
+                  {
+                    "type": "ROI_ENTER",
+                    "regionId": "main",
+                    "objectClasses": [
+                      "backpack",
+                      "handbag",
+                      "suitcase"
+                    ]
+                  },
+                  {
+                    "type": "STATIONARY",
+                    "maxMovement": 0.02
+                  },
+                  {
+                    "m": 5,
+                    "n": 3,
+                    "type": "N_OF_M"
+                  },
+                  {
+                    "type": "DURATION",
+                    "seconds": 120
+                  }
+                ]
+              },
+              "eventType": "BAG_STATIONARY",
+              "schemaVersion": "1.0",
+              "cooldownSeconds": 60,
+              "recoverySeconds": 5
+            },
+            "description": "检测区域内持续静止的背包、手提包、行李箱；不判断物主或是否遗弃。",
+            "schemaVersion": "1.0",
+            "timeoutMillis": 5000,
+            "parameterSchema": {
+              "type": "object",
+              "required": [
+                "confidence"
+              ],
+              "properties": {
+                "confidence": {
+                  "type": "number",
+                  "title": "目标置信度",
+                  "maximum": 1,
+                  "minimum": 0.01
+                }
+              },
+              "additionalProperties": false
+            },
+            "defaultParameters": {
+              "confidence": 0.5
+            }
+          }
+        },
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "bag-stationary-package",
+      "name": "箱包滞留",
+      "category": "CUSTOM",
+      "eventType": "BAG_STATIONARY",
+      "sceneGroup": "REGION",
+      "description": "检测区域内持续静止的背包、手提包、行李箱；不判断物主或是否遗弃。",
+      "capabilityKey": "package.bag-stationary-package",
+      "parameterSchema": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "object",
+            "required": [
+              "confidence"
+            ],
+            "properties": {
+              "confidence": {
+                "type": "number",
+                "title": "目标置信度",
+                "maximum": 1,
+                "minimum": 0.01
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "algorithm": {
+          "confidence": 0.5
+        },
+        "sampleFps": 1,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "package.bag-stationary-package"
+      ],
+      "defaultModelCode": null,
+      "artifact": {
+        "fileName": "e6a5a22c0b3c-bag-stationary-package.zip",
+        "sha256": "e6a5a22c0b3ce2202caa57ca8c51835c86d5b5fdb0638f9aa28058572e487f46",
+        "size": 1992
+      }
+    },
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "primary",
+            "type": "DETECTOR",
+            "capabilityKey": "model.primary"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "algorithmPackage": {
+          "sha256": "e6495d3407f9c7371901a20bce13899d5bece7f671c5b8dc99fbc8ad268d86d2",
+          "manifest": {
+            "code": "crowd-limit-package",
+            "name": "区域人数超限",
+            "models": [
+              {
+                "name": "通用目标检测模型",
+                "slot": "primary",
+                "labels": [
+                  "person"
+                ],
+                "formats": [
+                  "ONNX",
+                  "RKNN"
+                ],
+                "taskType": "OBJECT_DETECTION"
+              }
+            ],
+            "version": "1.0.0",
+            "category": "REGION",
+            "eventType": "PEOPLE_LIMIT",
+            "entrypoint": "processor.py",
+            "sdkVersion": "1.0",
+            "defaultRule": {
+              "dedup": {
+                "scope": "CAMERA_TASK_TYPE",
+                "windowSeconds": 60
+              },
+              "regions": [
+                {
+                  "id": "main",
+                  "name": "检测区域",
+                  "type": "POLYGON",
+                  "points": [
+                    {
+                      "x": 0,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 1
+                    },
+                    {
+                      "x": 0,
+                      "y": 1
+                    }
+                  ],
+                  "pointMode": "CENTROID",
+                  "sourceWidth": 1920,
+                  "sourceHeight": 1080,
+                  "overlapThreshold": 0.2
+                }
+              ],
+              "schedule": {
+                "weekly": [
+                  {
+                    "end": "23:59",
+                    "days": [
+                      1,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      7
+                    ],
+                    "start": "00:00"
+                  }
+                ],
+                "timezone": "Asia/Shanghai"
+              },
+              "severity": "MAJOR",
+              "condition": {
+                "type": "AND",
+                "children": [
+                  {
+                    "type": "ROI_ENTER",
+                    "regionId": "main",
+                    "objectClasses": [
+                      "person"
+                    ]
+                  },
+                  {
+                    "min": 5,
+                    "type": "COUNT",
+                    "objectClasses": [
+                      "person"
+                    ]
+                  },
+                  {
+                    "m": 5,
+                    "n": 3,
+                    "type": "N_OF_M"
+                  },
+                  {
+                    "type": "DURATION",
+                    "seconds": 10
+                  }
+                ]
+              },
+              "eventType": "PEOPLE_LIMIT",
+              "schemaVersion": "1.0",
+              "cooldownSeconds": 60,
+              "recoverySeconds": 5
+            },
+            "description": "区域人数持续达到阈值后告警，适用于限员区域；不判断人员身份。",
+            "schemaVersion": "1.0",
+            "timeoutMillis": 5000,
+            "parameterSchema": {
+              "type": "object",
+              "required": [
+                "confidence"
+              ],
+              "properties": {
+                "confidence": {
+                  "type": "number",
+                  "title": "目标置信度",
+                  "maximum": 1,
+                  "minimum": 0.01
+                }
+              },
+              "additionalProperties": false
+            },
+            "defaultParameters": {
+              "confidence": 0.5
+            }
+          }
+        },
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "crowd-limit-package",
+      "name": "区域人数超限",
+      "category": "CUSTOM",
+      "eventType": "PEOPLE_LIMIT",
+      "sceneGroup": "REGION",
+      "description": "区域人数持续达到阈值后告警，适用于限员区域；不判断人员身份。",
+      "capabilityKey": "package.crowd-limit-package",
+      "parameterSchema": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "object",
+            "required": [
+              "confidence"
+            ],
+            "properties": {
+              "confidence": {
+                "type": "number",
+                "title": "目标置信度",
+                "maximum": 1,
+                "minimum": 0.01
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "algorithm": {
+          "confidence": 0.5
+        },
+        "sampleFps": 1,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "package.crowd-limit-package"
+      ],
+      "defaultModelCode": null,
+      "artifact": {
+        "fileName": "e6495d3407f9-crowd-limit-package.zip",
+        "sha256": "e6495d3407f9c7371901a20bce13899d5bece7f671c5b8dc99fbc8ad268d86d2",
+        "size": 1883
+      }
+    },
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "face",
+            "type": "DETECTOR",
+            "capabilityKey": "model.face"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "algorithmPackage": {
+          "sha256": "09a94c5d710dc3839e83f2ef84d195fa9a2575d6a282f964a8a15159f89ed820",
+          "manifest": {
+            "code": "face-identification-package",
+            "name": "人员库刷脸识别",
+            "models": [
+              {
+                "name": "人脸检测与特征模型",
+                "slot": "face",
+                "formats": [
+                  "ARCHIVE"
+                ],
+                "taskType": "FACE_VERIFICATION"
+              }
+            ],
+            "version": "1.0.1",
+            "category": "IDENTITY",
+            "eventType": "FACE_IDENTIFICATION",
+            "resources": [
+              {
+                "key": "people",
+                "type": "FACE_LIBRARY",
+                "modelSlot": "face",
+                "parameter": "libraryId",
+                "selectionParameter": "personIds"
+              }
+            ],
+            "entrypoint": "processor.py",
+            "sdkVersion": "1.0",
+            "description": "在刷脸区域与指定人员库比对，按相似度及多帧确认身份；不包含活体检测。",
+            "schemaVersion": "1.0",
+            "timeoutMillis": 5000,
+            "parameterSchema": {
+              "type": "object",
+              "required": [
+                "libraryId",
+                "similarity",
+                "margin",
+                "confirmFrames",
+                "windowFrames",
+                "roi"
+              ],
+              "properties": {
+                "roi": {
+                  "type": "object",
+                  "title": "识别区域",
+                  "required": [
+                    "x",
+                    "y",
+                    "width",
+                    "height"
+                  ],
+                  "x-widget": "roi",
+                  "properties": {
+                    "x": {
+                      "type": "number",
+                      "title": "区域左侧（0–1）",
+                      "maximum": 1,
+                      "minimum": 0
+                    },
+                    "y": {
+                      "type": "number",
+                      "title": "区域顶部（0–1）",
+                      "maximum": 1,
+                      "minimum": 0
+                    },
+                    "width": {
+                      "type": "number",
+                      "title": "区域宽度（0–1）",
+                      "maximum": 1,
+                      "minimum": 0
+                    },
+                    "height": {
+                      "type": "number",
+                      "title": "区域高度（0–1）",
+                      "maximum": 1,
+                      "minimum": 0
+                    }
+                  }
+                },
+                "margin": {
+                  "type": "number",
+                  "title": "候选身份最小差值",
+                  "maximum": 0.5,
+                  "minimum": 0.01
+                },
+                "libraryId": {
+                  "type": "integer",
+                  "title": "对比人员库",
+                  "minimum": 1,
+                  "x-widget": "person-library"
+                },
+                "personIds": {
+                  "type": "array",
+                  "title": "参与比对人员",
+                  "maxItems": 256,
+                  "x-widget": "people",
+                  "x-library-field": "libraryId"
+                },
+                "similarity": {
+                  "type": "number",
+                  "title": "身份相似度",
+                  "maximum": 1,
+                  "minimum": 0.1
+                },
+                "windowFrames": {
+                  "type": "integer",
+                  "title": "观察窗口帧数",
+                  "maximum": 15,
+                  "minimum": 2
+                },
+                "confirmFrames": {
+                  "type": "integer",
+                  "title": "至少确认帧数",
+                  "maximum": 10,
+                  "minimum": 2
+                }
+              },
+              "additionalProperties": false
+            },
+            "defaultParameters": {
+              "roi": {
+                "x": 0.25,
+                "y": 0.1,
+                "width": 0.5,
+                "height": 0.8
+              },
+              "margin": 0.08,
+              "personIds": [],
+              "similarity": 0.6,
+              "windowFrames": 5,
+              "confirmFrames": 3
+            }
+          }
+        },
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "face-identification-package",
+      "name": "人员库刷脸识别",
+      "category": "CUSTOM",
+      "eventType": "FACE_IDENTIFICATION",
+      "sceneGroup": "IDENTITY",
+      "description": "在刷脸区域与指定人员库比对，按相似度及多帧确认身份；不包含活体检测。",
+      "capabilityKey": "package.face-identification-package",
+      "parameterSchema": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "object",
+            "required": [
+              "libraryId",
+              "similarity",
+              "margin",
+              "confirmFrames",
+              "windowFrames",
+              "roi"
+            ],
+            "properties": {
+              "roi": {
+                "type": "object",
+                "title": "识别区域",
+                "required": [
+                  "x",
+                  "y",
+                  "width",
+                  "height"
+                ],
+                "x-widget": "roi",
+                "properties": {
+                  "x": {
+                    "type": "number",
+                    "title": "区域左侧（0–1）",
+                    "maximum": 1,
+                    "minimum": 0
+                  },
+                  "y": {
+                    "type": "number",
+                    "title": "区域顶部（0–1）",
+                    "maximum": 1,
+                    "minimum": 0
+                  },
+                  "width": {
+                    "type": "number",
+                    "title": "区域宽度（0–1）",
+                    "maximum": 1,
+                    "minimum": 0
+                  },
+                  "height": {
+                    "type": "number",
+                    "title": "区域高度（0–1）",
+                    "maximum": 1,
+                    "minimum": 0
+                  }
+                }
+              },
+              "margin": {
+                "type": "number",
+                "title": "候选身份最小差值",
+                "maximum": 0.5,
+                "minimum": 0.01
+              },
+              "libraryId": {
+                "type": "integer",
+                "title": "对比人员库",
+                "minimum": 1,
+                "x-widget": "person-library"
+              },
+              "personIds": {
+                "type": "array",
+                "title": "参与比对人员",
+                "maxItems": 256,
+                "x-widget": "people",
+                "x-library-field": "libraryId"
+              },
+              "similarity": {
+                "type": "number",
+                "title": "身份相似度",
+                "maximum": 1,
+                "minimum": 0.1
+              },
+              "windowFrames": {
+                "type": "integer",
+                "title": "观察窗口帧数",
+                "maximum": 15,
+                "minimum": 2
+              },
+              "confirmFrames": {
+                "type": "integer",
+                "title": "至少确认帧数",
+                "maximum": 10,
+                "minimum": 2
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "algorithm": {
+          "roi": {
+            "x": 0.25,
+            "y": 0.1,
+            "width": 0.5,
+            "height": 0.8
+          },
+          "margin": 0.08,
+          "personIds": [],
+          "similarity": 0.6,
+          "windowFrames": 5,
+          "confirmFrames": 3
+        },
+        "sampleFps": 1,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "package.face-identification-package"
+      ],
+      "defaultModelCode": null,
+      "artifact": {
+        "fileName": "09a94c5d710d-face-identification-package.zip",
+        "sha256": "09a94c5d710dc3839e83f2ef84d195fa9a2575d6a282f964a8a15159f89ed820",
+        "size": 2137
+      }
+    },
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "primary",
+            "type": "DETECTOR",
+            "capabilityKey": "model.primary"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "algorithmPackage": {
+          "sha256": "49d7ba33e8e78e5c31923b68b8b04042ae9169e66c60f5e6ce759996c129b108",
+          "manifest": {
+            "code": "fall-detection-package",
+            "name": "跌倒检测",
+            "models": [
+              {
+                "name": "跌倒姿态模型",
+                "slot": "primary",
+                "labels": [
+                  "fall"
+                ],
+                "formats": [
+                  "ONNX",
+                  "RKNN"
+                ],
+                "taskType": "OBJECT_DETECTION"
+              }
+            ],
+            "version": "1.0.0",
+            "category": "BEHAVIOR",
+            "eventType": "FALL",
+            "entrypoint": "processor.py",
+            "sdkVersion": "1.0",
+            "defaultRule": {
+              "dedup": {
+                "scope": "TRACK",
+                "windowSeconds": 60
+              },
+              "regions": [
+                {
+                  "id": "main",
+                  "name": "检测区域",
+                  "type": "POLYGON",
+                  "points": [
+                    {
+                      "x": 0,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 1
+                    },
+                    {
+                      "x": 0,
+                      "y": 1
+                    }
+                  ],
+                  "pointMode": "CENTROID",
+                  "sourceWidth": 1920,
+                  "sourceHeight": 1080,
+                  "overlapThreshold": 0.2
+                }
+              ],
+              "schedule": {
+                "weekly": [
+                  {
+                    "end": "23:59",
+                    "days": [
+                      1,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      7
+                    ],
+                    "start": "00:00"
+                  }
+                ],
+                "timezone": "Asia/Shanghai"
+              },
+              "severity": "MAJOR",
+              "condition": {
+                "type": "AND",
+                "children": [
+                  {
+                    "type": "ROI_ENTER",
+                    "regionId": "main",
+                    "objectClasses": [
+                      "fall"
+                    ]
+                  },
+                  {
+                    "m": 5,
+                    "n": 3,
+                    "type": "N_OF_M"
+                  },
+                  {
+                    "type": "DURATION",
+                    "seconds": 2
+                  }
+                ]
+              },
+              "eventType": "FALL",
+              "schemaVersion": "1.0",
+              "cooldownSeconds": 60,
+              "recoverySeconds": 5
+            },
+            "description": "检测跌倒姿态，连续确认后告警；需要具有跌倒类别的模型。",
+            "schemaVersion": "1.0",
+            "timeoutMillis": 5000,
+            "parameterSchema": {
+              "type": "object",
+              "required": [
+                "fallConfidence"
+              ],
+              "properties": {
+                "fallConfidence": {
+                  "type": "number",
+                  "title": "跌倒置信度",
+                  "maximum": 1,
+                  "minimum": 0.01,
+                  "description": "低于此值的检测结果不参与告警。"
+                }
+              },
+              "additionalProperties": false
+            },
+            "defaultParameters": {
+              "fallConfidence": 0.6
+            }
+          }
+        },
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "fall-detection-package",
+      "name": "跌倒检测",
+      "category": "CUSTOM",
+      "eventType": "FALL",
+      "sceneGroup": "BEHAVIOR",
+      "description": "检测跌倒姿态，连续确认后告警；需要具有跌倒类别的模型。",
+      "capabilityKey": "package.fall-detection-package",
+      "parameterSchema": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "object",
+            "required": [
+              "fallConfidence"
+            ],
+            "properties": {
+              "fallConfidence": {
+                "type": "number",
+                "title": "跌倒置信度",
+                "maximum": 1,
+                "minimum": 0.01,
+                "description": "低于此值的检测结果不参与告警。"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "algorithm": {
+          "fallConfidence": 0.6
+        },
+        "sampleFps": 1,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "package.fall-detection-package"
+      ],
+      "defaultModelCode": null,
+      "artifact": {
+        "fileName": "49d7ba33e8e7-fall-detection-package.zip",
+        "sha256": "49d7ba33e8e78e5c31923b68b8b04042ae9169e66c60f5e6ce759996c129b108",
+        "size": 6486
+      }
+    },
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "person",
+            "type": "DETECTOR",
+            "capabilityKey": "model.person"
+          },
+          {
+            "id": "action",
+            "type": "DETECTOR",
+            "capabilityKey": "model.action"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "algorithmPackage": {
+          "sha256": "56e0e2318cb28493026a6cca4be4d5387751a1330f14d24e66a5ac91164e0d74",
+          "manifest": {
+            "code": "fighting-assist-package",
+            "name": "疑似打架检测",
+            "models": [
+              {
+                "name": "人员检测模型",
+                "slot": "person",
+                "labels": [
+                  "person"
+                ],
+                "formats": [
+                  "ONNX",
+                  "RKNN"
+                ],
+                "taskType": "OBJECT_DETECTION"
+              },
+              {
+                "name": "行为分类模型",
+                "slot": "action",
+                "labels": [
+                  "fighting"
+                ],
+                "formats": [
+                  "ONNX"
+                ],
+                "taskType": "CLASSIFICATION"
+              }
+            ],
+            "version": "1.0.1",
+            "category": "BEHAVIOR",
+            "eventType": "FIGHTING",
+            "entrypoint": "processor.py",
+            "sdkVersion": "1.0",
+            "defaultRule": {
+              "dedup": {
+                "scope": "TRACK",
+                "windowSeconds": 60
+              },
+              "regions": [
+                {
+                  "id": "main",
+                  "name": "检测区域",
+                  "type": "POLYGON",
+                  "points": [
+                    {
+                      "x": 0,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 1
+                    },
+                    {
+                      "x": 0,
+                      "y": 1
+                    }
+                  ],
+                  "pointMode": "CENTROID",
+                  "sourceWidth": 1920,
+                  "sourceHeight": 1080,
+                  "overlapThreshold": 0.2
+                }
+              ],
+              "schedule": {
+                "weekly": [
+                  {
+                    "end": "23:59",
+                    "days": [
+                      1,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      7
+                    ],
+                    "start": "00:00"
+                  }
+                ],
+                "timezone": "Asia/Shanghai"
+              },
+              "severity": "MAJOR",
+              "condition": {
+                "type": "AND",
+                "children": [
+                  {
+                    "type": "ROI_ENTER",
+                    "regionId": "main",
+                    "objectClasses": [
+                      "fighting"
+                    ]
+                  },
+                  {
+                    "m": 5,
+                    "n": 3,
+                    "type": "N_OF_M"
+                  },
+                  {
+                    "type": "DURATION",
+                    "seconds": 5
+                  }
+                ]
+              },
+              "eventType": "FIGHTING",
+              "schemaVersion": "1.0",
+              "cooldownSeconds": 60,
+              "recoverySeconds": 5
+            },
+            "description": "组合人员检测与行为分类，检测近邻多人区域内持续出现的疑似打架；需人工复核，拥抱、作业协作等可能误报。",
+            "schemaVersion": "1.0",
+            "timeoutMillis": 15000,
+            "parameterSchema": {
+              "type": "object",
+              "required": [
+                "personConfidence",
+                "fightConfidence",
+                "maxPairs"
+              ],
+              "properties": {
+                "maxPairs": {
+                  "type": "integer",
+                  "title": "每帧最多分析人员对",
+                  "maximum": 4,
+                  "minimum": 1
+                },
+                "fightConfidence": {
+                  "type": "number",
+                  "title": "打架分类置信度",
+                  "maximum": 1,
+                  "minimum": 0.01
+                },
+                "personConfidence": {
+                  "type": "number",
+                  "title": "人员置信度",
+                  "maximum": 1,
+                  "minimum": 0.01
+                }
+              },
+              "additionalProperties": false
+            },
+            "defaultParameters": {
+              "maxPairs": 2,
+              "fightConfidence": 0.85,
+              "personConfidence": 0.5
+            }
+          }
+        },
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "fighting-assist-package",
+      "name": "疑似打架检测",
+      "category": "CUSTOM",
+      "eventType": "FIGHTING",
+      "sceneGroup": "BEHAVIOR",
+      "description": "组合人员检测与行为分类，检测近邻多人区域内持续出现的疑似打架；需人工复核，拥抱、作业协作等可能误报。",
+      "capabilityKey": "package.fighting-assist-package",
+      "parameterSchema": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "object",
+            "required": [
+              "personConfidence",
+              "fightConfidence",
+              "maxPairs"
+            ],
+            "properties": {
+              "maxPairs": {
+                "type": "integer",
+                "title": "每帧最多分析人员对",
+                "maximum": 4,
+                "minimum": 1
+              },
+              "fightConfidence": {
+                "type": "number",
+                "title": "打架分类置信度",
+                "maximum": 1,
+                "minimum": 0.01
+              },
+              "personConfidence": {
+                "type": "number",
+                "title": "人员置信度",
+                "maximum": 1,
+                "minimum": 0.01
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "algorithm": {
+          "maxPairs": 2,
+          "fightConfidence": 0.85,
+          "personConfidence": 0.5
+        },
+        "sampleFps": 1,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "package.fighting-assist-package"
+      ],
+      "defaultModelCode": null,
+      "artifact": {
+        "fileName": "56e0e2318cb2-fighting-assist-package.zip",
+        "sha256": "56e0e2318cb28493026a6cca4be4d5387751a1330f14d24e66a5ac91164e0d74",
+        "size": 2849
+      }
+    },
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "primary",
+            "type": "DETECTOR",
+            "capabilityKey": "model.primary"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "algorithmPackage": {
+          "sha256": "bb39d2877e84c0ff13cc9ed775be3fb409ae50e8e20d29bee462065a1e45ddd9",
+          "manifest": {
+            "code": "fire-lane-package",
+            "name": "消防通道占用",
+            "models": [
+              {
+                "name": "通用目标检测模型",
+                "slot": "primary",
+                "labels": [
+                  "car",
+                  "truck",
+                  "bus",
+                  "bicycle",
+                  "motorcycle",
+                  "chair",
+                  "couch",
+                  "bench",
+                  "backpack",
+                  "handbag",
+                  "suitcase"
+                ],
+                "formats": [
+                  "ONNX",
+                  "RKNN"
+                ],
+                "taskType": "OBJECT_DETECTION"
+              }
+            ],
+            "version": "1.0.0",
+            "category": "REGION",
+            "eventType": "FIRE_LANE_OCCUPIED",
+            "entrypoint": "processor.py",
+            "sdkVersion": "1.0",
+            "defaultRule": {
+              "dedup": {
+                "scope": "TRACK",
+                "windowSeconds": 60
+              },
+              "regions": [
+                {
+                  "id": "main",
+                  "name": "检测区域",
+                  "type": "POLYGON",
+                  "points": [
+                    {
+                      "x": 0,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 1
+                    },
+                    {
+                      "x": 0,
+                      "y": 1
+                    }
+                  ],
+                  "pointMode": "CENTROID",
+                  "sourceWidth": 1920,
+                  "sourceHeight": 1080,
+                  "overlapThreshold": 0.2
+                }
+              ],
+              "schedule": {
+                "weekly": [
+                  {
+                    "end": "23:59",
+                    "days": [
+                      1,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      7
+                    ],
+                    "start": "00:00"
+                  }
+                ],
+                "timezone": "Asia/Shanghai"
+              },
+              "severity": "MAJOR",
+              "condition": {
+                "type": "AND",
+                "children": [
+                  {
+                    "type": "ROI_ENTER",
+                    "regionId": "main",
+                    "objectClasses": [
+                      "car",
+                      "truck",
+                      "bus",
+                      "bicycle",
+                      "motorcycle",
+                      "chair",
+                      "couch",
+                      "bench",
+                      "backpack",
+                      "handbag",
+                      "suitcase"
+                    ]
+                  },
+                  {
+                    "type": "STATIONARY",
+                    "maxMovement": 0.02
+                  },
+                  {
+                    "m": 5,
+                    "n": 3,
+                    "type": "N_OF_M"
+                  },
+                  {
+                    "type": "DURATION",
+                    "seconds": 30
+                  }
+                ]
+              },
+              "eventType": "FIRE_LANE_OCCUPIED",
+              "schemaVersion": "1.0",
+              "cooldownSeconds": 60,
+              "recoverySeconds": 5
+            },
+            "description": "检测消防通道内持续静止的车辆、座椅和箱包；不覆盖沙堆、托盘、纸箱等模型未支持的障碍物。",
+            "schemaVersion": "1.0",
+            "timeoutMillis": 5000,
+            "parameterSchema": {
+              "type": "object",
+              "required": [
+                "confidence"
+              ],
+              "properties": {
+                "confidence": {
+                  "type": "number",
+                  "title": "目标置信度",
+                  "maximum": 1,
+                  "minimum": 0.01
+                }
+              },
+              "additionalProperties": false
+            },
+            "defaultParameters": {
+              "confidence": 0.5
+            }
+          }
+        },
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "fire-lane-package",
+      "name": "消防通道占用",
+      "category": "CUSTOM",
+      "eventType": "FIRE_LANE_OCCUPIED",
+      "sceneGroup": "REGION",
+      "description": "检测消防通道内持续静止的车辆、座椅和箱包；不覆盖沙堆、托盘、纸箱等模型未支持的障碍物。",
+      "capabilityKey": "package.fire-lane-package",
+      "parameterSchema": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "object",
+            "required": [
+              "confidence"
+            ],
+            "properties": {
+              "confidence": {
+                "type": "number",
+                "title": "目标置信度",
+                "maximum": 1,
+                "minimum": 0.01
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "algorithm": {
+          "confidence": 0.5
+        },
+        "sampleFps": 1,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "package.fire-lane-package"
+      ],
+      "defaultModelCode": null,
+      "artifact": {
+        "fileName": "bb39d2877e84-fire-lane-package.zip",
+        "sha256": "bb39d2877e84c0ff13cc9ed775be3fb409ae50e8e20d29bee462065a1e45ddd9",
+        "size": 2286
+      }
+    },
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "capability",
+            "type": "DETECTOR",
+            "modelCode": "flame-smoke-detection",
+            "capabilityKey": "detector.flame-smoke"
+          }
+        ],
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        },
+        "schemaVersion": "1.0"
+      },
+      "code": "flame-smoke-joint-detection",
+      "name": "火焰与烟雾联合检测",
+      "category": "EXTENSION",
+      "eventType": "FLAME_SMOKE_JOINT",
+      "sceneGroup": "FIRE_SMOKE",
+      "description": "同时检测烟雾和火焰，持续出现并满足告警条件时生成事件。",
+      "capabilityKey": "detector.flame-smoke",
+      "parameterSchema": {
+        "type": "object",
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "sampleFps": 4,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "classFilter": [
+          "smoke",
+          "flame"
+        ],
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "MODEL_DIRECT",
+      "requiredCapabilities": [
+        "detector.flame-smoke"
+      ],
+      "defaultModelCode": "flame-smoke-detection"
+    },
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "person",
+            "type": "DETECTOR",
+            "capabilityKey": "model.person"
+          },
+          {
+            "id": "ppe",
+            "type": "DETECTOR",
+            "capabilityKey": "model.ppe"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "algorithmPackage": {
+          "sha256": "5af49e2dbba4718cf5eeb15fa3d40d69e04d4d705a93640fb85ba460d9d0b7cd",
+          "manifest": {
+            "code": "helmet-detection-package",
+            "name": "安全帽检测",
+            "models": [
+              {
+                "name": "人员检测模型",
+                "slot": "person",
+                "labels": [
+                  "person"
+                ],
+                "formats": [
+                  "ONNX",
+                  "RKNN"
+                ],
+                "taskType": "OBJECT_DETECTION"
+              },
+              {
+                "name": "安全帽检测模型",
+                "slot": "ppe",
+                "labels": [
+                  "helmet",
+                  "no_helmet"
+                ],
+                "formats": [
+                  "ONNX",
+                  "RKNN"
+                ],
+                "taskType": "OBJECT_DETECTION"
+              }
+            ],
+            "version": "1.0.3",
+            "category": "PPE",
+            "eventType": "SAFETY_HELMET",
+            "entrypoint": "processor.py",
+            "sdkVersion": "1.0",
+            "description": "按人员头部位置一对一关联安全帽检测结果；没有明确证据时保持待确认。",
+            "schemaVersion": "1.0",
+            "timeoutMillis": 5000,
+            "parameterSchema": {
+              "type": "object",
+              "required": [
+                "personConfidence",
+                "ppeConfidence"
+              ],
+              "properties": {
+                "ppeConfidence": {
+                  "type": "number",
+                  "title": "穿戴置信度",
+                  "maximum": 1,
+                  "minimum": 0.01
+                },
+                "showPersonBox": {
+                  "type": "boolean",
+                  "title": "显示人员全身框",
+                  "description": "关闭时显示模型实际检测到的部位；没有明确穿戴结果时显示人员位置并标记待确认。此选项只影响展示。"
+                },
+                "personConfidence": {
+                  "type": "number",
+                  "title": "人员置信度",
+                  "maximum": 1,
+                  "minimum": 0.01
+                }
+              },
+              "additionalProperties": false
+            },
+            "defaultParameters": {
+              "ppeConfidence": 0.5,
+              "showPersonBox": false,
+              "personConfidence": 0.5
+            }
+          }
+        },
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "helmet-detection-package",
+      "name": "安全帽检测",
+      "category": "CUSTOM",
+      "eventType": "SAFETY_HELMET",
+      "sceneGroup": "PPE",
+      "description": "确认人员后关联穿戴检测结果；没有明确证据时保持待确认。",
+      "capabilityKey": "package.helmet-detection-package",
+      "parameterSchema": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "object",
+            "required": [
+              "personConfidence",
+              "ppeConfidence"
+            ],
+            "properties": {
+              "ppeConfidence": {
+                "type": "number",
+                "title": "穿戴置信度",
+                "maximum": 1,
+                "minimum": 0.01
+              },
+              "personConfidence": {
+                "type": "number",
+                "title": "人员置信度",
+                "maximum": 1,
+                "minimum": 0.01
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "algorithm": {
+          "ppeConfidence": 0.5,
+          "personConfidence": 0.5
+        },
+        "sampleFps": 1,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "package.helmet-detection-package"
+      ],
+      "defaultModelCode": null,
+      "artifact": {
+        "fileName": "5af49e2dbba4-helmet-detection-package.zip",
+        "sha256": "5af49e2dbba4718cf5eeb15fa3d40d69e04d4d705a93640fb85ba460d9d0b7cd",
+        "size": 8349
+      }
+    },
+    {
+      "dag": {
+        "edges": [
+          {
+            "to": "plate-ocr",
+            "from": "plate-detector"
+          },
+          {
+            "to": "iou-tracker",
+            "from": "plate-ocr"
+          }
+        ],
+        "nodes": [
+          {
+            "id": "plate-detector",
+            "type": "DETECTOR",
+            "modelCode": "chinese-plate-yolo",
+            "modelCodes": [
+              "chinese-plate-yolo",
+              "chinese-plate-yolo-rk3588"
+            ],
+            "capabilityKey": "detector.license-plate"
+          },
+          {
+            "id": "plate-ocr",
+            "type": "OCR",
+            "modelCode": "chinese-plate-ocr",
+            "modelCodes": [
+              "chinese-plate-ocr",
+              "chinese-plate-ocr-rk3588"
+            ],
+            "capabilityKey": "ocr.license-plate"
+          },
+          {
+            "id": "iou-tracker",
+            "type": "TRACKER",
+            "capabilityKey": "tracker.iou"
+          }
+        ],
+        "preset": {
+          "code": "license-plate",
+          "revision": 3
+        },
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        },
+        "schemaVersion": "1.0"
+      },
+      "code": "license-plate",
+      "name": "车牌识别",
+      "category": "CORE",
+      "eventType": "LICENSE_PLATE",
+      "sceneGroup": "LICENSE_PLATE",
+      "description": "中文车牌专用四角定位、原图透视裁剪、专用 OCR 与多帧确认；输出车牌号码和证据。现场效果待验收。",
+      "capabilityKey": "ocr.license-plate",
+      "parameterSchema": {
+        "type": "object",
+        "required": [
+          "schemaVersion",
+          "confidence",
+          "sampleFps",
+          "ocrMinConfidence",
+          "ocrMinVotes",
+          "ocrVoteFrames",
+          "ocrVoteMaxAgeSeconds"
+        ],
+        "properties": {
+          "sampleFps": {
+            "type": "number",
+            "maximum": 10,
+            "minimum": 0.1
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1,
+            "minimum": 0.01
+          },
+          "ocrMinVotes": {
+            "type": "integer",
+            "title": "一致识别帧数",
+            "maximum": 30,
+            "minimum": 2
+          },
+          "ocrVoteFrames": {
+            "type": "integer",
+            "title": "投票窗口帧数",
+            "maximum": 30,
+            "minimum": 2
+          },
+          "plateUseRuleRoi": {
+            "type": "boolean",
+            "title": "在告警区域内检测车牌"
+          },
+          "ocrMinConfidence": {
+            "type": "number",
+            "title": "车牌最低置信度",
+            "maximum": 1,
+            "minimum": 0.01
+          },
+          "plateMaxCandidates": {
+            "type": "integer",
+            "title": "每帧最多识别车牌数",
+            "maximum": 30,
+            "minimum": 1
+          },
+          "ocrVoteMaxAgeSeconds": {
+            "type": "number",
+            "title": "投票有效时间（秒）",
+            "maximum": 60,
+            "minimum": 1
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "sampleFps": 4,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "ocrMinVotes": 3,
+        "nmsThreshold": 0.5,
+        "ocrVoteFrames": 5,
+        "schemaVersion": "1.0",
+        "validationOnly": true,
+        "plateUseRuleRoi": true,
+        "ocrMinConfidence": 0.75,
+        "plateMaxCandidates": 10,
+        "ocrVoteMaxAgeSeconds": 10
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "detector.license-plate",
+        "ocr.license-plate",
+        "tracker.iou"
+      ],
+      "defaultModelCode": "chinese-plate-yolo"
+    },
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "primary",
+            "type": "DETECTOR",
+            "capabilityKey": "model.primary"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "algorithmPackage": {
+          "sha256": "1e2197e405f5f77ad1153582b0c87181fb30fbd91e96986a325c3e687f42ea39",
+          "manifest": {
+            "code": "nonmotor-intrusion-package",
+            "name": "非机动车闯入",
+            "models": [
+              {
+                "name": "通用目标检测模型",
+                "slot": "primary",
+                "labels": [
+                  "bicycle",
+                  "motorcycle"
+                ],
+                "formats": [
+                  "ONNX",
+                  "RKNN"
+                ],
+                "taskType": "OBJECT_DETECTION"
+              }
+            ],
+            "version": "1.0.0",
+            "category": "REGION",
+            "eventType": "NONMOTOR_INTRUSION",
+            "entrypoint": "processor.py",
+            "sdkVersion": "1.0",
+            "defaultRule": {
+              "dedup": {
+                "scope": "TRACK",
+                "windowSeconds": 60
+              },
+              "regions": [
+                {
+                  "id": "main",
+                  "name": "检测区域",
+                  "type": "POLYGON",
+                  "points": [
+                    {
+                      "x": 0,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 1
+                    },
+                    {
+                      "x": 0,
+                      "y": 1
+                    }
+                  ],
+                  "pointMode": "CENTROID",
+                  "sourceWidth": 1920,
+                  "sourceHeight": 1080,
+                  "overlapThreshold": 0.2
+                }
+              ],
+              "schedule": {
+                "weekly": [
+                  {
+                    "end": "23:59",
+                    "days": [
+                      1,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      7
+                    ],
+                    "start": "00:00"
+                  }
+                ],
+                "timezone": "Asia/Shanghai"
+              },
+              "severity": "MAJOR",
+              "condition": {
+                "type": "AND",
+                "children": [
+                  {
+                    "type": "ROI_ENTER",
+                    "regionId": "main",
+                    "objectClasses": [
+                      "bicycle",
+                      "motorcycle"
+                    ]
+                  },
+                  {
+                    "m": 5,
+                    "n": 3,
+                    "type": "N_OF_M"
+                  },
+                  {
+                    "type": "DURATION",
+                    "seconds": 2
+                  }
+                ]
+              },
+              "eventType": "NONMOTOR_INTRUSION",
+              "schemaVersion": "1.0",
+              "cooldownSeconds": 60,
+              "recoverySeconds": 5
+            },
+            "description": "检测自行车、摩托车进入禁行区域；通用模型不能可靠区分电动车。",
+            "schemaVersion": "1.0",
+            "timeoutMillis": 5000,
+            "parameterSchema": {
+              "type": "object",
+              "required": [
+                "confidence"
+              ],
+              "properties": {
+                "confidence": {
+                  "type": "number",
+                  "title": "目标置信度",
+                  "maximum": 1,
+                  "minimum": 0.01
+                }
+              },
+              "additionalProperties": false
+            },
+            "defaultParameters": {
+              "confidence": 0.5
+            }
+          }
+        },
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "nonmotor-intrusion-package",
+      "name": "非机动车闯入",
+      "category": "CUSTOM",
+      "eventType": "NONMOTOR_INTRUSION",
+      "sceneGroup": "REGION",
+      "description": "检测自行车、摩托车进入禁行区域；通用模型不能可靠区分电动车。",
+      "capabilityKey": "package.nonmotor-intrusion-package",
+      "parameterSchema": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "object",
+            "required": [
+              "confidence"
+            ],
+            "properties": {
+              "confidence": {
+                "type": "number",
+                "title": "目标置信度",
+                "maximum": 1,
+                "minimum": 0.01
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "algorithm": {
+          "confidence": 0.5
+        },
+        "sampleFps": 1,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "package.nonmotor-intrusion-package"
+      ],
+      "defaultModelCode": null,
+      "artifact": {
+        "fileName": "1e2197e405f5-nonmotor-intrusion-package.zip",
+        "sha256": "1e2197e405f5f77ad1153582b0c87181fb30fbd91e96986a325c3e687f42ea39",
+        "size": 1917
+      }
+    },
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "person",
+            "type": "DETECTOR",
+            "capabilityKey": "model.person"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "algorithmPackage": {
+          "sha256": "67b382a80b26e3cdbf859e45f7f63eed781dc586e49ae94be2ae308b8057c81b",
+          "manifest": {
+            "code": "people-counting-package",
+            "name": "人员统计",
+            "models": [
+              {
+                "name": "人员检测模型",
+                "slot": "person",
+                "labels": [
+                  "person"
+                ],
+                "formats": [
+                  "ONNX",
+                  "RKNN"
+                ],
+                "taskType": "OBJECT_DETECTION"
+              }
+            ],
+            "version": "1.0.0",
+            "category": "REGION",
+            "eventType": "PEOPLE_COUNT",
+            "entrypoint": "processor.py",
+            "outputMode": "STATISTICS",
+            "sdkVersion": "1.0",
+            "description": "统计摄像头区域内的当前人数，支持框选区域和实时人数显示。无需人员库。",
+            "schemaVersion": "1.0",
+            "timeoutMillis": 5000,
+            "parameterSchema": {
+              "type": "object",
+              "required": [
+                "roi",
+                "useFootPoint",
+                "personConfidence",
+                "showPersonBoxes"
+              ],
+              "properties": {
+                "roi": {
+                  "type": "object",
+                  "title": "人数统计区域",
+                  "required": [
+                    "x",
+                    "y",
+                    "width",
+                    "height"
+                  ],
+                  "x-widget": "roi",
+                  "properties": {
+                    "x": {
+                      "type": "number",
+                      "title": "区域左侧（0–1）",
+                      "maximum": 1,
+                      "minimum": 0
+                    },
+                    "y": {
+                      "type": "number",
+                      "title": "区域顶部（0–1）",
+                      "maximum": 1,
+                      "minimum": 0
+                    },
+                    "width": {
+                      "type": "number",
+                      "title": "区域宽度（0–1）",
+                      "maximum": 1,
+                      "minimum": 0.01
+                    },
+                    "height": {
+                      "type": "number",
+                      "title": "区域高度（0–1）",
+                      "maximum": 1,
+                      "minimum": 0.01
+                    }
+                  }
+                },
+                "useFootPoint": {
+                  "type": "boolean",
+                  "title": "按人员框底部判断区域",
+                  "description": "关闭时按人员框中心计数，适合高空俯视画面。"
+                },
+                "showPersonBoxes": {
+                  "type": "boolean",
+                  "title": "显示人员框"
+                },
+                "personConfidence": {
+                  "type": "number",
+                  "title": "人员置信度",
+                  "maximum": 1,
+                  "minimum": 0.01,
+                  "description": "低于此值的检测不计入人数。"
+                }
+              },
+              "additionalProperties": false
+            },
+            "defaultParameters": {
+              "roi": {
+                "x": 0,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "useFootPoint": false,
+              "showPersonBoxes": true,
+              "personConfidence": 0.35
+            }
+          }
+        },
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "people-counting-package",
+      "name": "人员统计",
+      "category": "CUSTOM",
+      "eventType": "PEOPLE_COUNT",
+      "sceneGroup": "REGION",
+      "description": "统计摄像头区域内的当前人数，支持框选区域和实时人数显示。无需人员库。",
+      "capabilityKey": "package.people-counting-package",
+      "parameterSchema": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "object",
+            "required": [
+              "roi",
+              "useFootPoint",
+              "personConfidence",
+              "showPersonBoxes"
+            ],
+            "properties": {
+              "roi": {
+                "type": "object",
+                "title": "人数统计区域",
+                "required": [
+                  "x",
+                  "y",
+                  "width",
+                  "height"
+                ],
+                "x-widget": "roi",
+                "properties": {
+                  "x": {
+                    "type": "number",
+                    "title": "区域左侧（0–1）",
+                    "maximum": 1,
+                    "minimum": 0
+                  },
+                  "y": {
+                    "type": "number",
+                    "title": "区域顶部（0–1）",
+                    "maximum": 1,
+                    "minimum": 0
+                  },
+                  "width": {
+                    "type": "number",
+                    "title": "区域宽度（0–1）",
+                    "maximum": 1,
+                    "minimum": 0.01
+                  },
+                  "height": {
+                    "type": "number",
+                    "title": "区域高度（0–1）",
+                    "maximum": 1,
+                    "minimum": 0.01
+                  }
+                }
+              },
+              "useFootPoint": {
+                "type": "boolean",
+                "title": "按人员框底部判断区域",
+                "description": "关闭时按人员框中心计数，适合高空俯视画面。"
+              },
+              "showPersonBoxes": {
+                "type": "boolean",
+                "title": "显示人员框"
+              },
+              "personConfidence": {
+                "type": "number",
+                "title": "人员置信度",
+                "maximum": 1,
+                "minimum": 0.01,
+                "description": "低于此值的检测不计入人数。"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "algorithm": {
+          "roi": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "useFootPoint": false,
+          "showPersonBoxes": true,
+          "personConfidence": 0.35
+        },
+        "sampleFps": 1,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "package.people-counting-package"
+      ],
+      "defaultModelCode": null,
+      "artifact": {
+        "fileName": "67b382a80b26-people-counting-package.zip",
+        "sha256": "67b382a80b26e3cdbf859e45f7f63eed781dc586e49ae94be2ae308b8057c81b",
+        "size": 2956
+      }
+    },
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "person-detector",
+            "type": "DETECTOR",
+            "input": "VIDEO_FRAME",
+            "output": "DETECTIONS",
+            "capabilityKey": "detector.person"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "person-detection-base",
+      "name": "人员检测基础能力",
+      "category": "EXTENSION",
+      "eventType": null,
+      "sceneGroup": "PERSON",
+      "description": "识别画面中的人员，支持配置人员活动区域和告警条件。",
+      "capabilityKey": "detector.person",
+      "parameterSchema": {
+        "type": "object",
+        "required": [
+          "schemaVersion",
+          "confidence",
+          "sampleFps"
+        ],
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "sampleFps": 1.0,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "MODEL_DIRECT",
+      "requiredCapabilities": [
+        "detector.person"
+      ],
+      "defaultModelCode": "generic-coco-object-detection"
+    },
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "primary",
+            "type": "DETECTOR",
+            "capabilityKey": "model.primary"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "algorithmPackage": {
+          "sha256": "cf8e3b47e09bb2123e5f497195426debbd9e0f8f3a1aa06acfaae58bda7585af",
+          "manifest": {
+            "code": "person-dwell-package",
+            "name": "异常停留",
+            "models": [
+              {
+                "name": "通用目标检测模型",
+                "slot": "primary",
+                "labels": [
+                  "person"
+                ],
+                "formats": [
+                  "ONNX",
+                  "RKNN"
+                ],
+                "taskType": "OBJECT_DETECTION"
+              }
+            ],
+            "version": "1.0.0",
+            "category": "REGION",
+            "eventType": "PERSON_DWELL",
+            "entrypoint": "processor.py",
+            "sdkVersion": "1.0",
+            "defaultRule": {
+              "dedup": {
+                "scope": "TRACK",
+                "windowSeconds": 60
+              },
+              "regions": [
+                {
+                  "id": "main",
+                  "name": "检测区域",
+                  "type": "POLYGON",
+                  "points": [
+                    {
+                      "x": 0,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 1
+                    },
+                    {
+                      "x": 0,
+                      "y": 1
+                    }
+                  ],
+                  "pointMode": "CENTROID",
+                  "sourceWidth": 1920,
+                  "sourceHeight": 1080,
+                  "overlapThreshold": 0.2
+                }
+              ],
+              "schedule": {
+                "weekly": [
+                  {
+                    "end": "23:59",
+                    "days": [
+                      1,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      7
+                    ],
+                    "start": "00:00"
+                  }
+                ],
+                "timezone": "Asia/Shanghai"
+              },
+              "severity": "MAJOR",
+              "condition": {
+                "type": "AND",
+                "children": [
+                  {
+                    "type": "ROI_ENTER",
+                    "regionId": "main",
+                    "objectClasses": [
+                      "person"
+                    ]
+                  },
+                  {
+                    "m": 5,
+                    "n": 3,
+                    "type": "N_OF_M"
+                  },
+                  {
+                    "type": "DURATION",
+                    "seconds": 120
+                  }
+                ]
+              },
+              "eventType": "PERSON_DWELL",
+              "schemaVersion": "1.0",
+              "cooldownSeconds": 60,
+              "recoverySeconds": 5
+            },
+            "description": "在指定区域内持续停留超过设定时间后告警；按同一人员轨迹计时，短暂经过不告警。",
+            "schemaVersion": "1.0",
+            "timeoutMillis": 5000,
+            "parameterSchema": {
+              "type": "object",
+              "required": [
+                "confidence"
+              ],
+              "properties": {
+                "confidence": {
+                  "type": "number",
+                  "title": "目标置信度",
+                  "maximum": 1,
+                  "minimum": 0.01
+                }
+              },
+              "additionalProperties": false
+            },
+            "defaultParameters": {
+              "confidence": 0.5
+            }
+          }
+        },
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "person-dwell-package",
+      "name": "异常停留",
+      "category": "CUSTOM",
+      "eventType": "PERSON_DWELL",
+      "sceneGroup": "REGION",
+      "description": "在指定区域内持续停留超过设定时间后告警；按同一人员轨迹计时，短暂经过不告警。",
+      "capabilityKey": "package.person-dwell-package",
+      "parameterSchema": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "object",
+            "required": [
+              "confidence"
+            ],
+            "properties": {
+              "confidence": {
+                "type": "number",
+                "title": "目标置信度",
+                "maximum": 1,
+                "minimum": 0.01
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "algorithm": {
+          "confidence": 0.5
+        },
+        "sampleFps": 1,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "package.person-dwell-package"
+      ],
+      "defaultModelCode": null,
+      "artifact": {
+        "fileName": "cf8e3b47e09b-person-dwell-package.zip",
+        "sha256": "cf8e3b47e09bb2123e5f497195426debbd9e0f8f3a1aa06acfaae58bda7585af",
+        "size": 1896
+      }
+    },
+    {
+      "dag": {
+        "edges": [
+          {
+            "to": "iou-tracker",
+            "from": "person-detector"
+          },
+          {
+            "to": "intrusion-rule",
+            "from": "iou-tracker"
+          }
+        ],
+        "nodes": [
+          {
+            "id": "person-detector",
+            "type": "DETECTOR",
+            "modelCode": "yolo11n-person-rk3566",
+            "capabilityKey": "detector.person"
+          },
+          {
+            "id": "iou-tracker",
+            "type": "TRACKER",
+            "capabilityKey": "tracker.iou"
+          },
+          {
+            "id": "intrusion-rule",
+            "type": "RULE",
+            "capabilityKey": "rule.person-intrusion"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "person-intrusion",
+      "name": "人员闯入",
+      "category": "CORE",
+      "eventType": "PERSON_INTRUSION",
+      "sceneGroup": "PERSON",
+      "description": "监测指定区域内的人员活动，满足连续帧和持续时间条件后告警。",
+      "capabilityKey": "rule.person-intrusion",
+      "parameterSchema": {
+        "type": "object",
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "sampleFps": 5.0,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "TRACK_RULE",
+      "requiredCapabilities": [
+        "rule.person-intrusion"
+      ],
+      "defaultModelCode": "generic-coco-object-detection"
+    },
+    {
+      "dag": {
+        "edges": [
+          {
+            "to": "behavior",
+            "from": "person"
+          },
+          {
+            "to": "tracker",
+            "from": "behavior"
+          }
+        ],
+        "nodes": [
+          {
+            "id": "person",
+            "type": "DETECTOR",
+            "modelCode": "yolo11n-person-rk3566",
+            "capabilityKey": "detector.person"
+          },
+          {
+            "id": "behavior",
+            "type": "CLASSIFIER",
+            "modelCode": "video-action-recognition",
+            "inputMode": "PERSON_CROPS",
+            "capabilityKey": "behavior.phone-call"
+          },
+          {
+            "id": "tracker",
+            "type": "TRACKER",
+            "capabilityKey": "tracker.iou"
+          }
+        ],
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        },
+        "schemaVersion": "1.0"
+      },
+      "code": "phone-call-detection",
+      "name": "接打电话检测",
+      "category": "CORE",
+      "eventType": "PHONE_CALL",
+      "sceneGroup": "SMOKING_PHONE",
+      "description": "逐个人员区域识别接打电话姿态，区分 calling 与 texting；规则层统一完成连续确认与告警，单独出现手机不判接打电话，现场准确率待验收。",
+      "capabilityKey": "behavior.phone-call",
+      "parameterSchema": {
+        "type": "object",
+        "required": [
+          "schemaVersion",
+          "confidence",
+          "sampleFps"
+        ],
+        "properties": {
+          "sampleFps": {
+            "type": "number",
+            "maximum": 10,
+            "minimum": 0.1
+          },
+          "temporalM": {
+            "type": "integer",
+            "maximum": 60,
+            "minimum": 1,
+            "deprecated": true,
+            "description": "兼容旧任务；行为告警连续确认由规则层统一执行。"
+          },
+          "temporalN": {
+            "type": "integer",
+            "maximum": 30,
+            "minimum": 1,
+            "deprecated": true,
+            "description": "兼容旧任务；行为告警连续确认由规则层统一执行。"
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1,
+            "minimum": 0.01
+          },
+          "durationSeconds": {
+            "type": "number",
+            "maximum": 300,
+            "minimum": 0,
+            "deprecated": true,
+            "description": "兼容旧任务；行为告警持续时间由规则层统一执行。"
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "sampleFps": 2,
+        "temporalM": 2,
+        "temporalN": 2,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0",
+        "durationSeconds": 0,
+        "personConfidence": 0.35
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "behavior.phone-call"
+      ],
+      "defaultModelCode": "video-action-recognition"
+    },
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "primary",
+            "type": "DETECTOR",
+            "capabilityKey": "model.primary"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "algorithmPackage": {
+          "sha256": "64fbd9f750da929ba1f615ca4955ee729712014eb92db2a0fc11d82531ffc55f",
+          "manifest": {
+            "code": "phone-presence-package",
+            "name": "禁带区域手机出现",
+            "models": [
+              {
+                "name": "通用目标检测模型",
+                "slot": "primary",
+                "labels": [
+                  "cell_phone"
+                ],
+                "formats": [
+                  "ONNX",
+                  "RKNN"
+                ],
+                "taskType": "OBJECT_DETECTION"
+              }
+            ],
+            "version": "1.0.0",
+            "category": "REGION",
+            "eventType": "PHONE_PRESENT",
+            "entrypoint": "processor.py",
+            "sdkVersion": "1.0",
+            "defaultRule": {
+              "dedup": {
+                "scope": "TRACK",
+                "windowSeconds": 60
+              },
+              "regions": [
+                {
+                  "id": "main",
+                  "name": "检测区域",
+                  "type": "POLYGON",
+                  "points": [
+                    {
+                      "x": 0,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 1
+                    },
+                    {
+                      "x": 0,
+                      "y": 1
+                    }
+                  ],
+                  "pointMode": "CENTROID",
+                  "sourceWidth": 1920,
+                  "sourceHeight": 1080,
+                  "overlapThreshold": 0.2
+                }
+              ],
+              "schedule": {
+                "weekly": [
+                  {
+                    "end": "23:59",
+                    "days": [
+                      1,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      7
+                    ],
+                    "start": "00:00"
+                  }
+                ],
+                "timezone": "Asia/Shanghai"
+              },
+              "severity": "MAJOR",
+              "condition": {
+                "type": "AND",
+                "children": [
+                  {
+                    "type": "ROI_ENTER",
+                    "regionId": "main",
+                    "objectClasses": [
+                      "cell_phone"
+                    ]
+                  },
+                  {
+                    "m": 5,
+                    "n": 3,
+                    "type": "N_OF_M"
+                  },
+                  {
+                    "type": "DURATION",
+                    "seconds": 5
+                  }
+                ]
+              },
+              "eventType": "PHONE_PRESENT",
+              "schemaVersion": "1.0",
+              "cooldownSeconds": 60,
+              "recoverySeconds": 5
+            },
+            "description": "检测禁带手机区域内出现的可见手机；不据此判断打电话或玩手机。",
+            "schemaVersion": "1.0",
+            "timeoutMillis": 5000,
+            "parameterSchema": {
+              "type": "object",
+              "required": [
+                "confidence"
+              ],
+              "properties": {
+                "confidence": {
+                  "type": "number",
+                  "title": "目标置信度",
+                  "maximum": 1,
+                  "minimum": 0.01
+                }
+              },
+              "additionalProperties": false
+            },
+            "defaultParameters": {
+              "confidence": 0.5
+            }
+          }
+        },
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "phone-presence-package",
+      "name": "禁带区域手机出现",
+      "category": "CUSTOM",
+      "eventType": "PHONE_PRESENT",
+      "sceneGroup": "REGION",
+      "description": "检测禁带手机区域内出现的可见手机；不据此判断打电话或玩手机。",
+      "capabilityKey": "package.phone-presence-package",
+      "parameterSchema": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "object",
+            "required": [
+              "confidence"
+            ],
+            "properties": {
+              "confidence": {
+                "type": "number",
+                "title": "目标置信度",
+                "maximum": 1,
+                "minimum": 0.01
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "algorithm": {
+          "confidence": 0.5
+        },
+        "sampleFps": 1,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "package.phone-presence-package"
+      ],
+      "defaultModelCode": null,
+      "artifact": {
+        "fileName": "64fbd9f750da-phone-presence-package.zip",
+        "sha256": "64fbd9f750da929ba1f615ca4955ee729712014eb92db2a0fc11d82531ffc55f",
+        "size": 1868
+      }
+    },
+    {
+      "dag": {
+        "edges": [
+          {
+            "to": "vest-classifier",
+            "from": "person-detector"
+          },
+          {
+            "to": "iou-tracker",
+            "from": "vest-classifier"
+          }
+        ],
+        "nodes": [
+          {
+            "id": "person-detector",
+            "type": "DETECTOR",
+            "modelCode": "unified-ppe-detection",
+            "capabilityKey": "detector.person"
+          },
+          {
+            "id": "vest-classifier",
+            "type": "CLASSIFIER",
+            "modelCode": "unified-ppe-detection",
+            "capabilityKey": "ppe.reflective-vest"
+          },
+          {
+            "id": "iou-tracker",
+            "type": "TRACKER",
+            "capabilityKey": "tracker.iou"
+          }
+        ],
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        },
+        "schemaVersion": "1.0"
+      },
+      "code": "reflective-vest",
+      "name": "反光衣检测",
+      "category": "CORE",
+      "eventType": "REFLECTIVE_VEST",
+      "sceneGroup": "PPE",
+      "description": "同一 PPE 模型检测人员、反光衣和未穿反光衣，按人员关联后连续帧确认；未知不告警；当前为现场验证阶段",
+      "capabilityKey": "ppe.reflective-vest",
+      "parameterSchema": {
+        "type": "object",
+        "required": [
+          "schemaVersion",
+          "confidence",
+          "personConfidence",
+          "ppeConfidence",
+          "unknownPolicy",
+          "sampleFps"
+        ],
+        "properties": {
+          "sampleFps": {
+            "type": "number",
+            "maximum": 10,
+            "minimum": 0.1
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1,
+            "minimum": 0.01
+          },
+          "ppeConfidence": {
+            "type": "number",
+            "maximum": 1,
+            "minimum": 0.01
+          },
+          "unknownPolicy": {
+            "type": "string",
+            "const": "NO_ALARM"
+          },
+          "personConfidence": {
+            "type": "number",
+            "maximum": 1,
+            "minimum": 0.01
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "sampleFps": 4.0,
+        "confidence": 0.25,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "ppeConfidence": 0.3,
+        "schemaVersion": "1.0",
+        "unknownPolicy": "NO_ALARM",
+        "personConfidence": 0.4
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "ppe.reflective-vest"
+      ],
+      "defaultModelCode": "unified-ppe-detection"
+    },
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "person",
+            "type": "DETECTOR",
+            "capabilityKey": "model.person"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "algorithmPackage": {
+          "sha256": "f7b4a5e3a93aa71baba9e86867cc731e0c790d5867b866540f7d35e2adb3479c",
+          "manifest": {
+            "code": "region-intrusion-package",
+            "name": "区域入侵",
+            "models": [
+              {
+                "name": "人员检测模型",
+                "slot": "person",
+                "labels": [
+                  "person"
+                ],
+                "formats": [
+                  "ONNX",
+                  "RKNN"
+                ],
+                "taskType": "OBJECT_DETECTION"
+              }
+            ],
+            "version": "1.0.1",
+            "category": "REGION",
+            "eventType": "AREA_INTRUSION",
+            "entrypoint": "processor.py",
+            "sdkVersion": "1.0",
+            "description": "在指定警戒区域检测人员；由模型检测与区域规则组成。",
+            "schemaVersion": "1.0",
+            "timeoutMillis": 5000,
+            "parameterSchema": {
+              "type": "object",
+              "required": [
+                "roi"
+              ],
+              "properties": {
+                "roi": {
+                  "type": "object",
+                  "title": "识别区域",
+                  "required": [
+                    "x",
+                    "y",
+                    "width",
+                    "height"
+                  ],
+                  "x-widget": "roi",
+                  "properties": {
+                    "x": {
+                      "type": "number",
+                      "title": "区域左侧（0–1）",
+                      "maximum": 1,
+                      "minimum": 0
+                    },
+                    "y": {
+                      "type": "number",
+                      "title": "区域顶部（0–1）",
+                      "maximum": 1,
+                      "minimum": 0
+                    },
+                    "width": {
+                      "type": "number",
+                      "title": "区域宽度（0–1）",
+                      "maximum": 1,
+                      "minimum": 0
+                    },
+                    "height": {
+                      "type": "number",
+                      "title": "区域高度（0–1）",
+                      "maximum": 1,
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            "defaultParameters": {
+              "roi": {
+                "x": 0.15,
+                "y": 0.15,
+                "width": 0.7,
+                "height": 0.7
+              }
+            }
+          }
+        },
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "region-intrusion-package",
+      "name": "区域入侵",
+      "category": "CUSTOM",
+      "eventType": "AREA_INTRUSION",
+      "sceneGroup": "REGION",
+      "description": "在指定警戒区域检测人员；由模型检测与区域规则组成。",
+      "capabilityKey": "package.region-intrusion-package",
+      "parameterSchema": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "object",
+            "required": [
+              "roi"
+            ],
+            "properties": {
+              "roi": {
+                "type": "object",
+                "title": "识别区域",
+                "required": [
+                  "x",
+                  "y",
+                  "width",
+                  "height"
+                ],
+                "x-widget": "roi",
+                "properties": {
+                  "x": {
+                    "type": "number",
+                    "title": "区域左侧（0–1）",
+                    "maximum": 1,
+                    "minimum": 0
+                  },
+                  "y": {
+                    "type": "number",
+                    "title": "区域顶部（0–1）",
+                    "maximum": 1,
+                    "minimum": 0
+                  },
+                  "width": {
+                    "type": "number",
+                    "title": "区域宽度（0–1）",
+                    "maximum": 1,
+                    "minimum": 0
+                  },
+                  "height": {
+                    "type": "number",
+                    "title": "区域高度（0–1）",
+                    "maximum": 1,
+                    "minimum": 0
+                  }
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "algorithm": {
+          "roi": {
+            "x": 0.15,
+            "y": 0.15,
+            "width": 0.7,
+            "height": 0.7
+          }
+        },
+        "sampleFps": 1,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "package.region-intrusion-package"
+      ],
+      "defaultModelCode": null,
+      "artifact": {
+        "fileName": "f7b4a5e3a93a-region-intrusion-package.zip",
+        "sha256": "f7b4a5e3a93aa71baba9e86867cc731e0c790d5867b866540f7d35e2adb3479c",
+        "size": 1236
+      }
+    },
+    {
+      "dag": {
+        "edges": [
+          {
+            "to": "helmet-classifier",
+            "from": "person-detector"
+          },
+          {
+            "to": "iou-tracker",
+            "from": "helmet-classifier"
+          }
+        ],
+        "nodes": [
+          {
+            "id": "person-detector",
+            "type": "DETECTOR",
+            "modelCode": "yolo11n-person-rk3566",
+            "capabilityKey": "detector.person"
+          },
+          {
+            "id": "helmet-classifier",
+            "type": "CLASSIFIER",
+            "modelCode": "yolov8n-hardhat-rk3566",
+            "capabilityKey": "ppe.helmet"
+          },
+          {
+            "id": "iou-tracker",
+            "type": "TRACKER",
+            "capabilityKey": "tracker.iou"
+          }
+        ],
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        },
+        "schemaVersion": "1.0"
+      },
+      "code": "safety-helmet",
+      "name": "安全帽检测",
+      "category": "CORE",
+      "eventType": "SAFETY_HELMET",
+      "sceneGroup": "PPE",
+      "description": "人员检测后判定安全帽属性，unknown 不强判违规",
+      "capabilityKey": "ppe.helmet",
+      "parameterSchema": {
+        "type": "object",
+        "required": [
+          "schemaVersion",
+          "confidence",
+          "personConfidence",
+          "ppeConfidence",
+          "unknownPolicy",
+          "sampleFps"
+        ],
+        "properties": {
+          "sampleFps": {
+            "type": "number",
+            "maximum": 10,
+            "minimum": 0.1
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1,
+            "minimum": 0.01
+          },
+          "ppeConfidence": {
+            "type": "number",
+            "maximum": 1,
+            "minimum": 0.01
+          },
+          "unknownPolicy": {
+            "type": "string",
+            "const": "NO_ALARM"
+          },
+          "personConfidence": {
+            "type": "number",
+            "maximum": 1,
+            "minimum": 0.01
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "sampleFps": 5.0,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "ppeConfidence": 0.5,
+        "schemaVersion": "1.0",
+        "unknownPolicy": "NO_ALARM",
+        "personConfidence": 0.5
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "ppe.helmet"
+      ],
+      "defaultModelCode": "unified-ppe-detection"
+    },
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "capability",
+            "type": "DETECTOR",
+            "modelCode": "flame-smoke-detection",
+            "capabilityKey": "detector.flame-smoke"
+          }
+        ],
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        },
+        "schemaVersion": "1.0"
+      },
+      "code": "smoke-detection",
+      "name": "烟雾检测",
+      "category": "EXTENSION",
+      "eventType": "SMOKE",
+      "sceneGroup": "FIRE_SMOKE",
+      "description": "识别烟雾，按告警区域、连续帧和持续时间确认事件。",
+      "capabilityKey": "detector.flame-smoke",
+      "parameterSchema": {
+        "type": "object",
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "sampleFps": 5,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "classFilter": [
+          "smoke"
+        ],
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "MODEL_DIRECT",
+      "requiredCapabilities": [
+        "detector.flame-smoke"
+      ],
+      "defaultModelCode": "flame-smoke-detection"
+    },
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "primary",
+            "type": "DETECTOR",
+            "capabilityKey": "model.primary"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "algorithmPackage": {
+          "sha256": "c43aa1536a70a881b1391e86be1c0dbaca36fd6e807c240673f3434b7014b5f4",
+          "manifest": {
+            "code": "vehicle-intrusion-package",
+            "name": "禁行车辆闯入",
+            "models": [
+              {
+                "name": "通用目标检测模型",
+                "slot": "primary",
+                "labels": [
+                  "car",
+                  "truck",
+                  "bus"
+                ],
+                "formats": [
+                  "ONNX",
+                  "RKNN"
+                ],
+                "taskType": "OBJECT_DETECTION"
+              }
+            ],
+            "version": "1.0.0",
+            "category": "REGION",
+            "eventType": "VEHICLE_INTRUSION",
+            "entrypoint": "processor.py",
+            "sdkVersion": "1.0",
+            "defaultRule": {
+              "dedup": {
+                "scope": "TRACK",
+                "windowSeconds": 60
+              },
+              "regions": [
+                {
+                  "id": "main",
+                  "name": "检测区域",
+                  "type": "POLYGON",
+                  "points": [
+                    {
+                      "x": 0,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 1
+                    },
+                    {
+                      "x": 0,
+                      "y": 1
+                    }
+                  ],
+                  "pointMode": "CENTROID",
+                  "sourceWidth": 1920,
+                  "sourceHeight": 1080,
+                  "overlapThreshold": 0.2
+                }
+              ],
+              "schedule": {
+                "weekly": [
+                  {
+                    "end": "23:59",
+                    "days": [
+                      1,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      7
+                    ],
+                    "start": "00:00"
+                  }
+                ],
+                "timezone": "Asia/Shanghai"
+              },
+              "severity": "MAJOR",
+              "condition": {
+                "type": "AND",
+                "children": [
+                  {
+                    "type": "ROI_ENTER",
+                    "regionId": "main",
+                    "objectClasses": [
+                      "car",
+                      "truck",
+                      "bus"
+                    ]
+                  },
+                  {
+                    "m": 5,
+                    "n": 3,
+                    "type": "N_OF_M"
+                  },
+                  {
+                    "type": "DURATION",
+                    "seconds": 2
+                  }
+                ]
+              },
+              "eventType": "VEHICLE_INTRUSION",
+              "schemaVersion": "1.0",
+              "cooldownSeconds": 60,
+              "recoverySeconds": 5
+            },
+            "description": "检测机动车进入禁行区域，连续确认后告警；不能区分授权车辆。",
+            "schemaVersion": "1.0",
+            "timeoutMillis": 5000,
+            "parameterSchema": {
+              "type": "object",
+              "required": [
+                "confidence"
+              ],
+              "properties": {
+                "confidence": {
+                  "type": "number",
+                  "title": "目标置信度",
+                  "maximum": 1,
+                  "minimum": 0.01
+                }
+              },
+              "additionalProperties": false
+            },
+            "defaultParameters": {
+              "confidence": 0.5
+            }
+          }
+        },
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "vehicle-intrusion-package",
+      "name": "禁行车辆闯入",
+      "category": "CUSTOM",
+      "eventType": "VEHICLE_INTRUSION",
+      "sceneGroup": "REGION",
+      "description": "检测机动车进入禁行区域，连续确认后告警；不能区分授权车辆。",
+      "capabilityKey": "package.vehicle-intrusion-package",
+      "parameterSchema": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "object",
+            "required": [
+              "confidence"
+            ],
+            "properties": {
+              "confidence": {
+                "type": "number",
+                "title": "目标置信度",
+                "maximum": 1,
+                "minimum": 0.01
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "algorithm": {
+          "confidence": 0.5
+        },
+        "sampleFps": 1,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "package.vehicle-intrusion-package"
+      ],
+      "defaultModelCode": null,
+      "artifact": {
+        "fileName": "c43aa1536a70-vehicle-intrusion-package.zip",
+        "sha256": "c43aa1536a70a881b1391e86be1c0dbaca36fd6e807c240673f3434b7014b5f4",
+        "size": 1913
+      }
+    },
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "primary",
+            "type": "DETECTOR",
+            "capabilityKey": "model.primary"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "algorithmPackage": {
+          "sha256": "9d5b59f166cf1d1ebd5c3bfdf84400952a72abf59542f08349579485a508ba26",
+          "manifest": {
+            "code": "vehicle-parking-package",
+            "name": "车辆违停检测",
+            "models": [
+              {
+                "name": "车辆检测模型",
+                "slot": "primary",
+                "labels": [
+                  "car",
+                  "truck",
+                  "bus"
+                ],
+                "formats": [
+                  "ONNX",
+                  "RKNN"
+                ],
+                "taskType": "OBJECT_DETECTION"
+              }
+            ],
+            "version": "1.0.1",
+            "category": "REGION",
+            "eventType": "VEHICLE_STATIONARY",
+            "entrypoint": "processor.py",
+            "sdkVersion": "1.0",
+            "defaultRule": {
+              "dedup": {
+                "scope": "TRACK",
+                "windowSeconds": 60
+              },
+              "regions": [
+                {
+                  "id": "main",
+                  "name": "检测区域",
+                  "type": "POLYGON",
+                  "points": [
+                    {
+                      "x": 0,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 1
+                    },
+                    {
+                      "x": 0,
+                      "y": 1
+                    }
+                  ],
+                  "pointMode": "CENTROID",
+                  "sourceWidth": 1920,
+                  "sourceHeight": 1080,
+                  "overlapThreshold": 0.2
+                }
+              ],
+              "schedule": {
+                "weekly": [
+                  {
+                    "end": "23:59",
+                    "days": [
+                      1,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      7
+                    ],
+                    "start": "00:00"
+                  }
+                ],
+                "timezone": "Asia/Shanghai"
+              },
+              "severity": "MAJOR",
+              "condition": {
+                "type": "AND",
+                "children": [
+                  {
+                    "type": "ROI_ENTER",
+                    "regionId": "main",
+                    "objectClasses": [
+                      "car",
+                      "truck",
+                      "bus"
+                    ]
+                  },
+                  {
+                    "type": "STATIONARY",
+                    "maxMovement": 0.02
+                  },
+                  {
+                    "m": 5,
+                    "n": 3,
+                    "type": "N_OF_M"
+                  },
+                  {
+                    "type": "DURATION",
+                    "seconds": 120
+                  }
+                ]
+              },
+              "eventType": "VEHICLE_STATIONARY",
+              "schemaVersion": "1.0",
+              "cooldownSeconds": 60,
+              "recoverySeconds": 5
+            },
+            "description": "检测禁停区域内持续静止的车辆，过滤经过车辆和短暂停留。",
+            "schemaVersion": "1.0",
+            "timeoutMillis": 5000,
+            "parameterSchema": {
+              "type": "object",
+              "required": [
+                "vehicleConfidence"
+              ],
+              "properties": {
+                "vehicleConfidence": {
+                  "type": "number",
+                  "title": "车辆置信度",
+                  "maximum": 1,
+                  "minimum": 0.01,
+                  "description": "低于此值的检测结果不参与告警。"
+                }
+              },
+              "additionalProperties": false
+            },
+            "defaultParameters": {
+              "vehicleConfidence": 0.5
+            }
+          }
+        },
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "vehicle-parking-package",
+      "name": "车辆违停检测",
+      "category": "CUSTOM",
+      "eventType": "VEHICLE_STATIONARY",
+      "sceneGroup": "REGION",
+      "description": "检测禁停区域内持续静止的车辆，过滤经过车辆和短暂停留。",
+      "capabilityKey": "package.vehicle-parking-package",
+      "parameterSchema": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "object",
+            "required": [
+              "vehicleConfidence"
+            ],
+            "properties": {
+              "vehicleConfidence": {
+                "type": "number",
+                "title": "车辆置信度",
+                "maximum": 1,
+                "minimum": 0.01,
+                "description": "低于此值的检测结果不参与告警。"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "algorithm": {
+          "vehicleConfidence": 0.5
+        },
+        "sampleFps": 1,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "package.vehicle-parking-package"
+      ],
+      "defaultModelCode": null,
+      "artifact": {
+        "fileName": "9d5b59f166cf-vehicle-parking-package.zip",
+        "sha256": "9d5b59f166cf1d1ebd5c3bfdf84400952a72abf59542f08349579485a508ba26",
+        "size": 6690
+      }
+    },
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "person",
+            "type": "DETECTOR",
+            "capabilityKey": "model.person"
+          },
+          {
+            "id": "ppe",
+            "type": "DETECTOR",
+            "capabilityKey": "model.ppe"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "algorithmPackage": {
+          "sha256": "6f560f4e04de59f28e6ef4d340c342d1af1906804a52cd38aa724c529644f943",
+          "manifest": {
+            "code": "vest-detection-package",
+            "name": "反光衣检测",
+            "models": [
+              {
+                "name": "人员检测模型",
+                "slot": "person",
+                "labels": [
+                  "person"
+                ],
+                "formats": [
+                  "ONNX",
+                  "RKNN"
+                ],
+                "taskType": "OBJECT_DETECTION"
+              },
+              {
+                "name": "反光衣检测模型",
+                "slot": "ppe",
+                "labels": [
+                  "vest",
+                  "no_vest"
+                ],
+                "formats": [
+                  "ONNX",
+                  "RKNN"
+                ],
+                "taskType": "OBJECT_DETECTION"
+              }
+            ],
+            "version": "1.0.2",
+            "category": "PPE",
+            "eventType": "REFLECTIVE_VEST",
+            "entrypoint": "processor.py",
+            "sdkVersion": "1.0",
+            "description": "确认人员后关联穿戴检测结果；没有明确证据时保持待确认。",
+            "schemaVersion": "1.0",
+            "timeoutMillis": 5000,
+            "parameterSchema": {
+              "type": "object",
+              "required": [
+                "personConfidence",
+                "ppeConfidence"
+              ],
+              "properties": {
+                "ppeConfidence": {
+                  "type": "number",
+                  "title": "穿戴置信度",
+                  "maximum": 1,
+                  "minimum": 0.01
+                },
+                "showPersonBox": {
+                  "type": "boolean",
+                  "title": "显示人员全身框",
+                  "description": "关闭时显示模型实际检测到的部位；没有明确穿戴结果时显示人员位置并标记待确认。此选项只影响展示。"
+                },
+                "personConfidence": {
+                  "type": "number",
+                  "title": "人员置信度",
+                  "maximum": 1,
+                  "minimum": 0.01
+                }
+              },
+              "additionalProperties": false
+            },
+            "defaultParameters": {
+              "ppeConfidence": 0.5,
+              "showPersonBox": false,
+              "personConfidence": 0.5
+            }
+          }
+        },
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "vest-detection-package",
+      "name": "反光衣检测",
+      "category": "CUSTOM",
+      "eventType": "REFLECTIVE_VEST",
+      "sceneGroup": "PPE",
+      "description": "确认人员后关联穿戴检测结果；没有明确证据时保持待确认。",
+      "capabilityKey": "package.vest-detection-package",
+      "parameterSchema": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "object",
+            "required": [
+              "personConfidence",
+              "ppeConfidence"
+            ],
+            "properties": {
+              "ppeConfidence": {
+                "type": "number",
+                "title": "穿戴置信度",
+                "maximum": 1,
+                "minimum": 0.01
+              },
+              "personConfidence": {
+                "type": "number",
+                "title": "人员置信度",
+                "maximum": 1,
+                "minimum": 0.01
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "algorithm": {
+          "ppeConfidence": 0.5,
+          "personConfidence": 0.5
+        },
+        "sampleFps": 1,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "package.vest-detection-package"
+      ],
+      "defaultModelCode": null,
+      "artifact": {
+        "fileName": "6f560f4e04de-vest-detection-package.zip",
+        "sha256": "6f560f4e04de59f28e6ef4d340c342d1af1906804a52cd38aa724c529644f943",
+        "size": 7830
+      }
+    },
+    {
+      "dag": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "plate",
+            "type": "DETECTOR",
+            "capabilityKey": "model.plate"
+          },
+          {
+            "id": "ocr",
+            "type": "DETECTOR",
+            "capabilityKey": "model.ocr"
+          }
+        ],
+        "schemaVersion": "1.0",
+        "algorithmPackage": {
+          "sha256": "d54c1f19837296cc28185d25b66846da2feb7133beea4a3c7e8ad00e4a9b0eb7",
+          "manifest": {
+            "code": "xinjiang-plate-package",
+            "name": "厂区车辆识别（新疆优化）",
+            "models": [
+              {
+                "name": "车牌定位模型",
+                "slot": "plate",
+                "formats": [
+                  "ONNX",
+                  "RKNN"
+                ],
+                "taskType": "OBJECT_DETECTION",
+                "decoderTypes": [
+                  "YOLO_PLATE",
+                  "YOLO26_PLATE_POSE"
+                ]
+              },
+              {
+                "name": "车牌文字识别模型",
+                "slot": "ocr",
+                "formats": [
+                  "ONNX",
+                  "RKNN",
+                  "ARCHIVE"
+                ],
+                "taskType": "OCR",
+                "decoderTypes": [
+                  "CHINESE_PLATE_CTC",
+                  "PLATE_OCR_ROUTED"
+                ]
+              }
+            ],
+            "version": "1.0.0",
+            "category": "OCR",
+            "eventType": "VEHICLE_PLATE_RECOGNIZED",
+            "entrypoint": "processor.py",
+            "frameInput": {
+              "type": "PLATE_OCR",
+              "ocrSlot": "ocr",
+              "detectorSlot": "plate"
+            },
+            "sdkVersion": "1.0",
+            "defaultRule": {
+              "dedup": {
+                "scope": "TRACK",
+                "windowSeconds": 60
+              },
+              "regions": [
+                {
+                  "id": "plate-area",
+                  "name": "车牌识别区域",
+                  "type": "POLYGON",
+                  "points": [
+                    {
+                      "x": 0,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 0
+                    },
+                    {
+                      "x": 1,
+                      "y": 1
+                    },
+                    {
+                      "x": 0,
+                      "y": 1
+                    }
+                  ],
+                  "pointMode": "CENTROID",
+                  "sourceWidth": 1920,
+                  "sourceHeight": 1080,
+                  "overlapThreshold": 0
+                }
+              ],
+              "schedule": {
+                "weekly": [
+                  {
+                    "end": "23:59",
+                    "days": [
+                      1,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      7
+                    ],
+                    "start": "00:00"
+                  }
+                ],
+                "timezone": "Asia/Shanghai"
+              },
+              "severity": "INFO",
+              "condition": {
+                "type": "AND",
+                "children": [
+                  {
+                    "type": "ROI_ENTER",
+                    "regionId": "plate-area",
+                    "objectClasses": [
+                      "license_plate"
+                    ]
+                  },
+                  {
+                    "m": 1,
+                    "n": 1,
+                    "type": "N_OF_M"
+                  },
+                  {
+                    "type": "DURATION",
+                    "seconds": 0
+                  }
+                ]
+              },
+              "eventType": "VEHICLE_PLATE_RECOGNIZED",
+              "schemaVersion": "1.0",
+              "cooldownSeconds": 0,
+              "recoverySeconds": 5
+            },
+            "description": "独立新疆车牌候选比较与同车多帧确认；保留清晰外省牌。缺字补全默认关闭。现场准确率待验收。",
+            "schemaVersion": "1.0",
+            "timeoutMillis": 3000,
+            "parameterSchema": {
+              "type": "object",
+              "required": [
+                "bodyMinConfidence",
+                "provinceMinConfidence",
+                "xinMinScore",
+                "maxProvinceGap",
+                "provinceBonus",
+                "minVotes",
+                "voteFrames",
+                "maxAgeSeconds",
+                "allowMissingProvince",
+                "allowInferredEvents"
+              ],
+              "properties": {
+                "minVotes": {
+                  "type": "integer",
+                  "title": "一致识别帧数",
+                  "maximum": 30,
+                  "minimum": 2,
+                  "description": ""
+                },
+                "voteFrames": {
+                  "type": "integer",
+                  "title": "投票窗口帧数",
+                  "maximum": 30,
+                  "minimum": 2,
+                  "description": ""
+                },
+                "xinMinScore": {
+                  "type": "number",
+                  "title": "新字最低候选分数",
+                  "maximum": 1,
+                  "minimum": 0.05,
+                  "description": "仅在模型确实给出新字候选时参与比较，默认值待现场校准。"
+                },
+                "maxAgeSeconds": {
+                  "type": "number",
+                  "title": "投票有效时间（秒）",
+                  "maximum": 60,
+                  "minimum": 1,
+                  "description": ""
+                },
+                "provinceBonus": {
+                  "type": "number",
+                  "title": "新疆排序加分",
+                  "maximum": 0.3,
+                  "minimum": 0,
+                  "description": "只影响候选排序，不提高原始识别置信度。"
+                },
+                "maxProvinceGap": {
+                  "type": "number",
+                  "title": "省份候选最大分差",
+                  "maximum": 0.3,
+                  "minimum": 0,
+                  "description": "新与最高省份候选分数的最大允许差。"
+                },
+                "bodyMinConfidence": {
+                  "type": "number",
+                  "title": "号码主体最低字符分数",
+                  "maximum": 1,
+                  "minimum": 0.5,
+                  "description": "省份以外的字母、数字仍须逐字达到门槛。"
+                },
+                "allowInferredEvents": {
+                  "type": "boolean",
+                  "title": "允许省份推断结果产生事件",
+                  "description": "默认关闭。仅影响缺字补全，不改变新疆候选比较。"
+                },
+                "allowMissingProvince": {
+                  "type": "boolean",
+                  "title": "首字完全缺失时补新",
+                  "description": "默认关闭。启用后标记省份推断，不能视为模型看清首字。"
+                },
+                "provinceMinConfidence": {
+                  "type": "number",
+                  "title": "省份直接确认分数",
+                  "maximum": 1,
+                  "minimum": 0.5,
+                  "description": "清晰外省结果优先保留；矛盾省份证据继续待确认。"
+                }
+              },
+              "additionalProperties": false
+            },
+            "defaultParameters": {
+              "minVotes": 3,
+              "voteFrames": 5,
+              "xinMinScore": 0.2,
+              "maxAgeSeconds": 10,
+              "provinceBonus": 0.12,
+              "maxProvinceGap": 0.1,
+              "bodyMinConfidence": 0.75,
+              "allowInferredEvents": false,
+              "allowMissingProvince": false,
+              "provinceMinConfidence": 0.75
+            },
+            "runtimeRequirements": [
+              "plate-ocr-evidence-v1"
+            ]
+          }
+        },
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        }
+      },
+      "code": "xinjiang-plate-package",
+      "name": "厂区车辆识别（新疆优化）",
+      "category": "CUSTOM",
+      "eventType": "VEHICLE_PLATE_RECOGNIZED",
+      "sceneGroup": "OCR",
+      "description": "独立新疆车牌候选比较与同车多帧确认；保留清晰外省牌。缺字补全默认关闭。现场准确率待验收。",
+      "capabilityKey": "package.xinjiang-plate-package",
+      "parameterSchema": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "object",
+            "required": [
+              "bodyMinConfidence",
+              "provinceMinConfidence",
+              "xinMinScore",
+              "maxProvinceGap",
+              "provinceBonus",
+              "minVotes",
+              "voteFrames",
+              "maxAgeSeconds",
+              "allowMissingProvince",
+              "allowInferredEvents"
+            ],
+            "properties": {
+              "minVotes": {
+                "type": "integer",
+                "title": "一致识别帧数",
+                "maximum": 30,
+                "minimum": 2,
+                "description": ""
+              },
+              "voteFrames": {
+                "type": "integer",
+                "title": "投票窗口帧数",
+                "maximum": 30,
+                "minimum": 2,
+                "description": ""
+              },
+              "xinMinScore": {
+                "type": "number",
+                "title": "新字最低候选分数",
+                "maximum": 1,
+                "minimum": 0.05,
+                "description": "仅在模型确实给出新字候选时参与比较，默认值待现场校准。"
+              },
+              "maxAgeSeconds": {
+                "type": "number",
+                "title": "投票有效时间（秒）",
+                "maximum": 60,
+                "minimum": 1,
+                "description": ""
+              },
+              "provinceBonus": {
+                "type": "number",
+                "title": "新疆排序加分",
+                "maximum": 0.3,
+                "minimum": 0,
+                "description": "只影响候选排序，不提高原始识别置信度。"
+              },
+              "maxProvinceGap": {
+                "type": "number",
+                "title": "省份候选最大分差",
+                "maximum": 0.3,
+                "minimum": 0,
+                "description": "新与最高省份候选分数的最大允许差。"
+              },
+              "bodyMinConfidence": {
+                "type": "number",
+                "title": "号码主体最低字符分数",
+                "maximum": 1,
+                "minimum": 0.5,
+                "description": "省份以外的字母、数字仍须逐字达到门槛。"
+              },
+              "allowInferredEvents": {
+                "type": "boolean",
+                "title": "允许省份推断结果产生事件",
+                "description": "默认关闭。仅影响缺字补全，不改变新疆候选比较。"
+              },
+              "allowMissingProvince": {
+                "type": "boolean",
+                "title": "首字完全缺失时补新",
+                "description": "默认关闭。启用后标记省份推断，不能视为模型看清首字。"
+              },
+              "provinceMinConfidence": {
+                "type": "number",
+                "title": "省份直接确认分数",
+                "maximum": 1,
+                "minimum": 0.5,
+                "description": "清晰外省结果优先保留；矛盾省份证据继续待确认。"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "algorithm": {
+          "minVotes": 3,
+          "voteFrames": 5,
+          "xinMinScore": 0.2,
+          "maxAgeSeconds": 10,
+          "provinceBonus": 0.12,
+          "maxProvinceGap": 0.1,
+          "bodyMinConfidence": 0.75,
+          "allowInferredEvents": false,
+          "allowMissingProvince": false,
+          "provinceMinConfidence": 0.75
+        },
+        "sampleFps": 1,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "nmsThreshold": 0.5,
+        "schemaVersion": "1.0"
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "package.xinjiang-plate-package"
+      ],
+      "defaultModelCode": null,
+      "artifact": {
+        "fileName": "d54c1f198372-xinjiang-plate-package.zip",
+        "sha256": "d54c1f19837296cc28185d25b66846da2feb7133beea4a3c7e8ad00e4a9b0eb7",
+        "size": 7713
+      }
+    },
+    {
+      "dag": {
+        "edges": [
+          {
+            "to": "plate-ocr",
+            "from": "plate-detector"
+          },
+          {
+            "to": "iou-tracker",
+            "from": "plate-ocr"
+          }
+        ],
+        "nodes": [
+          {
+            "id": "plate-detector",
+            "type": "DETECTOR",
+            "modelCode": "chinese-plate-yolo",
+            "modelCodes": [
+              "chinese-plate-yolo",
+              "chinese-plate-yolo-rk3588"
+            ],
+            "capabilityKey": "detector.license-plate"
+          },
+          {
+            "id": "plate-ocr",
+            "type": "OCR",
+            "modelCode": "chinese-plate-ocr",
+            "modelCodes": [
+              "chinese-plate-ocr",
+              "chinese-plate-ocr-rk3588"
+            ],
+            "capabilityKey": "ocr.license-plate"
+          },
+          {
+            "id": "iou-tracker",
+            "type": "TRACKER",
+            "capabilityKey": "tracker.iou"
+          }
+        ],
+        "preset": {
+          "code": "yard-vehicle-recognition",
+          "revision": 3
+        },
+        "acceptance": {
+          "status": "PENDING",
+          "note": "当前环境尚未完成现场验收"
+        },
+        "schemaVersion": "1.0"
+      },
+      "code": "yard-vehicle-recognition",
+      "name": "厂区车辆识别",
+      "category": "CUSTOM",
+      "eventType": "VEHICLE_PLATE_RECOGNIZED",
+      "sceneGroup": "LICENSE_PLATE",
+      "description": "识别厂区、矿区及料仓车头车牌，采用中文车牌专用四角检测、原图区域裁剪与透视矫正、专用 OCR 和 3/5 帧确认。输出车牌、截图、时间及位置，按车牌到访去重；事件接口按任务绑定。现场效果待验收。",
+      "capabilityKey": "ocr.license-plate",
+      "parameterSchema": {
+        "type": "object",
+        "required": [
+          "schemaVersion",
+          "confidence",
+          "sampleFps",
+          "ocrMinConfidence",
+          "ocrMinVotes",
+          "ocrVoteFrames",
+          "ocrVoteMaxAgeSeconds"
+        ],
+        "properties": {
+          "sampleFps": {
+            "type": "number",
+            "maximum": 10,
+            "minimum": 0.1
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1,
+            "minimum": 0.01
+          },
+          "ocrMinVotes": {
+            "type": "integer",
+            "title": "一致识别帧数",
+            "maximum": 30,
+            "minimum": 2
+          },
+          "ocrVoteFrames": {
+            "type": "integer",
+            "title": "投票窗口帧数",
+            "maximum": 30,
+            "minimum": 2
+          },
+          "plateUseRuleRoi": {
+            "type": "boolean",
+            "title": "在告警区域内检测车牌"
+          },
+          "ocrMinConfidence": {
+            "type": "number",
+            "title": "车牌最低置信度",
+            "maximum": 1,
+            "minimum": 0.01
+          },
+          "plateMaxCandidates": {
+            "type": "integer",
+            "title": "每帧最多识别车牌数",
+            "maximum": 30,
+            "minimum": 1
+          },
+          "ocrVoteMaxAgeSeconds": {
+            "type": "number",
+            "title": "投票有效时间（秒）",
+            "maximum": 60,
+            "minimum": 1
+          }
+        },
+        "schemaVersion": "1.0"
+      },
+      "defaultParameters": {
+        "sampleFps": 4,
+        "confidence": 0.5,
+        "inputWidth": 640,
+        "inputHeight": 640,
+        "ocrMinVotes": 3,
+        "nmsThreshold": 0.5,
+        "ocrVoteFrames": 5,
+        "schemaVersion": "1.0",
+        "validationOnly": true,
+        "plateUseRuleRoi": true,
+        "ocrMinConfidence": 0.75,
+        "plateMaxCandidates": 10,
+        "ocrVoteMaxAgeSeconds": 10
+      },
+      "implementationType": "COMPOSITE",
+      "requiredCapabilities": [
+        "detector.license-plate",
+        "ocr.license-plate",
+        "tracker.iou"
+      ],
+      "defaultModelCode": "chinese-plate-yolo"
+    }
+  ]
+}

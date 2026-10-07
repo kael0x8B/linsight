@@ -1,1 +1,7 @@
 deploy/model-assets/files/* binary
+deploy/algorithm-assets/files/* binary
+deploy/platform-snapshot/*.enc binary
+deploy/platform-snapshot/resources/* binary
+deploy/application-release/baseline/** binary
+deploy/**/*.json text eol=lf
+runtime/pyproject.toml text eol=lf

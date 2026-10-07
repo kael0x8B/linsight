@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import hashlib
+import importlib.util
 import json
 import os
 import shutil
@@ -320,7 +321,7 @@ ON DUPLICATE KEY UPDATE name=VALUES(name),storage=VALUES(storage),remark=VALUES(
         self.mysql(sql)
 
     def upload(self, artifact: dict[str, Any]) -> str:
-        object_path = f"builtin/v1/{artifact['fileName']}"
+        object_path = artifact.get("objectPath", f"builtin/v1/{artifact['fileName']}")
         temp_dir = "/tmp/linsight-model-import-v1"
         run(["docker", "exec", self.minio_container, "mkdir", "-p", temp_dir], quiet=True)
         run(["docker", "cp", artifact["path"], f"{self.minio_container}:{temp_dir}/{artifact['fileName']}"], quiet=True)
@@ -347,6 +348,7 @@ ON DUPLICATE KEY UPDATE name=VALUES(name),storage=VALUES(storage),remark=VALUES(
             "PYTORCH": "application/octet-stream",
             "ARCHIVE": "application/zip",
         }.get(artifact["format"], "application/octet-stream")
+        content_type = artifact.get("contentType", content_type)
         sql = f"""
 UPDATE infra_file
 SET name={sql_quote(artifact['fileName'])},url={sql_quote(url)},type={sql_quote(content_type)},
@@ -523,6 +525,12 @@ def main(args: argparse.Namespace | None = None, registry: LocalRegistry | None 
             if version.get("production") is True:
                 registry.promote_version(model["code"], version["version"])
             print(f"[register] {model['code']} / {version['version']}")
+    if args.catalog.resolve() == DEFAULT_CATALOG.resolve():
+        spec = importlib.util.spec_from_file_location(
+            "deployment_algorithm_assets", PROJECT_DIR / "scripts/deployment_algorithm_assets.py")
+        algorithms = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(algorithms)
+        algorithms.synchronize(registry)
     registry.cleanup()
     count = registry.mysql(
         f"SELECT COUNT(*) FROM ai_model_version WHERE tenant_id={args.tenant_id} AND deleted=b'0';\n"

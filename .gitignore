@@ -3,6 +3,7 @@
 .vscode/
 .env
 .env.native
+.deployment-key
 *.log
 logs/
 backend/**/target/

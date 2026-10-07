@@ -12,6 +12,13 @@
 
 ## 本地启动
 
+**同事部署需要复现当前开发机的模型、算法、规则和 AI 任务时，请使用
+[完整业务快照恢复](deploy/platform-snapshot/README.md)**：填写项目根目录 `.env.native`，
+放入单独交付的 `.deployment-key`，执行 `python scripts/restore-platform-snapshot.py`。
+该入口恢复 15 个可部署模型版本、24 类算法、18 条规则、9 个任务及必需文件，
+同时准备升级包构建环境；支持 Windows + IDEA + 本机/远程 MySQL、MinIO、Redis。
+下方 `make model-assets-init` 是通用初始化入口。
+
 依赖：Docker、JDK 17、Maven 3.9+、Node.js 22.18+（或 24）、Corepack、Python 3.12/3.13、uv。
 从干净克隆启动前，先安装前端和 Runtime 依赖，并配置本机密钥：
 

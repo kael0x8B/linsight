@@ -36,10 +36,11 @@ def main():
         with tempfile.TemporaryDirectory(prefix="linsight-nativecheck-") as temp:
             workspace = Path(temp)
             (workspace / "scripts").mkdir()
-            for name in ("sync-builtin-model-assets.py", "initialize-model-assets-native.py"):
+            for name in ("sync-builtin-model-assets.py", "initialize-model-assets-native.py", "deployment_algorithm_assets.py"):
                 shutil.copyfile(ROOT / "scripts" / name, workspace / "scripts" / name)
             (workspace / "deploy").mkdir()
             (workspace / "deploy/model-assets").symlink_to(ROOT / "deploy/model-assets", target_is_directory=True)
+            (workspace / "deploy/algorithm-assets").symlink_to(ROOT / "deploy/algorithm-assets", target_is_directory=True)
             # Verify the committed migration set, independent of other ongoing workspace changes.
             migrations = workspace / "backend/sql/mysql/migrations/ai-video"
             migrations.mkdir(parents=True)
@@ -86,6 +87,11 @@ def main():
                     cursor.execute(f"SELECT COUNT(*) FROM {database}.ai_model WHERE deleted=0 AND code IN "
                                    "('smoking-phone-detection','general-ocr','general-segmentation')")
                     assert cursor.fetchone()[0] == 0
+                    cursor.execute(f"SELECT COUNT(*), COUNT(DISTINCT name) FROM {database}.ai_algorithm WHERE deleted=0 AND status=0")
+                    assert tuple(cursor.fetchone()) == (27, 24)
+                    cursor.execute(f"SELECT COUNT(*) FROM {database}.ai_algorithm a JOIN {database}.ai_pipeline_version p "
+                                   "ON a.current_pipeline_version_id=p.id WHERE a.deleted=0 AND a.status=0 AND p.package_artifact_ref IS NOT NULL")
+                    assert cursor.fetchone()[0] == 17
                 print(f"[pass {attempt}] native TCP/S3: migrated={len(paths)} versions=15 published=15 ready=0")
             from minio import Minio
             storage = Minio(f"127.0.0.1:{port}", "native-check", secret, secure=False)

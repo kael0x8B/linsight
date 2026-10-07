@@ -32,7 +32,7 @@ def build(args):
     if not isinstance(key, Ed25519PrivateKey):
         raise TypeError("需要 Ed25519 发布私钥")
     runtime = args.runtime.resolve()
-    wheel_manifest = json.loads((args.wheels / "manifest.json").read_text())
+    wheel_manifest = json.loads((args.wheels / "manifest.json").read_text(encoding="utf-8"))
     if (
         wheel_manifest.get("architecture") != args.arch
         or wheel_manifest.get("pythonVersion") != "3.12"
@@ -62,7 +62,7 @@ def build(args):
                 if path.is_symlink():
                     raise ValueError("Runtime 源码包含链接")
                 files["payload/runtime/" + path.relative_to(runtime).as_posix()] = path
-    console = json.loads((runtime / "gateway-console/manifest.json").read_text())
+    console = json.loads((runtime / "gateway-console/manifest.json").read_text(encoding="utf-8"))
     for name in ("manifest.json", console["artifact"]["fileName"]):
         files["payload/runtime/gateway-console/" + name] = (
             runtime / "gateway-console" / name
@@ -87,7 +87,7 @@ def build(args):
         "pythonVersion": "3.12",
         "dataSchema": 1,
         "minUpdater": 1,
-        "notes": args.notes.read_text() if args.notes else "",
+        "notes": args.notes.read_text(encoding="utf-8") if args.notes else "",
         "files": {
             name: {"size": path.stat().st_size, "sha256": sha256(path)}
             for name, path in sorted(files.items())
@@ -180,7 +180,7 @@ def build(args):
         "keyId": args.key_id,
     }
     if getattr(args, "result_file", None):
-        args.result_file.write_text(json.dumps(result, indent=2))
+        args.result_file.write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(json.dumps(result, indent=2))
 
 

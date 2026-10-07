@@ -23,7 +23,7 @@ spec.loader.exec_module(sync)
 
 
 class NativeRegistry(sync.LocalRegistry):
-    def __init__(self, env: dict[str, str], tenant_id: int) -> None:
+    def __init__(self, env: dict[str, str], tenant_id: int, *, create_database: bool = False) -> None:
         required = ("MYSQL_HOST", "MYSQL_PORT", "MYSQL_DATABASE", "MYSQL_USER", "MYSQL_PASSWORD",
                     "MINIO_ENDPOINT", "MINIO_ROOT_USER", "MINIO_ROOT_PASSWORD")
         missing = [key for key in required if not env.get(key) or env[key] == "CHANGE_ME"]
@@ -45,13 +45,18 @@ class NativeRegistry(sync.LocalRegistry):
         self.database = env["MYSQL_DATABASE"]
         self.storage_endpoint = endpoint
         self.connection = pymysql.connect(
-            host=env["MYSQL_HOST"], port=int(env["MYSQL_PORT"]), database=self.database,
+            host=env["MYSQL_HOST"], port=int(env["MYSQL_PORT"]), database=None if create_database else self.database,
             user=env["MYSQL_USER"], password=env["MYSQL_PASSWORD"], charset="utf8mb4",
             autocommit=True, client_flag=CLIENT.MULTI_STATEMENTS, connect_timeout=10,
             read_timeout=120, write_timeout=120,
             **({"ssl_ca": env["MYSQL_SSL_CA"], "ssl_verify_cert": True, "ssl_verify_identity": True}
                if env.get("MYSQL_SSL_CA") else {}),
         )
+        if create_database:
+            with self.connection.cursor() as cursor:
+                cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{self.database.replace('`', '``')}` "
+                               "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
+            self.connection.select_db(self.database)
         self.storage = Minio(parsed.netloc, access_key=self.minio_user,
                              secret_key=self.minio_password, secure=parsed.scheme == "https",
                              region="us-east-1")
@@ -80,7 +85,7 @@ class NativeRegistry(sync.LocalRegistry):
             self.storage.make_bucket(sync.MINIO_BUCKET)
 
     def upload(self, artifact: dict) -> str:
-        object_path = f"builtin/v1/{artifact['fileName']}"
+        object_path = artifact.get("objectPath", f"builtin/v1/{artifact['fileName']}")
         self.storage.fput_object(sync.MINIO_BUCKET, object_path, artifact["path"],
                                  content_type="application/zip" if artifact["format"] == "ARCHIVE"
                                  else "application/octet-stream")
