@@ -44,9 +44,11 @@ const [Drawer, drawerApi] = useVbenDrawer({
 
 <template>
   <Drawer
-    class="w-[1000px] max-w-[calc(100vw-32px)]"
+    class="ai-dialog w-[1000px] max-w-[calc(100vw-32px)]"
     :footer="false"
     title="前后 100 行日志上下文"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
   >
     <div class="px-3 py-2">
       <Alert v-if="error" :message="error" show-icon type="error">

@@ -184,7 +184,12 @@ onBeforeUnmount(clearImage);
 </script>
 
 <template>
-  <Modal :title="t('title')" class="!w-[1100px] max-w-[95vw]">
+  <Modal
+    :title="t('title')"
+    class="ai-dialog !w-[1100px] max-w-[95vw]"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+  >
     <div class="mb-4 flex gap-2">
       <Button
         :type="validationMode ? 'default' : 'primary'"

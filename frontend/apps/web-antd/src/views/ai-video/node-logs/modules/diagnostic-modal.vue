@@ -11,7 +11,8 @@ const emit = defineEmits<{ success: [id: number] }>();
 
 const [Form, formApi] = useVbenForm({
   commonConfig: { componentProps: { class: 'w-full' }, labelWidth: 96 },
-  layout: 'horizontal',
+  layout: 'vertical',
+  wrapperClass: 'ai-form-grid',
   schema: [
     {
       component: 'InputNumber',
@@ -64,7 +65,12 @@ const [Modal, modalApi] = useVbenModal({
 </script>
 
 <template>
-  <Modal title="生成节点诊断包">
+  <Modal
+    title="生成节点诊断包"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+    class="ai-dialog"
+  >
     <div class="space-y-4">
       <Form />
     </div>

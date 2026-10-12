@@ -32,8 +32,8 @@ import {
   shutdownNode,
 } from '#/api/ai-video/node';
 import { platformGateway } from '#/api/ai-video/node/gateway';
-import { $t } from '#/locales';
 import { AiResourceGauge } from '#/components/ai-video';
+import { $t } from '#/locales';
 import NodeLogs from '#/views/ai-video/node-logs/index.vue';
 
 import GatewayWorkbench from './gateway-workbench.vue';
@@ -153,7 +153,11 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <Page>
-    <AccessModal>
+    <AccessModal
+      content-class="ai-dialog-content"
+      footer-class="ai-dialog-footer"
+      class="ai-dialog"
+    >
       <p class="mb-4">设置后可直接访问网关地址，独立管理当前网关。</p>
       <a
         v-if="node?.ipAddress"
@@ -385,8 +389,15 @@ onBeforeUnmount(() => {
                 :gateway-id="node.id"
               /><Empty v-else description="暂无网关日志查询权限" />
             </TabPane>
-            <TabPane v-if="can(['ai-video:node:upgrade'])" key="application-upgrade" :tab="$t('application-upgrade.title')">
-              <ApplicationUpgrade v-if="activeTab === 'application-upgrade'" :transport="transport" />
+            <TabPane
+              v-if="can(['ai-video:node:upgrade'])"
+              key="application-upgrade"
+              :tab="$t('application-upgrade.title')"
+            >
+              <ApplicationUpgrade
+                v-if="activeTab === 'application-upgrade'"
+                :transport="transport"
+              />
             </TabPane>
             <TabPane key="deployments" tab="部署记录">
               <DeploymentHistory

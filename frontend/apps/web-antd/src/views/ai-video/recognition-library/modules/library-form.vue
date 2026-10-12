@@ -109,7 +109,9 @@ onMounted(async () => {
 <template>
   <Modal
     :title="form.id ? '编辑识别参考库' : '新增识别参考库'"
-    class="w-[640px] max-w-[calc(100vw-32px)]"
+    class="ai-dialog w-[640px] max-w-[calc(100vw-32px)]"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
   >
     <Form :model="form" layout="vertical">
       <div class="grid grid-cols-2 gap-x-4">

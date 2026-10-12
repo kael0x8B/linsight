@@ -292,7 +292,11 @@ onMounted(refresh);
         description="暂无符合条件的算法，可清除筛选或到高级管理查看。"
       />
     </Spin>
-    <Details>
+    <Details
+      content-class="ai-dialog-content"
+      footer-class="ai-dialog-footer"
+      class="ai-dialog w-[760px]"
+    >
       <Spin :spinning="detailLoading">
         <div class="space-y-4 p-2">
           <Alert v-if="detailError" type="error" :message="detailError" />

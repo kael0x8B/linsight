@@ -94,6 +94,8 @@ export function useCameraFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'mainStreamUri',
       label: '主码流路径',
+      formItemClass: 'ai-form-span-full',
+      help: '主、子码流均需使用 H.264；按摄像头实际路径填写。',
       component: 'Input',
       componentProps: {
         maxlength: 4096,
@@ -104,6 +106,7 @@ export function useCameraFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'subStreamUri',
       label: '子码流路径',
+      formItemClass: 'ai-form-span-full',
       component: 'Input',
       componentProps: {
         maxlength: 4096,
@@ -252,14 +255,6 @@ export function useCameraGridColumns(): VxeTableGridOptions<AiVideoCameraApi.Cam
       align: 'left',
     },
     { field: 'code', title: '编码', minWidth: 160, align: 'left' },
-    {
-      field: 'recognitionCapabilities',
-      title: '识别能力',
-      minWidth: 280,
-      align: 'left',
-      showOverflow: false,
-      slots: { default: 'recognitionCapabilities' },
-    },
     {
       field: 'groupId',
       title: '分组',

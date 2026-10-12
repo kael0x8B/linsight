@@ -322,13 +322,14 @@ const [Modal, modal] = useVbenModal({
 });
 </script>
 <template>
-  <Modal>
+  <Modal
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+    class="ai-dialog w-[900px]"
+  >
     <Alert v-if="error" class="mb-3" type="error" show-icon :message="error" />
     <Alert
-      v-if="
-        !modelOptions('plate').length ||
-        !modelOptions('ocr').length
-      "
+      v-if="!modelOptions('plate').length || !modelOptions('ocr').length"
       class="mb-3"
       type="warning"
       show-icon

@@ -137,7 +137,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <Modal class="w-[960px] max-w-[calc(100vw-32px)]" title="新增 AI 能力">
+  <Modal
+    class="ai-dialog w-[960px] max-w-[calc(100vw-32px)]"
+    title="新增 AI 能力"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+  >
     <Form :model="form" layout="vertical">
       <div class="grid grid-cols-3 gap-x-4">
         <FormItem label="能力名称" required>

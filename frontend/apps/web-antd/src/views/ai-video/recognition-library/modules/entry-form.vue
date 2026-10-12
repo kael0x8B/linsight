@@ -204,7 +204,9 @@ const [Modal, modalApi] = useVbenModal({
   <Modal
     :title="title"
     confirm-text="保存"
-    class="w-[760px] max-w-[calc(100vw-32px)]"
+    class="ai-dialog w-[760px] max-w-[calc(100vw-32px)]"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
   >
     <div class="entry-editor">
       <section

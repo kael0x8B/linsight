@@ -157,7 +157,9 @@ function recognizeImage(row: Row) {
   imageRecognitionApi
     .setData({
       task,
-      validationSupported: snapshot.value?.capabilities?.includes('task.image-validation.v1') ?? false,
+      validationSupported:
+        snapshot.value?.capabilities?.includes('task.image-validation.v1') ??
+        false,
       supported:
         snapshot.value?.capabilities?.includes('task.image-recognition.v1') ??
         false,
@@ -173,9 +175,7 @@ async function configurePipeline(
   cameraId?: number,
 ) {
   await nextTick();
-  pipelineApi
-    .setData({ algorithmId, nodeId: props.node.id, cameraId })
-    .open();
+  pipelineApi.setData({ algorithmId, nodeId: props.node.id, cameraId }).open();
 }
 const labels: Record<string, string> = {
   RUNNING: '正在识别',
@@ -465,7 +465,11 @@ onBeforeUnmount(() => {
     @select-pipeline="configurePipeline"
   />
   <PipelineConfiguration @success="refresh()" />
-  <CreateModal>
+  <CreateModal
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+    class="ai-dialog"
+  >
     <p class="mb-4 text-sm text-muted-foreground">
       所属网关：{{ node.name }}。配置只在这台网关上运行。
     </p>

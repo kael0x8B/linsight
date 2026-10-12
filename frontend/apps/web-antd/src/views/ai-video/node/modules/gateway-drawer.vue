@@ -36,7 +36,11 @@ function transport<T>(
 }
 </script>
 <template>
-  <Drawer>
+  <Drawer
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+    class="ai-dialog w-[min(1400px,96vw)]"
+  >
     <GatewayWorkbench
       v-if="nodeId"
       :key="nodeId"

@@ -597,10 +597,12 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <Modal
-    class="w-[1160px]"
+    class="ai-dialog w-[1160px]"
     :title="
       existingEntry ? '提取人脸特征' : t(enrollmentOnly ? 'enrollTab' : 'title')
     "
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
   >
     <Alert v-if="error" :message="error" type="error" show-icon class="mb-3" />
     <Tabs v-model:active-key="tab">

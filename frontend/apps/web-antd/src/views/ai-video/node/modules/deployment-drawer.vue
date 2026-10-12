@@ -161,7 +161,8 @@ const [DeploymentForm, deploymentFormApi] = useVbenForm({
       },
       defaultValue: true,
       fieldName: 'installDependencies',
-      description: '缺少受支持 Python 时独立安装 3.12；并补齐 venv、FFmpeg、CA 证书和 curl，不修改系统 python3。',
+      description:
+        '缺少受支持 Python 时独立安装 3.12；并补齐 venv、FFmpeg、CA 证书和 curl，不修改系统 python3。',
       label: '系统依赖',
     },
   ],
@@ -374,7 +375,7 @@ onBeforeUnmount(clearPoll);
 
 <template>
   <Drawer
-    class="w-[820px] max-w-[calc(100vw-32px)]"
+    class="ai-dialog w-[820px] max-w-[calc(100vw-32px)]"
     :show-confirm-button="false"
     :title="
       operationType === 'ROLLBACK'
@@ -383,6 +384,8 @@ onBeforeUnmount(clearPoll);
           ? `在线升级 · ${targetNode?.name ?? preflight?.existingNodeName ?? ''}`
           : '部署边缘节点'
     "
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
   >
     <template #prepend-footer>
       <Button v-if="currentStep === 1" @click="currentStep = 0">
@@ -411,7 +414,7 @@ onBeforeUnmount(clearPoll);
         {{ confirmText }}
       </Button>
     </template>
-    <div class="deployment-content px-2 py-1">
+    <div class="deployment-content">
       <Steps :current="currentStep" :items="stepItems" size="small" />
       <Alert v-if="actionError" :message="actionError" show-icon type="error" />
       <Alert

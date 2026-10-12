@@ -90,6 +90,119 @@ body {
   color: hsl(var(--muted-foreground));
 }
 
+/* Ant's unlayered reset otherwise wins over Tailwind spacing utilities. */
+:is(.ant-app, .ai-dialog) .ant-alert {
+  margin: revert-layer;
+}
+
+.ai-dialog-content {
+  padding: 24px;
+  container-type: inline-size;
+}
+
+.ai-dialog :is([data-slot='dialog-title'], [data-slot='sheet-title']) {
+  padding-inline-end: 24px;
+  overflow-wrap: anywhere;
+}
+
+.ai-dialog-content form,
+.ai-dialog-content form > .grid,
+.ai-dialog-content form > .grid > * {
+  min-width: 0;
+}
+
+.ai-dialog-content
+  form
+  :is(.ant-select, .ant-input-number, .ant-picker, .ant-upload-wrapper),
+.ai-form-grid
+  :is(.ant-select, .ant-input-number, .ant-picker, .ant-upload-wrapper) {
+  width: 100%;
+  min-width: 0;
+}
+
+.ai-dialog-content
+  :is(
+    .ant-descriptions-item-content,
+    .ant-alert-message,
+    .ant-alert-description
+  ) {
+  overflow-wrap: anywhere;
+}
+
+.ai-dialog-footer {
+  gap: 8px;
+  padding: 14px 24px;
+}
+
+.ai-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+
+.ai-form-grid > * {
+  min-width: 0;
+  padding-bottom: 0;
+}
+
+.ai-form-grid > .ant-form-item {
+  margin-bottom: 0;
+}
+
+.ai-form-grid--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ai-form-span-full {
+  grid-column: 1 / -1;
+}
+
+.ai-workflow {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.ai-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding: 18px;
+  background: var(--ai-surface-subtle);
+  border: 1px solid hsl(var(--border) / 68%);
+  border-radius: var(--ai-radius-md);
+}
+
+.ai-form-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: hsl(var(--muted-foreground));
+}
+
+@container (width < 560px) {
+  .ai-dialog-content form > .grid,
+  .ai-form-grid--two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ai-dialog-content form > .grid > * {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (width <= 640px) {
+  .ai-dialog-content {
+    padding: 16px;
+  }
+
+  .ai-dialog-footer {
+    padding: 12px 16px;
+  }
+}
+
 .ant-app .ant-btn {
   font-weight: 500;
   box-shadow: none;

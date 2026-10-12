@@ -1814,7 +1814,11 @@ onBeforeUnmount(() => {
       :snapshot="snapshot"
       @saved="refresh()"
     />
-    <PackageUpload>
+    <PackageUpload
+      content-class="ai-dialog-content"
+      footer-class="ai-dialog-footer"
+      class="ai-dialog w-[560px] max-w-[calc(100vw-32px)]"
+    >
       <div class="space-y-4 py-1">
         <Alert
           v-if="packageError"
@@ -1835,14 +1839,14 @@ onBeforeUnmount(() => {
             仅支持供应方提供的 ZIP，最大 8 MB
           </p>
         </Upload.Dragger>
-        <Alert
-          message="算法包只包含算法逻辑和配置声明；依赖的模型文件请在“本地模型”中单独安装。"
-          type="info"
-          show-icon
-        />
+        <p class="ai-form-note">依赖模型请在“本地模型”中安装。</p>
       </div>
     </PackageUpload>
-    <EditModal>
+    <EditModal
+      content-class="ai-dialog-content"
+      footer-class="ai-dialog-footer"
+      class="ai-dialog w-[820px]"
+    >
       <Alert
         v-if="editError"
         class="mb-4"
@@ -1924,7 +1928,11 @@ onBeforeUnmount(() => {
         保存后当前识别配置会短暂重启。
       </p>
     </EditModal>
-    <EvidenceModal>
+    <EvidenceModal
+      content-class="ai-dialog-content"
+      footer-class="ai-dialog-footer"
+      class="ai-dialog w-[900px]"
+    >
       <div v-if="evidenceEvent" class="mb-4 space-y-1">
         <div class="text-lg font-semibold">
           {{ $t('ai-video-gateway.recognitionResult') }}：
@@ -1969,7 +1977,11 @@ onBeforeUnmount(() => {
         :description="$t('ai-video-gateway.maa0c31c283')"
       />
     </EvidenceModal>
-    <ModelModal>
+    <ModelModal
+      content-class="ai-dialog-content"
+      footer-class="ai-dialog-footer"
+      class="ai-dialog w-[700px]"
+    >
       <p class="mb-4">{{ $t('ai-video-gateway.mb8dacbb1e5') }}</p>
       <label class="mb-2 block">模型名称</label
       ><Input
@@ -1995,7 +2007,11 @@ onBeforeUnmount(() => {
       }}</label
       ><Input.TextArea v-model:value="modelManifest" :rows="12" />
     </ModelModal>
-    <PasswordModal>
+    <PasswordModal
+      content-class="ai-dialog-content"
+      footer-class="ai-dialog-footer"
+      class="ai-dialog"
+    >
       <p class="mb-3">{{ $t('ai-video-gateway.mf3438e176f') }}</p>
       <PasswordForm />
     </PasswordModal>
@@ -2007,32 +2023,39 @@ onBeforeUnmount(() => {
   max-width: 1680px;
   margin-inline: auto;
 }
+
 .local-workbench :deep(.gateway-content) {
   padding: 24px 32px;
 }
+
 .local-workbench .gateway-workbench-toolbar {
+  gap: 20px;
+  padding: 0 0 4px;
+  background: transparent;
   border: 0;
   border-radius: 0;
-  background: transparent;
-  padding: 0 0 4px;
-  gap: 20px;
 }
+
 .gateway-workspace-tabs {
-  border: 1px solid hsl(var(--border));
-  border-radius: 14px;
   padding: 0 20px 20px;
   background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px;
 }
+
 .gateway-workspace-tabs :deep(> .ant-tabs-nav) {
   margin-bottom: 20px;
 }
+
 .gateway-workspace-tabs :deep(> .ant-tabs-nav .ant-tabs-tab) {
   padding-block: 18px;
 }
+
 @media (max-width: 700px) {
   .local-workbench :deep(.gateway-content) {
     padding: 20px 12px;
   }
+
   .gateway-workspace-tabs {
     padding: 0 12px 12px;
   }

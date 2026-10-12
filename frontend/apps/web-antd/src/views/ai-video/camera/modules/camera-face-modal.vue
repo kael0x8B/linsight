@@ -20,7 +20,12 @@ const [Modal, modalApi] = useVbenModal({
 });
 </script>
 <template>
-  <Modal class="w-[760px]" :title="$t('camera-face.algorithm')">
+  <Modal
+    class="ai-dialog w-[760px]"
+    :title="$t('camera-face.algorithm')"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+  >
     <FaceConfig
       v-if="data"
       :camera-id="data.cameraId"

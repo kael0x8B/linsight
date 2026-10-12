@@ -11,7 +11,7 @@ import { useRouter } from 'vue-router';
 
 import { useVbenModal } from '@vben/common-ui';
 
-import { Alert, Button, message, Select, Tag } from 'ant-design-vue';
+import { Alert, Button, message, Select, Skeleton, Tag } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import { getAlgorithm, getPipelineVersions } from '#/api/ai-video/algorithm';
@@ -69,10 +69,14 @@ const validation = computed(
   () => algorithm.value?.pipelineAcceptanceStatus === 'PENDING',
 );
 const [Form, form] = useVbenForm({
+  layout: 'vertical',
+  wrapperClass: 'ai-form-grid ai-form-grid--two',
+  commonConfig: { formItemClass: 'min-w-0' },
   showDefaultActions: false,
   schema: [
     {
       fieldName: 'name',
+      formItemClass: 'ai-form-span-full',
       label: '配置名称',
       component: 'Input',
       rules: 'required',
@@ -403,20 +407,13 @@ function inspectGateway() {
 }
 </script>
 <template>
-  <Modal>
-    <div class="space-y-4 p-2">
-      <Alert
-        v-if="validation"
-        type="info"
-        show-icon
-        message="现场验证会在所选摄像头上运行识别，结果标记为现场验证；不会自动改为正式运行。"
-      />
-      <Alert
-        v-if="loading"
-        type="info"
-        show-icon
-        message="正在读取该算法的模型和配置选项…"
-      />
+  <Modal
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+    class="ai-dialog w-[760px]"
+  >
+    <div class="ai-workflow">
+      <Skeleton v-if="loading" active :paragraph="{ rows: 6 }" />
       <Alert v-if="error" type="error" show-icon :message="error">
         <template #action>
           <Button v-if="!busy" @click="ready ? (error = '') : load()">
@@ -424,18 +421,20 @@ function inspectGateway() {
           </Button>
         </template>
       </Alert>
-      <div v-show="!loading && algorithm && !started" :inert="busy">
+      <div
+        v-show="!loading && algorithm && !started"
+        class="ai-workflow"
+        :inert="busy"
+      >
         <Form />
         <Alert
           v-if="selectedStreamType === 'MAIN'"
-          class="mb-4"
           type="warning"
           show-icon
-          message="主码流会增加网关解码负载；同源实时预览要求主码流为 H.264。当前若为 H.265，识别可运行，但预览暂不可用。"
+          message="主码流会增加网关解码负载，请确认使用 H.264 编码。"
         />
         <Alert
-          v-if="latencyEstimate"
-          class="mb-4"
+          v-if="latencyEstimate && latencyConflict"
           show-icon
           :type="latencyConflict ? 'error' : 'info'"
           :message="confirmationLatencyMessage(latencyEstimate)"
@@ -445,12 +444,16 @@ function inspectGateway() {
               : '规则层是唯一告警确认门槛。'
           "
         />
-        <div class="space-y-3 rounded-lg border p-4">
+        <p v-else-if="latencyEstimate" class="ai-form-note">
+          {{ confirmationLatencyMessage(latencyEstimate) }}
+        </p>
+        <section class="ai-form-section">
           <h4 class="font-medium">识别模型</h4>
           <div v-for="(slot, index) in modelSlots" :key="slot.id">
             <p class="mb-1 text-sm">模型 {{ index + 1 }}</p>
             <Select
               v-model:value="bindings[slot.id]"
+              :aria-label="`模型 ${index + 1}`"
               class="w-full"
               :disabled="busy"
               :options="
@@ -470,7 +473,10 @@ function inspectGateway() {
               缺少已发布且可执行的模型，请先到模型中心完成测试和发布
             </Tag>
           </div>
-        </div>
+        </section>
+        <p v-if="validation" class="ai-form-note">
+          保存后将在所选摄像头上开始现场验证，结果保留验证标记。
+        </p>
       </div>
       <Alert
         v-if="progress"

@@ -341,7 +341,12 @@ const [Modal, modalApi] = useVbenModal({
 });
 </script>
 <template>
-  <Modal :title="t('add')" class="w-[700px]">
+  <Modal
+    :title="t('add')"
+    class="ai-dialog w-[700px]"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+  >
     <div class="space-y-4 p-1">
       <div class="rounded-lg bg-muted p-3">
         <strong>{{
@@ -488,7 +493,7 @@ const [Modal, modalApi] = useVbenModal({
         >
           {{ t('newConfiguration') }}
         </Button>
-        <Alert v-if="!isFace" type="info" show-icon :message="t('saveHint')" />
+        <p v-if="!isFace" class="ai-form-note">{{ t('saveHint') }}</p>
         <p
           v-if="cameras.length > 1 && source"
           class="text-xs text-muted-foreground"

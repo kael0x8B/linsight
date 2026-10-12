@@ -140,6 +140,9 @@ watch(ruleId, async (id) => {
   <Modal
     title="更换任务规则"
     :confirm-text="restart ? '停止、切换并启动' : '保存规则版本'"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+    class="ai-dialog"
   >
     <Alert
       class="mb-4"

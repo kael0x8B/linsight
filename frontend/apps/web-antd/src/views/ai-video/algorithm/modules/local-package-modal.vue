@@ -293,7 +293,11 @@ const [Modal, modal] = useVbenModal({
 });
 </script>
 <template>
-  <Modal>
+  <Modal
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+    class="ai-dialog w-[800px]"
+  >
     <div class="space-y-4">
       <Alert v-if="error" :message="error" type="error" show-icon /><Form />
       <template v-if="selected">
@@ -306,16 +310,12 @@ const [Modal, modal] = useVbenModal({
             placeholder="请先在本机安装兼容模型"
           />
         </div>
-        <Alert
-          v-if="selected.manifest.resources?.length"
-          type="info"
-          message="使用已同步到本机的人员库。可修改参与比对人员和识别阈值。"
-        />
-        <Alert
-          v-if="statisticsOnly"
-          type="info"
-          message="统计区域内当前人数，在实时画面显示结果；无需人员库，不生成离岗告警。各摄像头分别统计。"
-        />
+        <p v-if="selected.manifest.resources?.length" class="ai-form-note">
+          使用已同步到本机的人员库。可修改参与比对人员和识别阈值。
+        </p>
+        <p v-if="statisticsOnly" class="ai-form-note">
+          统计区域内当前人数，在实时画面显示结果；无需人员库，不生成离岗告警。各摄像头分别统计。
+        </p>
         <PackageParameters
           ref="configForm"
           :manifest="selected.manifest"

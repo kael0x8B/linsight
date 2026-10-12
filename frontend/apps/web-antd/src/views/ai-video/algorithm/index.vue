@@ -422,7 +422,11 @@ watch(packageView, (main) => {
           }
         "
       />
-      <VersionsModal>
+      <VersionsModal
+        content-class="ai-dialog-content"
+        footer-class="ai-dialog-footer"
+        class="ai-dialog w-[1000px]"
+      >
         <PackageCatalog
           @change="
             algorithmCatalog?.refresh();

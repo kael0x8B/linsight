@@ -15,10 +15,11 @@ const emit = defineEmits(['success']);
 const [Form, formApi] = useVbenForm({
   commonConfig: {
     componentProps: { class: 'w-full' },
-    formItemClass: 'col-span-2',
+    formItemClass: 'ai-form-span-full',
     labelWidth: 96,
   },
-  layout: 'horizontal',
+  layout: 'vertical',
+  wrapperClass: 'ai-form-grid',
   schema: useModelFormSchema(),
   showDefaultActions: false,
 });
@@ -53,7 +54,12 @@ const [Modal, modalApi] = useVbenModal({
 </script>
 
 <template>
-  <Modal class="w-[640px]" title="新增模型">
-    <Form class="mx-4" />
+  <Modal
+    class="ai-dialog w-[640px]"
+    title="新增模型"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+  >
+    <Form />
   </Modal>
 </template>

@@ -608,9 +608,15 @@ onBeforeUnmount(() => {
 <template>
   <div class="space-y-4">
     <SetModal
+      content-class="ai-dialog-content"
+      footer-class="ai-dialog-footer"
+      class="ai-dialog"
       ><SetForm /><Alert v-if="editorError" type="error" :message="editorError"
     /></SetModal>
     <SampleModal
+      content-class="ai-dialog-content"
+      footer-class="ai-dialog-footer"
+      class="ai-dialog"
       ><SampleForm />
       <p class="text-xs text-muted-foreground">{{ t('comparisonHelp') }}</p>
       <Alert v-if="editorError" type="error" :message="editorError"

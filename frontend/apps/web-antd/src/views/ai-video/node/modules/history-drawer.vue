@@ -237,7 +237,8 @@ async function activateUpgrade() {
 <template>
   <component
     :is="embedded ? 'div' : Drawer"
-    :class="embedded ? '' : 'w-[1080px] max-w-[calc(100vw-32px)]'"
+    :class="embedded ? '' : 'ai-dialog w-[1080px] max-w-[calc(100vw-32px)]'"
+    :content-class="embedded ? undefined : 'ai-dialog-content'"
   >
     <SourceHistory />
     <Button

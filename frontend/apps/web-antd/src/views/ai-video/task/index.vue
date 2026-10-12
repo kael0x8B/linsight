@@ -992,7 +992,11 @@ onBeforeUnmount(() => {
       </Grid>
     </div>
 
-    <TaskWizard class="w-[1100px]">
+    <TaskWizard
+      class="ai-dialog w-[1100px]"
+      content-class="ai-dialog-content"
+      footer-class="ai-dialog-footer"
+    >
       <Alert
         v-if="catalogEntryError"
         class="mb-4"
@@ -1063,8 +1067,8 @@ onBeforeUnmount(() => {
           <Steps.Step title="规则" />
           <Steps.Step title="确认" />
         </Steps>
-        <div class="grid min-h-96 grid-cols-12 gap-6">
-          <Card class="col-span-8" size="small">
+        <div class="task-wizard-layout">
+          <Card class="task-wizard-main" size="small">
             <section v-show="wizardStep === 2">
               <ModelForm />
               <p v-if="modelConfigLoading" class="text-muted-foreground">
@@ -1174,19 +1178,9 @@ onBeforeUnmount(() => {
                     "
                   />
                 </FormItem>
-                <Alert
-                  v-if="selectedAlgorithm"
-                  :message="selectedAlgorithm.description"
-                  show-icon
-                  type="info"
-                />
-                <Alert
-                  v-if="validationOnly"
-                  class="mt-3"
-                  :message="$t('ai-video-task.validationHelp')"
-                  show-icon
-                  type="warning"
-                />
+                <p v-if="selectedAlgorithm?.description" class="ai-form-note">
+                  {{ selectedAlgorithm.description }}
+                </p>
                 <Alert
                   v-if="selectedAlgorithm && !pipelineAccepted"
                   class="mt-3"
@@ -1351,7 +1345,7 @@ onBeforeUnmount(() => {
               </template>
             </Form>
           </Card>
-          <Card class="col-span-4" size="small" title="配置摘要">
+          <Card class="task-wizard-summary" size="small" title="配置摘要">
             <Descriptions :column="1" size="small">
               <DescriptionsItem :label="$t('ai-video-task.mode')">
                 {{
@@ -1441,38 +1435,40 @@ onBeforeUnmount(() => {
       </template>
     </TaskWizard>
 
-    <Drawer v-model:open="monitorOpen" placement="right" width="72%">
+    <Drawer
+      v-model:open="monitorOpen"
+      placement="right"
+      width="min(1100px, 96vw)"
+      root-class-name="ai-dialog"
+      :body-style="{ padding: '24px' }"
+    >
       <template #title>{{ monitoredTask?.name }} · 运行监控</template>
       <template v-if="monitoredTask">
-        <Alert
+        <div
           v-if="monitoredTask.gatewayRevision"
-          class="mb-4"
-          type="info"
-          show-icon
-          :message="
+          class="mb-4 flex flex-wrap items-center justify-between gap-2"
+        >
+          <span class="ai-form-note">{{
             $t('ai-video-gateway.executionRevision', {
               revision: monitoredTask.gatewayRevision,
             })
-          "
-        >
-          <template #action>
-            <Button
-              type="link"
-              @click="
-                monitorOpen = false;
-                router.push(
-                  gatewayLocation(
-                    monitoredTask.nodeId,
-                    'algorithms',
-                    monitoredTask.cameraId,
-                  ),
-                );
-              "
-            >
-              {{ $t('ai-video-gateway.openWorkbench') }}
-            </Button>
-          </template>
-        </Alert>
+          }}</span>
+          <Button
+            type="link"
+            @click="
+              monitorOpen = false;
+              router.push(
+                gatewayLocation(
+                  monitoredTask.nodeId,
+                  'algorithms',
+                  monitoredTask.cameraId,
+                ),
+              );
+            "
+          >
+            {{ $t('ai-video-gateway.openWorkbench') }}
+          </Button>
+        </div>
         <Alert
           v-if="monitoredTask.parameters.validationOnly === true"
           :message="$t('ai-video-task.validationHelp')"
@@ -1568,6 +1564,19 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.task-wizard-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@container (width < 760px) {
+  .task-wizard-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .task-name,
 .task-error {
   display: -webkit-box;

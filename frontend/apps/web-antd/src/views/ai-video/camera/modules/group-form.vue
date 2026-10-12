@@ -28,10 +28,11 @@ const title = computed(() =>
 const [Form, formApi] = useVbenForm({
   commonConfig: {
     componentProps: { class: 'w-full' },
-    formItemClass: 'col-span-2',
+    formItemClass: 'ai-form-span-full',
     labelWidth: 90,
   },
-  layout: 'horizontal',
+  layout: 'vertical',
+  wrapperClass: 'ai-form-grid',
   schema: useCameraGroupFormSchema(),
   showDefaultActions: false,
 });
@@ -84,7 +85,12 @@ const [Modal, modalApi] = useVbenModal({
 </script>
 
 <template>
-  <Modal :title="title">
-    <Form class="mx-4" />
+  <Modal
+    :title="title"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+    class="ai-dialog"
+  >
+    <Form />
   </Modal>
 </template>

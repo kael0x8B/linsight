@@ -19,10 +19,11 @@ const eventTypeOptions = Object.entries(eventTypes).map(([value, label]) => ({
 const [Form, formApi] = useVbenForm({
   commonConfig: {
     componentProps: { class: 'w-full' },
-    formItemClass: 'col-span-2',
+    formItemClass: 'ai-form-span-full',
     labelWidth: 96,
   },
-  layout: 'horizontal',
+  layout: 'vertical',
+  wrapperClass: 'ai-form-grid',
   showDefaultActions: false,
   schema: [
     {
@@ -42,7 +43,10 @@ const [Form, formApi] = useVbenForm({
       },
       rules: z
         .string()
-        .regex(/^[a-z][a-z0-9-]{1,63}$/, '以小写字母开头，仅含小写字母、数字和连字符'),
+        .regex(
+          /^[a-z][a-z0-9-]{1,63}$/,
+          '以小写字母开头，仅含小写字母、数字和连字符',
+        ),
     },
     {
       fieldName: 'eventType',
@@ -50,12 +54,18 @@ const [Form, formApi] = useVbenForm({
       component: 'AutoComplete',
       rules: z
         .string()
-        .regex(/^[A-Z][A-Z0-9_]{1,63}$/, '请输入大写字母、数字和下划线组成的事件编码'),
+        .regex(
+          /^[A-Z][A-Z0-9_]{1,63}$/,
+          '请输入大写字母、数字和下划线组成的事件编码',
+        ),
       componentProps: {
         class: 'w-full',
         options: eventTypeOptions,
         placeholder: '选择已有事件类型，或输入大写事件编码',
-        filterOption: (input: string, option: { label?: string; value?: string }) =>
+        filterOption: (
+          input: string,
+          option: { label?: string; value?: string },
+        ) =>
           `${option.label ?? ''} ${option.value ?? ''}`
             .toLowerCase()
             .includes(input.toLowerCase()),
@@ -65,7 +75,11 @@ const [Form, formApi] = useVbenForm({
       fieldName: 'description',
       label: '说明',
       component: 'Textarea',
-      componentProps: { maxlength: 500, placeholder: '简要说明适用场景', rows: 3 },
+      componentProps: {
+        maxlength: 500,
+        placeholder: '简要说明适用场景',
+        rows: 3,
+      },
     },
   ],
 });
@@ -89,7 +103,12 @@ const [Modal, api] = useVbenModal({
 });
 </script>
 <template>
-  <Modal class="w-[640px] max-w-[calc(100vw-32px)]" title="创建规则">
-    <Form class="mx-4" />
+  <Modal
+    class="ai-dialog w-[640px] max-w-[calc(100vw-32px)]"
+    title="创建规则"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+  >
+    <Form />
   </Modal>
 </template>

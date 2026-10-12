@@ -32,9 +32,11 @@ const [Drawer, drawerApi] = useVbenDrawer({
 
 <template>
   <Drawer
-    class="w-[820px] max-w-[calc(100vw-32px)]"
+    class="ai-dialog w-[820px] max-w-[calc(100vw-32px)]"
     :footer="false"
     title="Webhook 投递详情"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
   >
     <Spin :spinning="loading">
       <template v-if="delivery">

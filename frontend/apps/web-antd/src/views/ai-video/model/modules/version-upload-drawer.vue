@@ -7,6 +7,7 @@ import type { AiVideoModelApi } from '#/api/ai-video/model';
 import { computed, ref } from 'vue';
 
 import { useVbenDrawer } from '@vben/common-ui';
+import { IconifyIcon } from '@vben/icons';
 
 import {
   Button,
@@ -49,10 +50,10 @@ const confirmText = computed(() =>
 const [FileForm, fileFormApi] = useVbenForm({
   commonConfig: {
     componentProps: { class: 'w-full' },
-    formItemClass: 'col-span-2',
-    labelWidth: 96,
+    formItemClass: 'min-w-0',
   },
-  layout: 'horizontal',
+  layout: 'vertical',
+  wrapperClass: 'ai-form-grid',
   schema: [
     {
       component: 'Input',
@@ -78,10 +79,10 @@ const [FileForm, fileFormApi] = useVbenForm({
 const [MetadataForm, metadataFormApi] = useVbenForm({
   commonConfig: {
     componentProps: { class: 'w-full' },
-    formItemClass: 'col-span-2',
-    labelWidth: 112,
+    formItemClass: 'min-w-0',
   },
-  layout: 'horizontal',
+  layout: 'vertical',
+  wrapperClass: 'ai-form-grid',
   schema: [
     {
       component: 'Input',
@@ -215,12 +216,16 @@ const [Drawer, drawerApi] = useVbenDrawer({
 
 <template>
   <Drawer
-    class="w-[720px] max-w-[calc(100vw-32px)]"
+    class="ai-dialog w-[720px] max-w-[calc(100vw-32px)]"
     :confirm-text="confirmText"
     :title="`上传模型版本 · ${model?.name ?? ''}`"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
   >
-    <div class="space-y-5 px-3 py-2">
-      <Steps :current="currentStep" :items="stepItems" size="small" />
+    <div class="ai-workflow model-upload">
+      <div class="model-upload__steps">
+        <Steps :current="currentStep" :items="stepItems" size="small" />
+      </div>
 
       <FileForm v-show="currentStep === 0">
         <template #file>
@@ -229,11 +234,18 @@ const [Drawer, drawerApi] = useVbenDrawer({
             accept=".onnx,.pt,.pth,.jit,.torchscript,.engine,.rknn,.zip"
             :before-upload="beforeUpload"
             :max-count="1"
+            @remove="fileFormApi.setFieldValue('file', undefined)"
           >
-            <p class="font-medium">点击或拖拽模型文件到此区域</p>
-            <p class="text-muted-foreground mt-1 text-xs">
-              支持 ONNX、RKNN 等模型文件，最大 64 MB；已上传的文件不可覆盖。
-            </p>
+            <div class="model-upload__dropzone">
+              <IconifyIcon
+                icon="lucide:cloud-upload"
+                class="text-primary size-8"
+              />
+              <p class="font-medium">点击或拖拽模型文件到此区域</p>
+              <p class="ai-form-note">
+                ONNX / PT / PTH / ENGINE / RKNN / ZIP · 最大 64 MB
+              </p>
+            </div>
           </Upload.Dragger>
         </template>
       </FileForm>
@@ -278,3 +290,25 @@ const [Drawer, drawerApi] = useVbenDrawer({
     </template>
   </Drawer>
 </template>
+
+<style scoped>
+.model-upload__steps {
+  padding-bottom: 24px;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.model-upload__dropzone {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  padding: 16px;
+}
+
+.model-upload :deep(.ant-upload-wrapper) {
+  display: block;
+  width: 100%;
+}
+</style>

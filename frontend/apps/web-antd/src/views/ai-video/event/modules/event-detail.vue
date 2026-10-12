@@ -263,8 +263,10 @@ onBeforeUnmount(() => {
 <template>
   <Drawer
     title="事件详情与处置"
-    class="w-[1440px] max-w-[calc(100vw-32px)]"
+    class="ai-dialog w-[1440px] max-w-[calc(100vw-32px)]"
     :footer="false"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
   >
     <Alert
       v-if="failed"
@@ -403,11 +405,24 @@ onBeforeUnmount(() => {
                   ><strong>{{ recognitionConfidence(detail) }}</strong>
                 </div>
                 <Descriptions :column="2" size="small">
-                  <DescriptionsItem v-if="detail.objectSnapshot?.class === 'license_plate'" label="车牌号">
-                    {{ record(detail.objectSnapshot?.attributes).plateNumber || '未确认' }}
+                  <DescriptionsItem
+                    v-if="detail.objectSnapshot?.class === 'license_plate'"
+                    label="车牌号"
+                  >
+                    {{
+                      record(detail.objectSnapshot?.attributes).plateNumber ||
+                      '未确认'
+                    }}
                   </DescriptionsItem>
-                  <DescriptionsItem v-if="detail.objectSnapshot?.class === 'license_plate'" label="料仓位置">
-                    {{ record(detail.taskSnapshot?.location).locationName || record(detail.taskSnapshot?.location).siloName || '未配置' }}
+                  <DescriptionsItem
+                    v-if="detail.objectSnapshot?.class === 'license_plate'"
+                    label="料仓位置"
+                  >
+                    {{
+                      record(detail.taskSnapshot?.location).locationName ||
+                      record(detail.taskSnapshot?.location).siloName ||
+                      '未配置'
+                    }}
                   </DescriptionsItem>
                   <DescriptionsItem label="识别任务">
                     {{

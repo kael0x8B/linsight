@@ -24,7 +24,6 @@ import {
   Segmented,
   Space,
   Spin,
-  Tag,
   Tooltip,
   Tree,
 } from 'ant-design-vue';
@@ -419,35 +418,6 @@ onMounted(async () => {
                   row.maskedStreamEndpoint || '-'
                 }}</span>
               </template>
-              <template #recognitionCapabilities="{ row }">
-                <div class="camera-capabilities">
-                  <template v-if="row.recognitionCapabilities?.length">
-                    <Tag
-                      v-for="capability in row.recognitionCapabilities"
-                      :key="
-                        capability.entryAccessId
-                          ? `entry-${capability.entryAccessId}`
-                          : (capability.taskId ?? undefined)
-                      "
-                      :color="
-                        capability.effectiveStatus === 'RUNNING'
-                          ? 'green'
-                          : 'default'
-                      "
-                    >
-                      {{ capability.algorithmName || capability.taskName }} ·
-                      {{
-                        $t(
-                          `page.aiVideo.recognition.status.${capability.effectiveStatus}`,
-                        )
-                      }}
-                    </Tag>
-                  </template>
-                  <span v-else class="text-muted-foreground"
-                    >暂未配置识别能力</span
-                  >
-                </div>
-              </template>
               <template #actions="{ row }">
                 <TableAction
                   :actions="[
@@ -565,12 +535,6 @@ onMounted(async () => {
                       </div>
                     </dl>
                     <div class="camera-card__actions">
-                      <span class="text-xs text-muted-foreground"
-                        >{{
-                          camera.recognitionCapabilities?.length ?? 0
-                        }}
-                        项识别能力</span
-                      >
                       <Button
                         type="primary"
                         size="small"
@@ -626,26 +590,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.camera-capabilities {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: flex-start;
-  width: 100%;
-  padding: 6px 0;
-  color: hsl(var(--muted-foreground));
-  text-align: left;
-  border-radius: 4px;
-}
-
-.camera-capabilities :deep(.ant-tag) {
-  max-width: 100%;
-  padding: 2px 8px;
-  line-height: 20px;
-  overflow-wrap: anywhere;
-  white-space: normal;
-}
-
 .group-panel {
   width: 240px;
 }

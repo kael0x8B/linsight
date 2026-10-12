@@ -148,7 +148,9 @@ onBeforeUnmount(() => {
   <Drawer
     title="记录视频评测"
     confirm-text="保存记录"
-    class="w-[900px] max-w-[calc(100vw-24px)]"
+    class="ai-dialog w-[900px] max-w-[calc(100vw-24px)]"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
   >
     <Alert v-if="error" class="mb-4" type="error" :message="error" show-icon />
     <Alert

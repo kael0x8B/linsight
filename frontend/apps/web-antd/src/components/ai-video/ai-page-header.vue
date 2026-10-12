@@ -84,6 +84,7 @@ withDefaults(
 
 .ai-page-header__title-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   align-items: center;
 }
@@ -108,7 +109,14 @@ p {
 .ai-page-header__extra {
   display: flex;
   flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 8px;
   align-items: center;
+  max-width: 100%;
+}
+
+.ai-page-header__extra :deep(.ant-space) {
+  flex-wrap: wrap;
 }
 
 @media (width <= 900px) {

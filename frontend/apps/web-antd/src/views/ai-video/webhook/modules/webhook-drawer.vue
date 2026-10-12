@@ -14,7 +14,8 @@ const emit = defineEmits(['success']);
 
 const [Form, formApi] = useVbenForm({
   commonConfig: { componentProps: { class: 'w-full' }, labelWidth: 110 },
-  layout: 'horizontal',
+  layout: 'vertical',
+  wrapperClass: 'ai-form-grid',
   schema: [
     {
       component: 'Input',
@@ -156,8 +157,10 @@ const [Drawer, drawerApi] = useVbenDrawer({
 
 <template>
   <Drawer
-    class="w-[640px] max-w-[calc(100vw-32px)]"
+    class="ai-dialog w-[640px] max-w-[calc(100vw-32px)]"
     :title="drawerApi.getData()?.id ? '编辑 Webhook' : '新增 Webhook'"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
   >
     <div class="space-y-4">
       <Form />

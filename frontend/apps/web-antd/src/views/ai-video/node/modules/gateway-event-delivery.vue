@@ -125,7 +125,6 @@ onBeforeUnmount(() => {
 <template>
   <div class="space-y-4">
     <Alert v-if="error" type="error" show-icon :message="error" />
-    <Alert type="info" show-icon :message="t('tcpIntro')" />
     <div class="flex flex-wrap justify-end gap-2">
       <Button @click="refresh">{{ t('refresh') }}</Button>
       <Button v-if="canEdit" :disabled="!status || saving" @click="rotate">{{

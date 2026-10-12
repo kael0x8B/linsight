@@ -37,8 +37,9 @@ const grayTaskIds = ref<number[]>([]);
 const saving = ref(false);
 
 const [VideoForm, videoApi] = useVbenForm({
-  commonConfig: { componentProps: { class: 'w-full' }, labelWidth: 140 },
-  layout: 'horizontal',
+  commonConfig: { formItemClass: 'min-w-0' },
+  layout: 'vertical',
+  wrapperClass: 'ai-form-grid',
   schema: [
     {
       component: 'InputNumber',
@@ -51,8 +52,9 @@ const [VideoForm, videoApi] = useVbenForm({
   showDefaultActions: false,
 });
 const [InferenceForm, inferenceApi] = useVbenForm({
-  commonConfig: { componentProps: { class: 'w-full' }, labelWidth: 140 },
-  layout: 'horizontal',
+  commonConfig: { formItemClass: 'min-w-0' },
+  layout: 'vertical',
+  wrapperClass: 'ai-form-grid',
   schema: [
     {
       component: 'InputNumber',
@@ -65,8 +67,9 @@ const [InferenceForm, inferenceApi] = useVbenForm({
   showDefaultActions: false,
 });
 const [EvidenceForm, evidenceApi] = useVbenForm({
-  commonConfig: { componentProps: { class: 'w-full' }, labelWidth: 150 },
-  layout: 'horizontal',
+  commonConfig: { formItemClass: 'min-w-0' },
+  layout: 'vertical',
+  wrapperClass: 'ai-form-grid',
   schema: [
     {
       component: 'InputNumber',
@@ -103,8 +106,9 @@ const [EvidenceForm, evidenceApi] = useVbenForm({
   showDefaultActions: false,
 });
 const [NodeForm, nodeApi] = useVbenForm({
-  commonConfig: { componentProps: { class: 'w-full' }, labelWidth: 150 },
-  layout: 'horizontal',
+  commonConfig: { formItemClass: 'min-w-0' },
+  layout: 'vertical',
+  wrapperClass: 'ai-form-grid',
   schema: [
     {
       component: 'InputNumber',
@@ -117,8 +121,9 @@ const [NodeForm, nodeApi] = useVbenForm({
   showDefaultActions: false,
 });
 const [NotificationForm, notificationApi] = useVbenForm({
-  commonConfig: { componentProps: { class: 'w-full' }, labelWidth: 140 },
-  layout: 'horizontal',
+  commonConfig: { formItemClass: 'min-w-0' },
+  layout: 'vertical',
+  wrapperClass: 'ai-form-grid',
   schema: [
     {
       component: 'Switch',

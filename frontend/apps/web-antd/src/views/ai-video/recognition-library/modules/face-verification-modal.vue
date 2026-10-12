@@ -282,7 +282,12 @@ onBeforeUnmount(cleanup);
 </script>
 
 <template>
-  <Modal title="单次人脸比对" class="w-[800px] max-w-[95vw]">
+  <Modal
+    title="单次人脸比对"
+    class="ai-dialog w-[800px] max-w-[95vw]"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+  >
     <div class="space-y-4">
       <Alert v-if="error" type="error" show-icon :message="error" />
       <Alert

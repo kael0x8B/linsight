@@ -21,7 +21,8 @@ const confirmText = computed(() => (token.value ? '关闭' : '生成令牌'));
 
 const [Form, formApi] = useVbenForm({
   commonConfig: { componentProps: { class: 'w-full' }, labelWidth: 96 },
-  layout: 'horizontal',
+  layout: 'vertical',
+  wrapperClass: 'ai-form-grid',
   schema: [
     {
       component: 'Input',
@@ -78,7 +79,13 @@ const [Modal, modalApi] = useVbenModal({
 </script>
 
 <template>
-  <Modal :confirm-text="confirmText" title="生成节点注册令牌">
+  <Modal
+    :confirm-text="confirmText"
+    title="生成节点注册令牌"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+    class="ai-dialog"
+  >
     <div class="space-y-4">
       <Alert
         message="令牌仅显示一次。请通过安全渠道交给目标边缘节点，使用后立即失效。"

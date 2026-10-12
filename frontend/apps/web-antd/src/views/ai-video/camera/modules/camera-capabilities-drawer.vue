@@ -78,7 +78,12 @@ onBeforeUnmount(() => {
 });
 </script>
 <template>
-  <Drawer :title="$t('page.aiVideo.cameraAlgorithms.title')" class="w-[560px]">
+  <Drawer
+    :title="$t('page.aiVideo.cameraAlgorithms.title')"
+    class="ai-dialog w-[560px]"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+  >
     <AssignmentModal @success="changed" />
     <h3 class="mb-2 text-base font-semibold">{{ camera?.name }}</h3>
     <p class="mb-4 text-sm text-muted-foreground">

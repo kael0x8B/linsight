@@ -417,8 +417,10 @@ function discard() {
 </script>
 <template>
   <Drawer
-    class="w-[96vw]"
+    class="ai-dialog w-[96vw]"
     :title="`${selected?.name ?? '规则'} · 模板区域与告警条件`"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
   >
     <Alert v-if="loadError" :message="loadError" type="error" show-icon />
     <div v-else class="grid grid-cols-12 gap-4">

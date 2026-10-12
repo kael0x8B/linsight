@@ -5,7 +5,7 @@ import { computed, ref } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
 
-import { Alert, message } from 'ant-design-vue';
+import { message } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import { createCamera, getCamera, updateCamera } from '#/api/ai-video/camera';
@@ -24,11 +24,10 @@ const title = computed(() =>
 
 const [Form, formApi] = useVbenForm({
   commonConfig: {
-    componentProps: { class: 'w-full' },
-    formItemClass: 'col-span-2',
-    labelWidth: 100,
+    formItemClass: 'min-w-0',
   },
-  layout: 'horizontal',
+  layout: 'vertical',
+  wrapperClass: 'ai-form-grid ai-form-grid--two',
   schema: useCameraFormSchema(),
   showDefaultActions: false,
 });
@@ -91,20 +90,17 @@ const [Modal, modalApi] = useVbenModal({
 </script>
 
 <template>
-  <Modal :title="title" class="w-[680px]">
-    <Alert
-      class="mx-4 mb-4"
-      message="摄像头主码流和子码流均需设置为 H.264。高清识别可继续使用主码流，无需降低分辨率。"
-      show-icon
-      type="info"
-    />
-    <Alert
-      v-if="isEdit"
-      class="mx-4 mb-4"
-      message="安全字段不会回显；码流路径和访问凭据留空将保留原值。"
-      show-icon
-      type="info"
-    />
-    <Form class="mx-4" />
+  <Modal
+    :title="title"
+    class="ai-dialog w-[760px]"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+  >
+    <div class="ai-workflow">
+      <Form />
+      <p v-if="isEdit" class="ai-form-note">
+        码流路径和访问凭据不回显，留空保留原值。
+      </p>
+    </div>
   </Modal>
 </template>

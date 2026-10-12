@@ -86,7 +86,8 @@ const [Grid, gridApi] = useVbenVxeGrid<ApplicationRelease>({
           const current = generation;
           try {
             // A toolbar refresh can recover an initial configuration-load failure too.
-            const build = configuration.value ?? (await getReleaseConfiguration());
+            const build =
+              configuration.value ?? (await getReleaseConfiguration());
             const result = await getReleasePage({
               pageNo: page.currentPage,
               pageSize: page.pageSize,
@@ -204,7 +205,6 @@ async function download(
   >
     <Create @success="refresh" />
     <div class="flex h-full min-h-0 flex-col gap-4">
-      <Alert :message="$t('box-release.help')" type="info" show-icon />
       <Alert
         v-if="!configurationLoading && configuration && !configuration.ready"
         :message="$t('box-release.notConfigured')"
@@ -263,7 +263,9 @@ async function download(
     </div>
     <Details
       :title="$t('box-release.details')"
-      class="w-[740px] max-w-[calc(100vw-2rem)]"
+      class="ai-dialog w-[740px] max-w-[calc(100vw-2rem)]"
+      content-class="ai-dialog-content"
+      footer-class="ai-dialog-footer"
     >
       <Descriptions v-if="details" bordered :column="1" size="small">
         <DescriptionsItem :label="$t('box-release.version')">{{

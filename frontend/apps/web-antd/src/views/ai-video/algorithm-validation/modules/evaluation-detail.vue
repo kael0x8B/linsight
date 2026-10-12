@@ -73,7 +73,9 @@ onBeforeUnmount(() => {
   <Drawer
     title="视频评测详情"
     :footer="false"
-    class="w-[900px] max-w-[calc(100vw-24px)]"
+    class="ai-dialog w-[900px] max-w-[calc(100vw-24px)]"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
   >
     <Alert v-if="error" :message="error" show-icon type="error">
       <template #action><Button @click="load">重试</Button></template>

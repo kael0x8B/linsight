@@ -16,6 +16,7 @@
 - [LInsight 开发计划与页面级规格](DEVELOPMENT_PLAN.md)
 - [LInsight 平台基线说明](BASELINE.md)
 - [LInsight 控制台 UI/UX 优化基线](UI_UX_OPTIMIZATION_BASELINE.md)
+- [控制台 UI/UX 布局清理与回归记录](UI_UX_VERIFICATION.md)
 
 ## 协议与数据契约
 

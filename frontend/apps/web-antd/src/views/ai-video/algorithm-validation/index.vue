@@ -129,8 +129,10 @@ function saved(id: number) {
     <DetailDrawer />
     <Quickstart
       title="SDK 快速入门"
-      class="w-[780px] max-w-[calc(100vw-24px)]"
+      class="ai-dialog w-[780px] max-w-[calc(100vw-24px)]"
       :footer="false"
+      content-class="ai-dialog-content"
+      footer-class="ai-dialog-footer"
     >
       <p class="mb-4">
         在项目 runtime 目录使用 Python 3.12 或 3.13。首次安装执行 pip install -e

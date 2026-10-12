@@ -21,7 +21,6 @@ import {
   InputNumber,
   message,
   Select,
-  Space,
   Spin,
   Table,
   Tag,
@@ -38,7 +37,7 @@ import {
   getModelVersionList,
 } from '#/api/ai-video/model';
 import { getNodeSimpleList } from '#/api/ai-video/node';
-import { AiPageHeader } from '#/components/ai-video';
+import { AiPageHeader, AiStatusIndicator } from '#/components/ai-video';
 import { $t } from '#/locales';
 
 import {
@@ -272,9 +271,9 @@ onBeforeUnmount(() => {
             <Button @click="loadInitial">重试</Button>
           </template>
         </Alert>
-        <div class="grid min-h-0 flex-1 grid-cols-12 gap-4">
-          <Card class="col-span-4" title="测试参数">
-            <Form layout="vertical">
+        <div class="model-test-layout">
+          <Card class="model-test-parameters" title="测试参数">
+            <Form layout="vertical" class="model-test-form">
               <FormItem label="模型">
                 <Select
                   v-model:value="selectedModelId"
@@ -313,50 +312,52 @@ onBeforeUnmount(() => {
                   "
                 />
               </FormItem>
-              <Alert
-                class="mb-4"
-                :message="
-                  nodeReady
-                    ? '模型已在节点 ready'
-                    : `部署状态：${deploymentStatusText(selectedDeployment?.actualStatus)}${
-                        selectedDeployment?.errorMessage
-                          ? ` · ${selectedDeployment.errorMessage}`
-                          : ''
-                      }`
-                "
-                :type="
-                  nodeReady
-                    ? 'success'
-                    : selectedDeployment?.actualStatus === 'FAILED'
+              <div class="model-test-deployment">
+                <div class="model-test-deployment__actions">
+                  <AiStatusIndicator
+                    :status="selectedDeployment?.actualStatus ?? 'UNKNOWN'"
+                    :label="`部署状态：${deploymentStatusText(selectedDeployment?.actualStatus)}`"
+                  />
+                  <Button
+                    v-if="canDeploy && !nodeReady"
+                    :disabled="
+                      !versionPublished ||
+                      !selectedNodeId ||
+                      isDeploymentPending(selectedDeployment?.actualStatus)
+                    "
+                    :loading="deploymentSubmitting"
+                    @click="deploy"
+                  >
+                    {{
+                      selectedDeployment?.actualStatus === 'FAILED'
+                        ? $t('model-deployment.retry')
+                        : '部署模型'
+                    }}
+                  </Button>
+                </div>
+                <Alert
+                  v-if="
+                    selectedDeployment?.errorMessage || deploymentRefreshError
+                  "
+                  :message="
+                    selectedDeployment?.errorMessage || deploymentRefreshError
+                  "
+                  :type="
+                    selectedDeployment?.actualStatus === 'FAILED'
                       ? 'error'
-                      : 'info'
-                "
-                show-icon
-                :description="
-                  deploymentRefreshError ||
-                  (isDeploymentPending(selectedDeployment?.actualStatus)
-                    ? $t('model-deployment.preparing')
-                    : undefined)
-                "
-              />
-              <Button
-                v-if="canDeploy && !nodeReady"
-                block
-                class="mb-4"
-                :disabled="
-                  !versionPublished ||
-                  !selectedNodeId ||
-                  isDeploymentPending(selectedDeployment?.actualStatus)
-                "
-                :loading="deploymentSubmitting"
-                @click="deploy"
-              >
-                {{
-                  selectedDeployment?.actualStatus === 'FAILED'
-                    ? $t('model-deployment.retry')
-                    : '下发部署命令'
-                }}
-              </Button>
+                      : 'warning'
+                  "
+                  show-icon
+                />
+                <p
+                  v-else-if="
+                    isDeploymentPending(selectedDeployment?.actualStatus)
+                  "
+                  class="ai-form-note"
+                >
+                  {{ $t('model-deployment.preparing') }}
+                </p>
+              </div>
               <FormItem label="测试图片">
                 <Upload
                   v-model:file-list="uploadFiles"
@@ -367,7 +368,7 @@ onBeforeUnmount(() => {
                   <Button>选择图片</Button>
                 </Upload>
               </FormItem>
-              <Space wrap>
+              <div class="model-test-dimensions">
                 <FormItem label="置信度">
                   <InputNumber
                     v-model:value="confidence"
@@ -384,26 +385,28 @@ onBeforeUnmount(() => {
                     :step="0.05"
                   />
                 </FormItem>
-                <FormItem label="宽">
+                <FormItem label="输入宽度（px）">
                   <InputNumber
                     v-model:value="inputWidth"
                     :min="32"
                     :max="2048"
                   />
                 </FormItem>
-                <FormItem label="高">
+                <FormItem label="输入高度（px）">
                   <InputNumber
                     v-model:value="inputHeight"
                     :min="32"
                     :max="2048"
                   />
                 </FormItem>
-              </Space>
+              </div>
               <Button
                 v-if="canTest"
                 block
                 type="primary"
-                :disabled="!nodeReady || !versionPublished"
+                :disabled="
+                  !nodeReady || !versionPublished || !uploadFiles.length
+                "
                 @click="runTest"
               >
                 执行单图测试
@@ -411,79 +414,152 @@ onBeforeUnmount(() => {
             </Form>
           </Card>
 
-          <Card class="col-span-8" title="标准化结果">
-            <div
-              v-if="previewUrl"
-              class="relative mx-auto overflow-hidden bg-black"
-            >
-              <img
-                :src="previewUrl"
-                alt="测试图片"
-                class="block h-auto w-full"
-              />
+          <Card class="model-test-results" title="识别结果">
+            <div class="ai-workflow">
               <div
-                v-for="(object, index) in standardResult?.objects ?? []"
-                :key="index"
-                class="absolute border-2 border-cyan-400"
-                :style="{
-                  left: `${object.bbox.x * 100}%`,
-                  top: `${object.bbox.y * 100}%`,
-                  width: `${object.bbox.width * 100}%`,
-                  height: `${object.bbox.height * 100}%`,
-                }"
+                v-if="previewUrl"
+                class="relative mx-auto overflow-hidden bg-black"
               >
-                <span
-                  class="absolute left-0 top-0 bg-cyan-400 px-1 text-xs text-black"
+                <img
+                  :src="previewUrl"
+                  alt="测试图片"
+                  class="block h-auto w-full"
+                />
+                <div
+                  v-for="(object, index) in standardResult?.objects ?? []"
+                  :key="index"
+                  class="absolute border-2 border-cyan-400"
+                  :style="{
+                    left: `${object.bbox.x * 100}%`,
+                    top: `${object.bbox.y * 100}%`,
+                    width: `${object.bbox.width * 100}%`,
+                    height: `${object.bbox.height * 100}%`,
+                  }"
                 >
-                  {{ object.class }} {{ (object.confidence * 100).toFixed(1) }}%
-                </span>
+                  <span
+                    class="absolute left-0 top-0 bg-cyan-400 px-1 text-xs text-black"
+                  >
+                    {{ object.class }}
+                    {{ (object.confidence * 100).toFixed(1) }}%
+                  </span>
+                </div>
               </div>
+              <div v-else class="model-test-empty">
+                <Empty description="选择图片后在这里查看识别结果" />
+              </div>
+              <Descriptions
+                v-if="currentTest"
+                class="mt-4"
+                bordered
+                size="small"
+              >
+                <DescriptionsItem label="状态">
+                  <Tag>{{ currentTest.status }}</Tag>
+                </DescriptionsItem>
+                <DescriptionsItem label="后端">
+                  {{ currentTest.backend ?? '-' }}
+                </DescriptionsItem>
+                <DescriptionsItem label="诊断 ID">
+                  {{ currentTest.diagnosticId ?? '-' }}
+                </DescriptionsItem>
+                <DescriptionsItem label="预处理">
+                  {{ currentTest.preprocessMillis ?? '-' }} ms
+                </DescriptionsItem>
+                <DescriptionsItem label="推理">
+                  {{ currentTest.inferenceMillis ?? '-' }} ms
+                </DescriptionsItem>
+                <DescriptionsItem label="后处理">
+                  {{ currentTest.postprocessMillis ?? '-' }} ms
+                </DescriptionsItem>
+              </Descriptions>
+              <Table
+                v-if="standardResult"
+                :columns="[
+                  { title: '类别', dataIndex: 'class' },
+                  { title: '置信度', dataIndex: 'confidence' },
+                  { title: '归一化 bbox', dataIndex: 'bbox' },
+                ]"
+                :data-source="standardResult?.objects ?? []"
+                :pagination="false"
+                :row-key="(_record, index) => String(index)"
+                size="small"
+              >
+                <template #bodyCell="{ column, record }">
+                  <template v-if="column.dataIndex === 'confidence'">
+                    {{ record.confidence.toFixed(4) }}
+                  </template>
+                  <template v-else-if="column.dataIndex === 'bbox'">
+                    {{ JSON.stringify(record.bbox) }}
+                  </template>
+                </template>
+              </Table>
             </div>
-            <Empty v-else description="请选择测试图片" />
-            <Descriptions v-if="currentTest" class="mt-4" bordered size="small">
-              <DescriptionsItem label="状态">
-                <Tag>{{ currentTest.status }}</Tag>
-              </DescriptionsItem>
-              <DescriptionsItem label="后端">
-                {{ currentTest.backend ?? '-' }}
-              </DescriptionsItem>
-              <DescriptionsItem label="诊断 ID">
-                {{ currentTest.diagnosticId ?? '-' }}
-              </DescriptionsItem>
-              <DescriptionsItem label="预处理">
-                {{ currentTest.preprocessMillis ?? '-' }} ms
-              </DescriptionsItem>
-              <DescriptionsItem label="推理">
-                {{ currentTest.inferenceMillis ?? '-' }} ms
-              </DescriptionsItem>
-              <DescriptionsItem label="后处理">
-                {{ currentTest.postprocessMillis ?? '-' }} ms
-              </DescriptionsItem>
-            </Descriptions>
-            <Table
-              class="mt-4"
-              :columns="[
-                { title: '类别', dataIndex: 'class' },
-                { title: '置信度', dataIndex: 'confidence' },
-                { title: '归一化 bbox', dataIndex: 'bbox' },
-              ]"
-              :data-source="standardResult?.objects ?? []"
-              :pagination="false"
-              :row-key="(_record, index) => String(index)"
-              size="small"
-            >
-              <template #bodyCell="{ column, record }">
-                <template v-if="column.dataIndex === 'confidence'">
-                  {{ record.confidence.toFixed(4) }}
-                </template>
-                <template v-else-if="column.dataIndex === 'bbox'">
-                  {{ JSON.stringify(record.bbox) }}
-                </template>
-              </template>
-            </Table>
           </Card>
         </div>
       </div>
     </Spin>
   </Page>
 </template>
+
+<style scoped>
+.model-test-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 2fr) minmax(0, 3fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.model-test-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.model-test-form :deep(.ant-form-item) {
+  margin: 0;
+}
+
+.model-test-form :deep(.ant-input-number) {
+  width: 100%;
+}
+
+.model-test-dimensions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.model-test-deployment {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  background: var(--ai-surface-subtle);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--ai-radius-md);
+}
+
+.model-test-deployment__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.model-test-empty {
+  display: grid;
+  place-items: center;
+  min-height: 420px;
+}
+
+@media (width <= 1100px) {
+  .model-test-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .model-test-empty {
+    min-height: 240px;
+  }
+}
+</style>

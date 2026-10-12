@@ -665,8 +665,12 @@ watch(
 );
 </script>
 <template>
-  <Modal>
-    <div class="space-y-4 p-2">
+  <Modal
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+    class="ai-dialog w-[800px]"
+  >
+    <div class="ai-workflow">
       <Alert v-if="phase" :message="phase" type="info" show-icon /><Alert
         v-if="failure"
         :message="failure"
@@ -685,14 +689,11 @@ watch(
         type="warning"
         show-icon
       />
+      <p v-if="statisticsOnly" class="ai-form-note">
+        统计区域内当前人数，在实时画面显示结果；无需人员库，不生成离岗告警。各摄像头分别统计。
+      </p>
       <Alert
-        v-if="statisticsOnly"
-        message="统计区域内当前人数，在实时画面显示结果；无需人员库，不生成离岗告警。各摄像头分别统计。"
-        type="info"
-        show-icon
-      />
-      <Alert
-        v-if="latencyEstimate"
+        v-if="latencyEstimate && latencyConflict"
         :type="latencyBlocked ? 'error' : 'info'"
         show-icon
         :message="confirmationLatencyMessage(latencyEstimate)"
@@ -704,6 +705,9 @@ watch(
               : '规则层是唯一告警确认门槛。'
         "
       />
+      <p v-else-if="latencyEstimate" class="ai-form-note">
+        {{ confirmationLatencyMessage(latencyEstimate) }}
+      </p>
       <Tabs v-model:active-key="activeTab">
         <TabPane
           key="basic"
@@ -795,7 +799,7 @@ watch(
             class="mb-4"
             type="warning"
             show-icon
-            message="主码流会增加网关解码负载；同源实时预览要求主码流为 H.264。当前若为 H.265，识别可运行，但预览暂不可用。"
+            message="主码流会增加网关解码负载，请确认使用 H.264 编码。"
           />
           <div
             v-if="selected && resolution"

@@ -346,7 +346,11 @@ onBeforeUnmount(() => {
     v-if="!modelIds.length && !loading"
     description="当前网关尚未安装模型"
   />
-  <InstallModal>
+  <InstallModal
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
+    class="ai-dialog"
+  >
     <p class="mb-4 text-sm">
       安装目标：<strong>{{ node.name }}</strong> · {{ node.ipAddress }}
     </p>

@@ -161,7 +161,8 @@ onBeforeUnmount(clearPoll);
 <template>
   <component
     :is="embedded ? 'div' : Drawer"
-    :class="embedded ? '' : 'w-[860px] max-w-[calc(100vw-32px)]'"
+    :class="embedded ? '' : 'ai-dialog w-[860px] max-w-[calc(100vw-32px)]'"
+    :content-class="embedded ? undefined : 'ai-dialog-content'"
     :title="embedded ? undefined : drawerTitle"
   >
     <Alert v-if="error" class="mb-3" :message="error" type="warning" show-icon>

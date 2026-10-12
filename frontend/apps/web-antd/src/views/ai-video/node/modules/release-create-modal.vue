@@ -17,7 +17,8 @@ let submittedValues = '';
 const configuration = ref<ReleaseBuildConfiguration>();
 const [Form, formApi] = useVbenForm({
   commonConfig: { componentProps: { class: 'w-full' }, labelWidth: 100 },
-  layout: 'horizontal',
+  layout: 'vertical',
+  wrapperClass: 'ai-form-grid',
   showDefaultActions: false,
   schema: [
     {
@@ -80,7 +81,9 @@ const [Modal, modalApi] = useVbenModal({
   <Modal
     :title="$t('box-release.generate')"
     :confirm-text="$t('box-release.generate')"
-    class="w-[640px] max-w-[calc(100vw-2rem)]"
+    class="ai-dialog w-[640px] max-w-[calc(100vw-2rem)]"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
   >
     <div class="mb-5 space-y-2 text-sm">
       <p class="font-medium">{{ configuration?.label }}</p>

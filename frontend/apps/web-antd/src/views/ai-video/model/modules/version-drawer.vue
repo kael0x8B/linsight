@@ -244,8 +244,10 @@ const [Drawer, drawerApi] = useVbenDrawer({
 
 <template>
   <Drawer
-    class="w-[1280px] max-w-[calc(100vw-24px)]"
+    class="ai-dialog w-[1280px] max-w-[calc(100vw-24px)]"
     :title="`${model?.name ?? ''} · 版本与部署`"
+    content-class="ai-dialog-content"
+    footer-class="ai-dialog-footer"
   >
     <UploadDrawer @success="handleUploaded" />
     <div class="model-version-content">

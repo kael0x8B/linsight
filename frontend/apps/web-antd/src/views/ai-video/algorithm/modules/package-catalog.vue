@@ -257,7 +257,11 @@ onMounted(refresh);
       />
     </Spin>
 
-    <Guide>
+    <Guide
+      content-class="ai-dialog-content"
+      footer-class="ai-dialog-footer"
+      class="ai-dialog w-[720px]"
+    >
       <div class="space-y-5 p-2 text-sm leading-6">
         <p>
           算法包定义“如何识别和输出候选结果”；模型文件提供推理能力，在模型中心单独管理。
@@ -305,7 +309,11 @@ onMounted(refresh);
         </div>
       </div>
     </Guide>
-    <Detail class="w-[720px]">
+    <Detail
+      class="ai-dialog w-[720px]"
+      content-class="ai-dialog-content"
+      footer-class="ai-dialog-footer"
+    >
       <div v-if="selected" class="space-y-4 p-2">
         <h3 class="text-lg font-semibold">{{ selected.manifest.name }}</h3>
         <p>{{ selected.manifest.description }}</p>
