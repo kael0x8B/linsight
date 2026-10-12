@@ -4,6 +4,10 @@ import com.linsight.framework.common.exception.ErrorCode;
 
 /** Task 领域错误码，使用 1-020-003-000 段。 */
 public interface ErrorCodeConstants {
+    ErrorCode TASK_EVALUATION_NOT_FOUND = new ErrorCode(1_020_003_011, "评测记录不存在");
+    ErrorCode TASK_EVALUATION_CONFIG_CHANGED = new ErrorCode(1_020_003_012, "任务配置已改变，请核对测试版本后重新记录");
+    ErrorCode TASK_EVALUATION_REQUEST_CONFLICT = new ErrorCode(1_020_003_013, "评测请求编号已用于不同内容，请刷新后重新记录");
+    ErrorCode TASK_EVALUATION_INVALID = new ErrorCode(1_020_003_014, "评测数据不完整或无效：{}");
     ErrorCode TASK_NOT_FOUND = new ErrorCode(1_020_003_000, "AI 任务不存在");
     ErrorCode TASK_CODE_DUPLICATE = new ErrorCode(1_020_003_001, "任务编码已存在");
     ErrorCode TASK_CODE_IMMUTABLE = new ErrorCode(1_020_003_002, "任务编码不可修改");

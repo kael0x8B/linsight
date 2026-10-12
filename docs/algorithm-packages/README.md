@@ -1,5 +1,7 @@
 # 可部署算法包（SDK 1.0）
 
+第一次接入请先阅读 [SDK 快速入门](QUICKSTART.md)，使用本地 CLI 生成、调试和打包示例。
+
 从 Git 基线 `c691cb2` 增加。架构决策见 [ADR](../adr/ADR-20260909-deployable-algorithm-packages.md)。
 
 ## 操作方式

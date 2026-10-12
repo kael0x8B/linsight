@@ -1,0 +1,203 @@
+{
+  "schemaVersion": "1.0",
+  "verificationDate": "2026-10-12",
+  "timezone": "Asia/Shanghai",
+  "branch": "codex/developer-foundation",
+  "baseCommit": "b9ed4eb738fa1d6d027c958e1664b5ee91eed16c",
+  "scope": "LOCAL_DEVELOPER_FOUNDATION",
+  "status": "PASS",
+  "productionAcceptance": false,
+  "regression": {
+    "javaAiVideo": {
+      "status": "PASS",
+      "tests": 383,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "evidence": "Surefire XML and Maven reactor log"
+    },
+    "runtime": {
+      "status": "PASS",
+      "tests": 97,
+      "evidence": "post-relative-path-fix pytest execution and enablement-result.json"
+    },
+    "frontendVitest": {
+      "status": "PASS",
+      "tests": 38,
+      "testFiles": 4
+    },
+    "frontendTypecheck": "PASS",
+    "changedFileEslint": "PASS",
+    "changedFileOxfmt": "PASS",
+    "changedPythonRuff": "PASS",
+    "backendJdk17Install": "PASS",
+    "frontendProductionBuild": "PASS",
+    "gatewayConsoleBuild": "PASS",
+    "mysql84DisposableMigration": {
+      "status": "PASS",
+      "checks": [
+        "fresh schema",
+        "repeated migration",
+        "JSON persistence",
+        "tenant-scoped uniqueness",
+        "four indexes"
+      ]
+    },
+    "isolatedBrowser": "PASS",
+    "liveBrowser": {
+      "status": "PASS",
+      "recordId": 1,
+      "taskId": 47,
+      "dataset": "local-api-boundary-1791769676652",
+      "duplicateAttempts": 2,
+      "conflictCode": 1020003013,
+      "staleCode": 1020003012,
+      "crossTenantCode": 403,
+      "pipelineMutations": 0,
+      "pageErrors": []
+    }
+  },
+  "localMigration": {
+    "file": "backend/sql/mysql/migrations/ai-video/V202610121000__independent_task_evaluations.sql",
+    "sha256": "87d4bf11573f813bca9bfaa74da81a63b94e2bcd5498b9b27c91755564ae4d7b",
+    "table": "ai_task_evaluation",
+    "registeredVersion": "202610121000",
+    "backupCreated": true,
+    "indexes": [
+      "PRIMARY",
+      "uk_evaluation_request",
+      "idx_evaluation_task",
+      "idx_evaluation_status"
+    ]
+  },
+  "realExecution": {
+    "taskId": 47,
+    "modelVersionId": 18,
+    "status": "RUNNING",
+    "packageSha256": "cf29c848d964eb2bc7dd01721f4581dfee8945485bc74d9922583f5b629955cb",
+    "inputType": "LOCAL_RTSP_TEST_PATTERN",
+    "metrics": {
+      "analyzedFrames": 13,
+      "analysisFps": 1.295,
+      "captureBackend": "SOFTWARE_PYAV",
+      "executionBackend": "CPU",
+      "totalLatencyP95Millis": 156.0
+    },
+    "performanceBenchmark": false
+  },
+  "realDiagnostic": {
+    "code": "ALGORITHM_PROCESS_FAILED",
+    "runId": "614b2407-b9be-4e6e-9757-e90667020a18",
+    "stage": "PROCESS",
+    "frames": [
+      {
+        "file": "processor.py",
+        "line": 4,
+        "function": "process"
+      }
+    ],
+    "taskId": 47,
+    "message": "算法处理失败，请检查 process 方法",
+    "packageCode": "developer-e2e-person",
+    "diagnosticId": "88f0366c-cc69-448a-98bf-6c98850b777b",
+    "configVersion": 2,
+    "exceptionType": "RuntimeError",
+    "packageSha256": "43473c916a110ec84b1d2147000455d4ffcab62e2c2e2288add88947d6085ed9",
+    "schemaVersion": "1.0",
+    "packageVersion": "0.1.1-e2e-failure",
+    "timestampMillis": 1791769540275
+  },
+  "evaluation": {
+    "id": 1,
+    "taskId": 47,
+    "configVersion": 2,
+    "status": "FAIL",
+    "source": "MANUAL_VIDEO",
+    "metricProvenance": "E2E_BOUNDARY_FIXTURE",
+    "failedChecks": [
+      "endToEndP95Ms",
+      "averageFps"
+    ],
+    "pipelineVersionId": 82676,
+    "configurationSource": "GATEWAY_REPORTED_AT_RECORDING",
+    "postConfigChangeRetry": "SAME_ID",
+    "snapshotUnchanged": true
+  },
+  "finalLocalState": {
+    "backend": {
+      "status": "UP"
+    },
+    "runtime": {
+      "status": "UP",
+      "version": "v1"
+    },
+    "frontend": {
+      "httpStatus": 200
+    },
+    "gateway": {
+      "httpStatus": 200
+    },
+    "testTask": {
+      "id": 47,
+      "actualStatus": "STOPPED",
+      "desiredStatus": "STOPPED",
+      "configVersion": 3,
+      "pipelineVersionId": 82675
+    },
+    "runtimeTaskCount": 0,
+    "activeStreams": 0,
+    "testStreamStopped": true,
+    "existingTaskConfigurationsUnchanged": 9,
+    "gatewayArtifactSha256": "b69685bc8e9ffa4bbac35826c5af600f2a7be98691b1978721ff431be7fca945"
+  },
+  "rawEvidence": {
+    "storage": "LOCAL_IGNORED_FILES_NOT_DISTRIBUTED_WITH_GIT",
+    "files": [
+      {
+        "path": "output/developer-foundation/live/task-success.json",
+        "sha256": "51945c2b54960b33f21518dfa2dc41a932d55bf871590e70e8b16032c54408ce",
+        "sizeBytes": 7744
+      },
+      {
+        "path": "output/developer-foundation/live/task-diagnostic.json",
+        "sha256": "af92305ece0ffdc7ef6a0308b1d3d4047247aedd60a73502906bdc00d470f742",
+        "sizeBytes": 8731
+      },
+      {
+        "path": "output/developer-foundation/live/live-evaluation.json",
+        "sha256": "8736d2e73bb0628bd3f2ba56faeb4b05f901d449b5cfb62916f9a54d0e3548b6",
+        "sizeBytes": 8392
+      },
+      {
+        "path": "output/developer-foundation/live/browser-result.json",
+        "sha256": "d8c96e86aeee282e512d4f6543e60e94d17aa45c8654aca34fc9caf1650de254",
+        "sizeBytes": 259
+      },
+      {
+        "path": "output/developer-foundation/live/enablement-result.json",
+        "sha256": "1a66e8e120d1d88beafc7d10b911b82a9619678de140e87842bd15c46b7da4ae",
+        "sizeBytes": 1307
+      },
+      {
+        "path": "output/developer-foundation/live/state.json",
+        "sha256": "8e5359ce3eaaf3b0176712815306ee2637b8d9a275e3f4fc62dfde819e8ff4db",
+        "sizeBytes": 2706
+      },
+      {
+        "path": "output/developer-foundation/live/sdk-result.json",
+        "sha256": "1ad35c9409dadf9b525c2a7c1bfe39205f26eec9ad1714231dafa6f570fec5b1",
+        "sizeBytes": 558
+      },
+      {
+        "path": "output/developer-foundation/live/live-diagnostic.png",
+        "sha256": "eaa42e959ff27416ee1cfa06cf0a2bf756defbd5e0ad29a174b7604d224f022c",
+        "sizeBytes": 251201
+      },
+      {
+        "path": "output/developer-foundation/live/live-evaluation.png",
+        "sha256": "63b53ddf24d9b50b9a1b49eeba7f85d3d19d00905f535000450207bc8e16538f",
+        "sizeBytes": 218293
+      }
+    ]
+  }
+}

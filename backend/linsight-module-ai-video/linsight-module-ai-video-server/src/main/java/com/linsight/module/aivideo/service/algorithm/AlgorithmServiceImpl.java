@@ -193,6 +193,14 @@ public class AlgorithmServiceImpl implements AlgorithmService {
     }
 
     @Override
+    public AlgorithmEvaluationSnapshotDTO getEvaluationSnapshot(Long algorithmId, Long pipelineVersionId) {
+        if (pipelineVersionId == null) throw exception(PIPELINE_NOT_PUBLISHED);
+        var pipeline = getPublishedPipeline(algorithmId, pipelineVersionId);
+        return new AlgorithmEvaluationSnapshotDTO(algorithmId, pipeline.getId(), pipeline.getVersion(),
+                JsonUtils.parseMap(pipeline.getDag()));
+    }
+
+    @Override
     public String getPipelineAcceptanceStatus(Long algorithmId) {
         AlgorithmDO algorithm = requireAlgorithm(algorithmId);
         return getPipelineAcceptanceStatuses(List.of(algorithm)).get(algorithmId);

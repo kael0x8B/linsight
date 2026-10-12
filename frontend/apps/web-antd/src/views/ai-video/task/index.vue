@@ -72,6 +72,7 @@ import {
   getTaskRuns,
 } from '#/api/ai-video/task';
 import { AiPageHeader, AiStatusIndicator } from '#/components/ai-video';
+import AlgorithmDiagnostic from '#/components/ai-video/algorithm-diagnostic.vue';
 import { hasCustomRegions } from '#/components/ai-video/rule-regions';
 import { $t } from '#/locales';
 import { gatewayLocation } from '#/views/ai-video/node/presentation';
@@ -809,26 +810,23 @@ watch([saving, () => !!batchPayload], ([disabled, batch]) => {
   modelForm.setDisabled(disabled || batch);
   ruleForm.setDisabled(disabled || batch);
 });
-watch(
-  [() => wizard.nodeId, wizardOpen],
-  async ([nodeId, open]) => {
-    const generation = ++deploymentGeneration;
-    deployments.value = [];
-    deploymentError.value = '';
-    deploymentLoading.value = !!nodeId && open;
-    if (!nodeId || !open) return;
-    try {
-      const result = await getNodeModelDeployments(nodeId);
-      if (generation === deploymentGeneration) deployments.value = result;
-    } catch {
-      if (generation === deploymentGeneration)
-        deploymentError.value =
-          '无法读取此节点的模型部署状态，请在网关模型管理中检查。';
-    } finally {
-      if (generation === deploymentGeneration) deploymentLoading.value = false;
-    }
-  },
-);
+watch([() => wizard.nodeId, wizardOpen], async ([nodeId, open]) => {
+  const generation = ++deploymentGeneration;
+  deployments.value = [];
+  deploymentError.value = '';
+  deploymentLoading.value = !!nodeId && open;
+  if (!nodeId || !open) return;
+  try {
+    const result = await getNodeModelDeployments(nodeId);
+    if (generation === deploymentGeneration) deployments.value = result;
+  } catch {
+    if (generation === deploymentGeneration)
+      deploymentError.value =
+        '无法读取此节点的模型部署状态，请在网关模型管理中检查。';
+  } finally {
+    if (generation === deploymentGeneration) deploymentLoading.value = false;
+  }
+});
 watch(
   [() => wizard.ruleId, () => selectedRule.value?.currentVersionId],
   async ([id, versionId]) => {
@@ -1489,6 +1487,9 @@ onBeforeUnmount(() => {
           show-icon
           type="error"
         />
+        <AlgorithmDiagnostic
+          :value="monitoredTask.metricsSnapshot?.algorithmError"
+        />
         <div class="my-4 grid grid-cols-5 gap-4">
           <Card size="small">
             <Statistic
@@ -1534,7 +1535,9 @@ onBeforeUnmount(() => {
               v{{ monitoredTask.configVersion }}
             </DescriptionsItem>
             <DescriptionsItem label="视频解码">
-              {{ captureBackend(monitoredTask.metricsSnapshot?.captureBackend) }}
+              {{
+                captureBackend(monitoredTask.metricsSnapshot?.captureBackend)
+              }}
             </DescriptionsItem>
             <DescriptionsItem label="摄像头">
               {{ cameraName(monitoredTask.cameraId) }}

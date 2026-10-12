@@ -7,6 +7,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+from ai_runtime.app.capability.diagnostics import AlgorithmExecutionError
 from ai_runtime.app.capability.packages import AlgorithmPackageStore, validate_parameters
 from ai_runtime.app.capability.plate_input import PLATE_EVIDENCE_CAPABILITY
 from ai_runtime.app.model.contracts import DetectionObject, ModelTestRequest
@@ -17,6 +18,9 @@ RUNTIME_CAPABILITIES = ["observation-validity-v1", PLATE_EVIDENCE_CAPABILITY]
 class PackageRunner:
     def __init__(self, root, descriptor, parameters, bindings, pool):
         self.path, self.manifest = AlgorithmPackageStore(root).resolve(descriptor["sha256"])
+        # The worker changes cwd to the package; resolve before passing its directory
+        # so the default relative runtime data root remains valid in the subprocess.
+        self.path = self.path.resolve()
         if self.manifest != descriptor["manifest"]:
             raise ValueError("算法包描述与已安装内容不一致")
         validate_parameters(self.manifest.get("parameterSchema", {}), parameters)
@@ -25,6 +29,7 @@ class PackageRunner:
         if set(self.manifest.get("runtimeRequirements", [])) - set(RUNTIME_CAPABILITIES):
             raise ValueError("算法需要更新的网关运行能力")
         self.observation_valid = True
+        self.digest = descriptor["sha256"]
         self.parameters, self.bindings, self.pool = parameters, bindings, pool
         self.resource_root = (root / "algorithm-resources").resolve()
         self.reference_cache = {}
@@ -37,26 +42,37 @@ class PackageRunner:
             for key, value in os.environ.items()
             if key in {"PATH", "LANG", "LC_ALL", "SYSTEMROOT"}
         }
-        self.process = await asyncio.create_subprocess_exec(
-            sys.executable,
-            "-I",
-            str(Path(__file__).with_name("package_worker.py")),
-            str(self.path),
-            self.manifest["entrypoint"],
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.DEVNULL,
-            env=environment,
-            cwd=self.path,
-            limit=4 * 1024 * 1024 + 1,
-        )
         try:
+            self.process = await asyncio.create_subprocess_exec(
+                sys.executable,
+                "-I",
+                str(Path(__file__).with_name("package_worker.py")),
+                str(self.path),
+                self.manifest["entrypoint"],
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL,
+                env=environment,
+                cwd=self.path,
+                limit=4 * 1024 * 1024 + 1,
+            )
             async with asyncio.timeout(10):
-                if json.loads(await self.process.stdout.readline()) != {"ready": True}:
+                response = json.loads(await self.process.stdout.readline())
+                if "error" in response:
+                    raise self._error(response.get("diagnostic", {"stage": "IMPORT"}))
+                if response != {"ready": True}:
                     raise ValueError("算法工作进程未就绪")
-        except BaseException:
+        except asyncio.CancelledError:
             await self.close()
             raise
+        except Exception as error:
+            await self.close()
+            if isinstance(error, AlgorithmExecutionError):
+                raise
+            raise self._error(
+                {"stage": "IMPORT", "exceptionType": type(error).__name__},
+                timeout=isinstance(error, TimeoutError),
+            ) from error
 
     async def close(self):
         process, self.process = self.process, None
@@ -70,7 +86,7 @@ class PackageRunner:
 
     async def run(self, objects, image, timestamp, inference_parameters, resources=None):
         if self.process is None or self.process.returncode is not None:
-            raise ValueError("算法工作进程已退出")
+            raise self._error({"stage": "PROTOCOL"}, timestamp=timestamp)
         resources = {key: list(entries) for key, entries in (resources or {}).items()}
         for resource in self.manifest.get("resources", []):
             selection = self.parameters.get(resource.get("selectionParameter"), [])
@@ -78,6 +94,7 @@ class PackageRunner:
                 resources[resource["key"]] = [
                     r for r in resources.get(resource["key"], []) if r["id"] in selection
                 ]
+        stage = "PROTOCOL"
         try:
             async with asyncio.timeout(self.manifest.get("timeoutMillis", 3000) / 1000):
                 await self._send(
@@ -107,6 +124,7 @@ class PackageRunner:
                         raise ValueError("算法工作进程返回无效消息")
                     response = json.loads(line)
                     if "result" in response:
+                        stage = "OUTPUT"
                         output = response["result"]
                         if (
                             not isinstance(output, dict)
@@ -125,7 +143,14 @@ class PackageRunner:
                                 raise ValueError("车牌算法输出必须保留输入的物理轨迹")
                         return result
                     if "error" in response:
-                        raise ValueError("算法处理失败：" + str(response["error"])[:80])
+                        raise self._error(
+                            response.get(
+                                "diagnostic",
+                                {"stage": "PROCESS", "exceptionType": response["error"]},
+                            ),
+                            timestamp=timestamp,
+                        )
+                    stage = "SDK"
                     operation, arguments = response.get("call"), response.get("arguments", {})
                     if operation == "reference_embedding":
                         import hashlib
@@ -217,9 +242,26 @@ class PackageRunner:
                         data = result.model_dump(mode="json", by_alias=True)
                     await self._send({"ok": True, "data": data})
                 raise ValueError("算法每帧模型调用超过上限")
-        except BaseException:
+        except asyncio.CancelledError:
             await self.close()
             raise
+        except Exception as error:
+            await self.close()
+            if isinstance(error, AlgorithmExecutionError):
+                raise
+            raise self._error(
+                {
+                    "stage": "PROCESS" if isinstance(error, TimeoutError) else stage,
+                    "exceptionType": type(error).__name__,
+                },
+                timestamp=timestamp,
+                timeout=isinstance(error, TimeoutError),
+            ) from error
+
+    def _error(self, details, **context):
+        if not isinstance(details, dict):
+            details = {}
+        return AlgorithmExecutionError(self.manifest, self.digest, details, **context)
 
     async def _send(self, value):
         data = json.dumps(value, allow_nan=False).encode() + b"\n"

@@ -35,6 +35,12 @@ import static com.linsight.module.aivideo.enums.model.ErrorCodeConstants.*;
 @Validated
 public class ModelServiceImpl implements ModelService {
     @Override
+    public ModelEvaluationSnapshotDTO getEvaluationSnapshot(Long modelVersionId) {
+        var version = getVersion(modelVersionId);
+        return new ModelEvaluationSnapshotDTO(version.getModelId(), version.getId(), version.getVersion(),
+                version.getSha256(), version.getArtifactFormat(), version.getRuntimeManifest());
+    }
+    @Override
     public java.util.List<java.util.Map<String, Object>> getExecutableOptions() {
         var models = modelMapper.selectList(new com.linsight.framework.mybatis.core.query.LambdaQueryWrapperX<ModelDO>().eq(ModelDO::getStatus, 0));
         var byId = models.stream().collect(java.util.stream.Collectors.toMap(ModelDO::getId, value -> value));

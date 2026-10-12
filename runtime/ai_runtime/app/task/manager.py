@@ -13,6 +13,7 @@ from uuid import uuid4
 from PIL import Image
 from pydantic import SecretStr
 
+from ai_runtime.app.capability.diagnostics import AlgorithmExecutionError
 from ai_runtime.app.capability.package_runner import PackageRunner
 from ai_runtime.app.capability.plate_input import package_plate_input, plate_capabilities
 from ai_runtime.app.capability.postprocess import CapabilityPostprocessor
@@ -190,6 +191,7 @@ class TaskRunner:
         self.status = "RUNNING"
         self.error_code: str | None = None
         self.error_message: str | None = None
+        self.algorithm_error: dict | None = None
         self._task: asyncio.Task[None] | None = None
         self._started_monotonic = time.monotonic()
         self._last_inference_monotonic = 0.0
@@ -420,6 +422,13 @@ class TaskRunner:
                 if self._package
                 else type(error).__name__
             )
+            if isinstance(error, AlgorithmExecutionError):
+                self.algorithm_error = {
+                    **error.diagnostic, "taskId": self.request.task_id,
+                    "runId": self.request.run_id, "configVersion": self.request.config_version,
+                }
+                self.diagnostic_id = error.diagnostic["diagnosticId"]
+                self.error_code = error.diagnostic["code"]
         finally:
             if self._package:
                 await self._package.close()
@@ -488,6 +497,8 @@ class TaskRunner:
             "ruleState": self._last_rule_state,
             "confirmedEvents": self._confirmed_events,
         }
+        if self.algorithm_error is not None:
+            metrics["algorithmError"] = self.algorithm_error
         return TaskStatus(
             taskId=self.request.task_id,
             runId=self.request.run_id,

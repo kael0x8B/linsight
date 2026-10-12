@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 public interface AlgorithmService {
+    AlgorithmEvaluationSnapshotDTO getEvaluationSnapshot(Long algorithmId, Long pipelineVersionId);
     List<AlgorithmSummaryDTO> getSummaries(java.util.Collection<Long> ids);
     Long createAlgorithm(AlgorithmSaveReqVO reqVO);
     void updateAlgorithm(AlgorithmSaveReqVO reqVO);

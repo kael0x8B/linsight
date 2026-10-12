@@ -11,6 +11,7 @@ import java.util.List;
 import java.time.LocalDateTime;
 
 public interface NodeService {
+    NodeEvaluationSnapshotDTO getEvaluationSnapshot(Long nodeId);
     NodeModelEnvironmentDTO getModelEnvironment(Long nodeId);
 
     boolean supportsAlgorithmPackages(Long nodeId);

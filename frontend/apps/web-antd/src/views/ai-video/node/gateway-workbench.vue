@@ -35,6 +35,7 @@ import {
 import { useVbenForm, z } from '#/adapter/form';
 import { TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import { getExecutableModelOptions } from '#/api/ai-video/model';
+import AlgorithmDiagnostic from '#/components/ai-video/algorithm-diagnostic.vue';
 import { $t } from '#/locales';
 
 import LocalPackageModal from '../algorithm/modules/local-package-modal.vue';
@@ -66,8 +67,8 @@ import {
   gatewaySpecificParameters,
   mergeGatewayParameters,
 } from './gateway-task-parameters';
-import GatewayEventDelivery from './modules/gateway-event-delivery.vue';
 import ApplicationUpgrade from './modules/application-upgrade.vue';
+import GatewayEventDelivery from './modules/gateway-event-delivery.vue';
 import GatewayRecognitionPreview from './modules/gateway-recognition-preview.vue';
 import GatewayRuleEditor from './modules/gateway-rule-editor.vue';
 import ImageRecognitionModal from './modules/image-recognition-modal.vue';
@@ -106,7 +107,9 @@ function recognizeImage(task: GatewayTask) {
   imageRecognitionApi
     .setData({
       task,
-      validationSupported: snapshot.value.capabilities?.includes('task.image-validation.v1') ?? false,
+      validationSupported:
+        snapshot.value.capabilities?.includes('task.image-validation.v1') ??
+        false,
       supported:
         snapshot.value.capabilities?.includes('task.image-recognition.v1') ??
         false,
@@ -117,11 +120,13 @@ const canPreview = computed(
   () => props.local || hasAccessByCodes(['ai-video:camera:preview']),
 );
 const editing = ref<GatewayTask>();
-const supportsLocalStreams = computed(() =>
-  snapshot.value.capabilities?.includes('task.stream-switch.v1') ?? false,
+const supportsLocalStreams = computed(
+  () => snapshot.value.capabilities?.includes('task.stream-switch.v1') ?? false,
 );
-const canSelectStream = computed(() =>
-  supportsLocalStreams.value || (!props.local && editing.value?.platformManaged === true),
+const canSelectStream = computed(
+  () =>
+    supportsLocalStreams.value ||
+    (!props.local && editing.value?.platformManaged === true),
 );
 let editGeneration = 0;
 const algorithmParameters = ref<InstanceType<typeof PackageParameters>>();
@@ -676,7 +681,9 @@ const [AdvancedForm, advancedForm] = useVbenForm({
     },
     ...(['MAIN', 'SUB'] as const).map((stream) => ({
       fieldName: stream === 'MAIN' ? 'mainStreamUrl' : 'subStreamUrl',
-      label: $t(`ai-video-gateway.stream${stream === 'MAIN' ? 'Main' : 'Sub'}Url`),
+      label: $t(
+        `ai-video-gateway.stream${stream === 'MAIN' ? 'Main' : 'Sub'}Url`,
+      ),
       component: 'InputPassword' as const,
       help: $t('ai-video-gateway.streamAddressHelp'),
       dependencies: {
@@ -953,7 +960,11 @@ async function openEditor(row: GatewayTask) {
     sampleFps: row.config.parameters.sampleFps ?? 1,
     streamType: row.config.parameters.streamType === 'MAIN' ? 'MAIN' : 'SUB',
   });
-  await advancedForm.setValues({ sourceUrl: '', mainStreamUrl: '', subStreamUrl: '' });
+  await advancedForm.setValues({
+    sourceUrl: '',
+    mainStreamUrl: '',
+    subStreamUrl: '',
+  });
   await modelForm.setValues(
     Object.fromEntries(
       editingModelRoles.value.map((role, index) => [
@@ -994,9 +1005,13 @@ async function save() {
       throw new Error(
         `${confirmationLatencyMessage(editingLatency.value)} 当前配置超过 2 秒目标，不能保存。`,
       );
-    const { sourceUrl, mainStreamUrl, subStreamUrl } = await advancedForm.getValues();
-    if (row.revision === 0 && !sourceUrl &&
-        !(values.streamType === 'MAIN' ? mainStreamUrl : subStreamUrl)) {
+    const { sourceUrl, mainStreamUrl, subStreamUrl } =
+      await advancedForm.getValues();
+    if (
+      row.revision === 0 &&
+      !sourceUrl &&
+      !(values.streamType === 'MAIN' ? mainStreamUrl : subStreamUrl)
+    ) {
       editTab.value = 'advanced';
       throw new Error($t('ai-video-gateway.m9de37d9a00'));
     }
@@ -1012,8 +1027,10 @@ async function save() {
       : {
           platformManaged: row.platformManaged,
           streamTypeChanged,
-          ...(supportsLocalStreams.value && row.platformManaged &&
-          (!row.availableStreamTypes?.includes('MAIN') || !row.availableStreamTypes.includes('SUB'))
+          ...(supportsLocalStreams.value &&
+          row.platformManaged &&
+          (!row.availableStreamTypes?.includes('MAIN') ||
+            !row.availableStreamTypes.includes('SUB'))
             ? { syncStreamUrls: true }
             : {}),
         };
@@ -1042,9 +1059,7 @@ async function save() {
       ...models,
       parameters: mergeGatewayParameters(
         row.config,
-        canSelectStream.value
-          ? { ...parameters, streamType }
-          : parameters,
+        canSelectStream.value ? { ...parameters, streamType } : parameters,
         specific,
       ),
       ruleId: ruleText.value.trim()
@@ -1607,6 +1622,9 @@ onBeforeUnmount(() => {
             <p class="mt-2 max-w-lg text-sm text-muted-foreground">
               {{ previewMessages[previewState][1] }}
             </p>
+            <AlgorithmDiagnostic
+              :value="selectedTask?.status.metrics.algorithmError"
+            />
             <div class="mt-4 flex flex-wrap justify-center gap-2">
               <Button
                 v-if="
@@ -1775,8 +1793,15 @@ onBeforeUnmount(() => {
           :description="$t('ai-video-delivery.upgradeRequired')"
         />
       </TabPane>
-      <TabPane v-if="local && canEdit" key="application-upgrade" :tab="$t('application-upgrade.title')">
-        <ApplicationUpgrade v-if="activeTab === 'application-upgrade'" :transport="transport" />
+      <TabPane
+        v-if="local && canEdit"
+        key="application-upgrade"
+        :tab="$t('application-upgrade.title')"
+      >
+        <ApplicationUpgrade
+          v-if="activeTab === 'application-upgrade'"
+          :transport="transport"
+        />
       </TabPane>
     </Tabs>
     <PackageModal

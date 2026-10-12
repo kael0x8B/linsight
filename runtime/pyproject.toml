@@ -34,6 +34,9 @@ test = [
   "ruff>=0.15,<1",
 ]
 
+[project.scripts]
+linsight-sdk = "ai_runtime.sdk:main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["ai_runtime", "edge_agent"]
 

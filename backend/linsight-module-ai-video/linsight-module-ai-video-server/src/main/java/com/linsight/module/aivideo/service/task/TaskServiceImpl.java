@@ -718,7 +718,7 @@ public class TaskServiceImpl implements TaskService {
         return reqVO;
     }
 
-    private static Map<String, Object> reusableGatewayConfiguration(TaskDO task) {
+    static Map<String, Object> reusableGatewayConfiguration(TaskDO task) {
         Map<String, Object> metrics = JsonUtils.parseMap(task.getMetricsSnapshot());
         if (metrics == null || gatewayRevision(metrics) <= 0
                 || !Boolean.TRUE.equals(metrics.get("gatewayPlatformManaged"))

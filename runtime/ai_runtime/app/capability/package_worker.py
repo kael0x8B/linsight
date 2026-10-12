@@ -9,6 +9,14 @@ from pathlib import Path
 CHANNEL = sys.stdout
 MAX_MESSAGE = 4 * 1024 * 1024
 
+# The isolated worker has no runtime package on sys.path. Load only this trusted helper
+# before adding the algorithm directory; never let package code shadow host diagnostics.
+_spec = importlib.util.spec_from_file_location(
+    "host_diagnostics", Path(__file__).with_name("diagnostics.py")
+)
+_diagnostics = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_diagnostics)
+
 
 def send(value):
     data = json.dumps(value, ensure_ascii=False, allow_nan=False)
@@ -41,22 +49,41 @@ class Context:
 def main():
     directory, entrypoint = Path(sys.argv[1]), sys.argv[2]
     sys.path.insert(0, str(directory))
-    spec = importlib.util.spec_from_file_location("algorithm_impl", directory / entrypoint)
-    module = importlib.util.module_from_spec(spec)
-    with contextlib.redirect_stdout(sys.stderr):
-        spec.loader.exec_module(module)
-        algorithm = module.Algorithm()
+    stage = "IMPORT"
+    try:
+        spec = importlib.util.spec_from_file_location("algorithm_impl", directory / entrypoint)
+        module = importlib.util.module_from_spec(spec)
+        with contextlib.redirect_stdout(sys.stderr):
+            spec.loader.exec_module(module)
+            stage = "INITIALIZE"
+            algorithm = module.Algorithm()
+    except Exception as error:
+        send(
+            {
+                "error": type(error).__name__,
+                "diagnostic": _diagnostics.exception_details(error, directory, stage),
+            }
+        )
+        return
     send({"ready": True})
     for line in sys.stdin:
+        stage = "PROTOCOL"
         try:
             if len(line.encode()) > MAX_MESSAGE:
                 raise ValueError("input too large")
             payload = json.loads(line)
+            stage = "PROCESS"
             with contextlib.redirect_stdout(sys.stderr):
                 result = algorithm.process(payload, Context())
+            stage = "OUTPUT"
             send({"result": result})
         except Exception as error:
-            send({"error": type(error).__name__})
+            send(
+                {
+                    "error": type(error).__name__,
+                    "diagnostic": _diagnostics.exception_details(error, directory, stage),
+                }
+            )
 
 
 if __name__ == "__main__":

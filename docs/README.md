@@ -1,11 +1,12 @@
 # LInsight 文档导航
 
-本目录保留长期维护的规范、协议、功能说明、操作手册与架构决策。历史修复、审查、部署回执和测试验收记录已清理；页面规格中的批准约束仍保留。
+本目录保留长期维护的规范、协议、功能说明、操作手册与架构决策。历史修复、审查、部署回执和测试验收记录已清理；当前交付的验证记录随相关功能说明保留，页面规格中的批准约束仍保留。
 
 文档描述实现约定与使用方法，不代表当前版本已通过现场验收；生产发布仍按发布手册检查实际证据。
 
 ## 入门学习
 
+- [算法开发者 SDK 快速入门](algorithm-packages/QUICKSTART.md)：本地生成、调试、回归和打包算法。
 - [AI 技术与项目架构学习地图：从平台到盒子](AI_TECH_AND_PROJECT_MAP.md)：技术解释、执行链路、分包目录树与源码阅读顺序。
 
 ## 项目规范与规格
@@ -38,6 +39,7 @@
 - [矿区车头车牌场景配置](GATEWAY_PLATE_EVENT_DELIVERY.md)
 - [可部署算法包（SDK 1.0）](algorithm-packages/README.md)
 - [算法配置与算法包使用](algorithm-packages/USAGE.md)
+- [开发者基础能力：结构化错误与独立评测记录](DEVELOPER_FOUNDATION.md)
 
 ## 部署、运维与发布
 
@@ -45,6 +47,7 @@
 - [LInsight Operations SOP](OPERATIONS_SOP.md)
 - [LInsight V1.0 发布与回滚手册](V1_RELEASE_RUNBOOK.md)
 - [LInsight 生产现场验收 Runbook](PRODUCTION_FIELD_ACCEPTANCE_RUNBOOK.md)
+- [开发者基础能力第一轮：变更与回归记录](DEVELOPER_FOUNDATION_VERIFICATION.md)
 
 ## 架构决策
 

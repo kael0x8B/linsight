@@ -37,6 +37,20 @@ import static com.linsight.module.aivideo.enums.node.ErrorCodeConstants.*;
 @Validated
 public class NodeServiceImpl implements NodeService {
     @Override
+    public NodeEvaluationSnapshotDTO getEvaluationSnapshot(Long nodeId) {
+        var node = edgeNodeMapper.selectById(nodeId);
+        if (node == null) throw exception(NODE_NOT_AVAILABLE);
+        var snapshot = node.getResourceSnapshot() == null ? Map.<String, Object>of()
+                : JsonUtils.parseMap(node.getResourceSnapshot());
+        var environment = snapshot.get("modelEnvironment") instanceof Map<?, ?> value
+                && "1.0".equals(value.get("schemaVersion"))
+                ? new NodeModelEnvironmentDTO(true, environmentStrings(value.get("formats")),
+                    environmentStrings(value.get("rknnTargets")), environmentProviders(value.get("providers")))
+                : NodeModelEnvironmentDTO.unknown();
+        return new NodeEvaluationSnapshotDTO(node.getId(), node.getName(), node.getAgentVersion(),
+                node.getOnlineStatus(), node.getLastHeartbeatTime(), environment);
+    }
+    @Override
     public NodeModelEnvironmentDTO getModelEnvironment(Long nodeId) {
         validateNodeAvailable(nodeId);
         var node = edgeNodeMapper.selectById(nodeId);
